@@ -7,13 +7,18 @@ export async function POST(request: NextRequest) {
     const supabase = createServerSupabaseClient()
     const serviceClient = createServiceRoleClient()
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
-
     const body = await request.json()
-    const { name, email, phone, document } = body
+    const { name, email, phone, document, userId } = body
+
+    // Tentar pegar sessão, ou usar userId passado diretamente (do registro)
+    let currentUserId = userId
+    if (!currentUserId) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      }
+      currentUserId = session.user.id
+    }
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Nome e email são obrigatórios' }, { status: 400 })
@@ -59,8 +64,9 @@ export async function POST(request: NextRequest) {
     // Adicionar usuário como owner
     await serviceClient.from('company_members').insert({
       company_id: company.id,
-      user_id: session.user.id,
+      user_id: currentUserId,
       role: 'owner',
+      is_active: true,
       joined_at: new Date().toISOString(),
     })
 
@@ -68,14 +74,14 @@ export async function POST(request: NextRequest) {
     const { data: existingAgent } = await serviceClient
       .from('agents')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', currentUserId)
       .single()
 
     if (!existingAgent) {
       await serviceClient.from('agents').insert({
-        id: session.user.id,
-        name: session.user.user_metadata?.name || email.split('@')[0],
-        email: session.user.email!,
+        id: currentUserId,
+        name: body.userName || email.split('@')[0],
+        email: email,
         role: 'admin',
       })
     }

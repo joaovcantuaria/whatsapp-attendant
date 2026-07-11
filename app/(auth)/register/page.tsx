@@ -52,6 +52,8 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: companyName,
           email,
+          userId: data.user.id,
+          userName: name,
         }),
       })
 
