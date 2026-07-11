@@ -7,9 +7,7 @@ import { LOGO_BASE64 } from '@/lib/logo-base64'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -39,7 +37,6 @@ export default function LoginPage() {
         return
       }
 
-      // Marcar agente como online
       if (data.user) {
         await supabase
           .from('agents')
@@ -49,7 +46,7 @@ export default function LoginPage() {
 
       router.push('/')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro',
         description: 'Ocorreu um erro inesperado',
@@ -61,20 +58,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '60px' }} />
-          </div>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+            <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '44px' }} className="mx-auto mb-2" />
+          </Link>
+          <p className="text-sm text-gray-400">Acesse sua conta</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -82,10 +81,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm text-gray-700">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -93,19 +93,27 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl bg-[#F26522] hover:bg-[#d4561c] text-white font-medium"
+              disabled={isLoading}
+            >
               {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            <Link href="/register" className="text-primary hover:underline">
-              Primeiro acesso? Cadastre-se aqui
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Link */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Não tem conta?{' '}
+          <Link href="/register" className="text-[#F26522] font-medium hover:underline">
+            Cadastre-se
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

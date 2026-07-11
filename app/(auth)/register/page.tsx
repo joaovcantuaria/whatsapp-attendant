@@ -7,13 +7,10 @@ import { LOGO_BASE64 } from '@/lib/logo-base64'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
-import { MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 
 export default function RegisterPage() {
-  const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,7 +25,6 @@ export default function RegisterPage() {
     setIsLoading(true)
 
     try {
-      // 1. Criar conta
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -45,7 +41,6 @@ export default function RegisterPage() {
         return
       }
 
-      // 2. Criar empresa
       const companyResponse = await fetch('/api/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,7 +61,7 @@ export default function RegisterPage() {
       toast({ title: 'Conta criada com sucesso!', description: 'Redirecionando para configuração...' })
       router.push('/onboarding')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast({ title: 'Erro inesperado', variant: 'destructive' })
     } finally {
       setIsLoading(false)
@@ -74,42 +69,44 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '60px' }} />
-          </div>
-          <CardTitle className="text-2xl">Criar Conta</CardTitle>
-          <CardDescription>
-            Comece seu trial gratuito de 14 dias
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+            <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '44px' }} className="mx-auto mb-2" />
+          </Link>
+          <p className="text-sm text-gray-400">Comece seu trial gratuito de 14 dias</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="companyName">Nome da Empresa</Label>
+              <Label htmlFor="companyName" className="text-sm text-gray-700">Nome da Empresa</Label>
               <Input
                 id="companyName"
                 placeholder="Minha Empresa Ltda"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Seu nome</Label>
+              <Label htmlFor="name" className="text-sm text-gray-700">Seu nome</Label>
               <Input
                 id="name"
                 placeholder="João Silva"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -117,10 +114,11 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm text-gray-700">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -129,22 +127,30 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
                 required
+                className="h-11 rounded-xl border-gray-200 focus:border-[#F26522] focus:ring-[#F26522]/20"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-xl bg-[#F26522] hover:bg-[#d4561c] text-white font-medium"
+              disabled={isLoading}
+            >
               {isLoading ? 'Criando conta...' : 'Criar conta e começar'}
             </Button>
           </form>
-          <p className="text-xs text-muted-foreground text-center mt-4">
-            14 dias grátis. Sem cartão de crédito.
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Sem cartão de crédito. Cancele quando quiser.
           </p>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            <Link href="/login" className="text-primary hover:underline">
-              Já tem uma conta? Faça login
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Link */}
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Já tem conta?{' '}
+          <Link href="/login" className="text-[#F26522] font-medium hover:underline">
+            Faça login
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }
