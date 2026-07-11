@@ -4,21 +4,16 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardMetrics } from '@/types'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import {
   MessageCircle,
   Clock,
   CheckCircle,
-  AlertCircle,
-  TrendingUp,
   Users,
-  Zap,
-  ArrowUpRight,
-  ArrowDownRight,
-  Activity,
+  TrendingUp,
 } from 'lucide-react'
-import { DashboardChart } from '@/components/dashboard/dashboard-chart'
-import { AgentStats } from '@/components/dashboard/agent-stats'
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
@@ -28,17 +23,13 @@ export default function DashboardPage() {
     const fetchMetrics = async () => {
       try {
         const response = await fetch('/api/dashboard')
-        if (response.ok) {
-          const data = await response.json()
-          setMetrics(data)
-        }
+        if (response.ok) setMetrics(await response.json())
       } catch (error) {
         console.error('Error fetching metrics:', error)
       } finally {
         setIsLoading(false)
       }
     }
-
     fetchMetrics()
     const interval = setInterval(fetchMetrics, 30000)
     return () => clearInterval(interval)
@@ -46,188 +37,144 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-80" />
-          <Skeleton className="h-80" />
-        </div>
+      <div className="p-6 space-y-6 h-full overflow-y-auto">
+        <Skeleton className="h-6 w-32" />
+        <div className="grid grid-cols-4 gap-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}</div>
+        <div className="grid grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64" />)}</div>
       </div>
     )
   }
 
-  const totalMessages = metrics?.messagesLast7Days?.reduce((sum, d) => sum + d.count, 0) || 0
+  const kpis = [
+    { label: 'Conversas em andamento', value: metrics?.openConversations || 0, icon: MessageCircle, color: 'text-blue-500' },
+    { label: 'Pendentes', value: metrics?.pendingConversations || 0, icon: Clock, color: 'text-yellow-500' },
+    { label: 'Resolvidas hoje', value: metrics?.closedConversations || 0, icon: CheckCircle, color: 'text-green-500' },
+    { label: 'Taxa de resolução', value: `${metrics?.resolutionRate || 0}%`, icon: TrendingUp, color: 'text-purple-500' },
+  ]
+
+  const chartData = metrics?.messagesLast7Days?.map(d => ({
+    date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+    mensagens: d.count,
+  })) || []
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
+    <div className="p-6 space-y-6 h-full overflow-y-auto bg-slate-50/50">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Visão geral do seu atendimento</p>
-        </div>
-        <Badge variant="outline" className="flex items-center gap-1">
-          <Activity className="h-3 w-3 text-green-500 animate-pulse" />
-          Tempo real
-        </Badge>
+        <h1 className="text-xl font-semibold text-slate-800">Dashboard</h1>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Conversas Hoje
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <MessageCircle className="h-4 w-4 text-blue-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{metrics?.totalConversationsToday || 0}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <ArrowUpRight className="h-3 w-3 text-green-500" />
-              <span className="text-xs text-green-500">+12%</span>
-              <span className="text-xs text-muted-foreground">vs ontem</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pendentes
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-yellow-500/10">
-              <AlertCircle className="h-4 w-4 text-yellow-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{metrics?.pendingConversations || 0}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Aguardando atendimento</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-green-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Taxa de Resolução
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{metrics?.resolutionRate || 0}%</div>
-            <div className="flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3 w-3 text-green-500" />
-              <span className="text-xs text-green-500">Bom desempenho</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Mensagens (7d)
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <Zap className="h-4 w-4 text-purple-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalMessages}</div>
-            <div className="flex items-center gap-1 mt-1">
-              <Users className="h-3 w-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Enviadas e recebidas</span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((kpi, i) => (
+          <Card key={i} className="border-0 shadow-sm bg-white">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+              </div>
+              <p className="text-2xl font-bold text-slate-800">{kpi.value}</p>
+              <p className="text-xs text-slate-500 mt-1">{kpi.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Mensagens - Últimos 7 dias</CardTitle>
-            <Badge variant="outline" className="text-xs">Diário</Badge>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Conversas Iniciadas */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Total de conversas</CardTitle>
+              <span className="text-xs text-slate-400">Últimos 7 dias</span>
+            </div>
+            <p className="text-xs text-slate-500">Quantidade de conversas iniciadas no período</p>
           </CardHeader>
           <CardContent>
-            <DashboardChart data={metrics?.messagesLast7Days || []} />
+            {chartData.length === 0 ? (
+              <div className="h-40 flex items-center justify-center text-slate-400 text-sm">Sem dados</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" fontSize={10} stroke="#94a3b8" />
+                  <YAxis fontSize={10} stroke="#94a3b8" />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                  <Line type="monotone" dataKey="mensagens" stroke="#f97316" strokeWidth={2} dot={{ r: 3, fill: '#f97316' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Conversas por Agente</CardTitle>
-            <Badge variant="outline" className="text-xs">Atual</Badge>
+        {/* Tempo de atendimento */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Tempo de atendimento</CardTitle>
+            </div>
+            <p className="text-xs text-slate-500">Tempo médio para finalizar um atendimento</p>
           </CardHeader>
-          <CardContent>
-            <AgentStats data={metrics?.conversationsByAgent || []} />
+          <CardContent className="flex items-center justify-center h-40">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-slate-800">
+                {metrics?.averageResponseTime ? `${Math.round(metrics.averageResponseTime)}min` : '00h:00m'}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">Média geral</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Primeira resposta */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Primeira resposta</CardTitle>
+            </div>
+            <p className="text-xs text-slate-500">Tempo médio da primeira interação com atendente</p>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-40">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-slate-800">
+                {metrics?.averageResponseTime ? `${Math.round(metrics.averageResponseTime)}min` : '00h:00m'}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">Média geral</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Abertas agora</p>
-                <p className="text-2xl font-bold">{metrics?.openConversations || 0}</p>
-              </div>
-              <div className="p-3 rounded-full bg-blue-500/10">
-                <MessageCircle className="h-5 w-5 text-blue-500" />
-              </div>
+      {/* Agents performance */}
+      {metrics?.conversationsByAgent && metrics.conversationsByAgent.length > 0 && (
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700">Desempenho por atendente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {metrics.conversationsByAgent.map((agent, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-xs font-semibold text-orange-600">
+                    {agent.agent.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-700">{agent.agent}</span>
+                      <span className="text-sm text-slate-500">{agent.count} conversas</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full mt-1">
+                      <div
+                        className="h-full bg-orange-500 rounded-full transition-all"
+                        style={{ width: `${Math.min((agent.count / Math.max(...metrics.conversationsByAgent.map(a => a.count))) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Tempo médio de resposta</p>
-                <p className="text-2xl font-bold">
-                  {metrics?.averageResponseTime
-                    ? `${Math.round(metrics.averageResponseTime)}min`
-                    : '--'}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-orange-500/10">
-                <Clock className="h-5 w-5 text-orange-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Fechadas hoje</p>
-                <p className="text-2xl font-bold">{metrics?.closedConversations || 0}</p>
-              </div>
-              <div className="p-3 rounded-full bg-green-500/10">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   )
 }
