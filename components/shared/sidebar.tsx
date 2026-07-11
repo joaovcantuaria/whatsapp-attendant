@@ -40,6 +40,8 @@ import {
   Settings,
   Shield,
   UserCircle,
+  ListTodo,
+  BarChart3,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -48,6 +50,8 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/conversations', icon: MessageCircle, label: 'Conversas' },
   { href: '/crm', icon: Kanban, label: 'CRM' },
+  { href: '/crm/tasks', icon: ListTodo, label: 'Tarefas' },
+  { href: '/crm/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
