@@ -3,8 +3,8 @@ import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
-  title: 'WhatsApp Attendant - Sistema de Atendimento',
-  description: 'Sistema completo de atendimento via WhatsApp',
+  title: 'BoraGerir Conversas - Atendimento via WhatsApp',
+  description: 'Sistema completo de atendimento via WhatsApp para sua equipe',
 }
 
 export default function RootLayout({

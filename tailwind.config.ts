@@ -56,6 +56,11 @@ const config: Config = {
           light: '#DCF8C6',
           bg: '#ECE5DD',
         },
+        brand: {
+          DEFAULT: '#F26522',
+          light: '#FF8A50',
+          dark: '#C94E10',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

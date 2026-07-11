@@ -8,10 +8,14 @@ export default function LandingPage() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-[#25D366] flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
+            <div className="h-9 w-9 rounded-lg bg-[#F26522] flex items-center justify-center">
+              <span className="text-white font-black text-lg">B</span>
             </div>
-            <span className="font-bold text-xl">WA Attendant</span>
+            <span className="font-bold text-xl">
+              <span className="text-[#F26522]">Bora</span>
+              <span className="text-gray-900">Gerir</span>
+              <span className="text-[#25D366] ml-1">Conversas</span>
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">
@@ -22,7 +26,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/register"
-              className="bg-[#25D366] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#128C7E] transition-colors"
+              className="bg-[#F26522] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#C94E10] transition-colors"
             >
               Começar grátis
             </Link>
@@ -34,7 +38,8 @@ export default function LandingPage() {
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-4 text-center max-w-4xl">
           <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6">
-            Atendimento via WhatsApp para sua equipe
+            Atendimento via WhatsApp
+            <span className="text-[#25D366]"> para sua equipe</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Gerencie todas as conversas do WhatsApp Business da sua empresa em um só lugar.
@@ -43,7 +48,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/register"
-              className="bg-[#25D366] text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-[#128C7E] transition-colors"
+              className="bg-[#F26522] text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-[#C94E10] transition-colors shadow-lg shadow-[#F26522]/20"
             >
               Teste grátis por 14 dias
             </Link>
@@ -139,10 +144,14 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-[#25D366] flex items-center justify-center">
-                <Zap className="h-3 w-3 text-white" />
+              <div className="h-7 w-7 rounded-lg bg-[#F26522] flex items-center justify-center">
+                <span className="text-white font-black text-sm">B</span>
               </div>
-              <span className="font-semibold">WA Attendant</span>
+              <span className="font-bold">
+                <span className="text-[#F26522]">Bora</span>
+                <span className="text-gray-900">Gerir</span>
+                <span className="text-[#25D366] ml-1">Conversas</span>
+              </span>
             </div>
             <div className="flex gap-6 text-sm text-gray-600">
               <Link href="/pricing">Planos</Link>
@@ -150,7 +159,7 @@ export default function LandingPage() {
               <Link href="/register">Cadastro</Link>
             </div>
             <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} WA Attendant. Todos os direitos reservados.
+              © {new Date().getFullYear()} BoraGerir Conversas. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -162,7 +171,7 @@ export default function LandingPage() {
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <div className="bg-white p-6 rounded-xl border shadow-sm">
-      <div className="h-12 w-12 rounded-lg bg-green-50 flex items-center justify-center text-[#25D366] mb-4">
+      <div className="h-12 w-12 rounded-lg bg-orange-50 flex items-center justify-center text-[#F26522] mb-4">
         {icon}
       </div>
       <h3 className="font-semibold text-lg mb-2">{title}</h3>
@@ -175,9 +184,9 @@ function PricingCard({ name, price, description, features, highlighted }: {
   name: string; price: string; description: string; features: string[]; highlighted?: boolean
 }) {
   return (
-    <div className={`p-6 rounded-xl border ${highlighted ? 'border-[#25D366] ring-2 ring-[#25D366]/20 shadow-lg' : 'shadow-sm'}`}>
+    <div className={`p-6 rounded-xl border ${highlighted ? 'border-[#F26522] ring-2 ring-[#F26522]/20 shadow-lg' : 'shadow-sm'}`}>
       {highlighted && (
-        <span className="text-xs font-medium text-[#25D366] bg-green-50 px-2 py-1 rounded-full">
+        <span className="text-xs font-medium text-[#F26522] bg-orange-50 px-2 py-1 rounded-full">
           Mais popular
         </span>
       )}
@@ -196,7 +205,7 @@ function PricingCard({ name, price, description, features, highlighted }: {
         href="/register"
         className={`block text-center py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
           highlighted
-            ? 'bg-[#25D366] text-white hover:bg-[#128C7E]'
+            ? 'bg-[#F26522] text-white hover:bg-[#C94E10]'
             : 'border border-gray-300 hover:bg-gray-50'
         }`}
       >

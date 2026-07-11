@@ -50,14 +50,18 @@ export default function PricingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-[#25D366] flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
+            <div className="h-8 w-8 rounded-lg bg-[#F26522] flex items-center justify-center">
+              <span className="text-white font-black text-sm">B</span>
             </div>
-            <span className="font-bold text-xl">WA Attendant</span>
+            <span className="font-bold text-xl">
+              <span className="text-[#F26522]">Bora</span>
+              <span>Gerir</span>
+              <span className="text-[#25D366] ml-1">Conversas</span>
+            </span>
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Login</Link>
-            <Link href="/register" className="bg-[#25D366] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#128C7E]">
+            <Link href="/register" className="bg-[#F26522] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#C94E10]">
               Começar grátis
             </Link>
           </div>
@@ -78,11 +82,11 @@ export default function PricingPage() {
               <div
                 key={plan.name}
                 className={`p-8 rounded-2xl border ${
-                  plan.highlighted ? 'border-[#25D366] ring-2 ring-[#25D366]/20 shadow-xl' : 'shadow-sm'
+                  plan.highlighted ? 'border-[#F26522] ring-2 ring-[#F26522]/20 shadow-xl' : 'shadow-sm'
                 }`}
               >
                 {plan.highlighted && (
-                  <span className="text-xs font-medium text-[#25D366] bg-green-50 px-3 py-1 rounded-full">
+                  <span className="text-xs font-medium text-[#F26522] bg-orange-50 px-3 py-1 rounded-full">
                     Mais popular
                   </span>
                 )}
@@ -104,8 +108,8 @@ export default function PricingPage() {
                   href="/register"
                   className={`block text-center py-3 px-6 rounded-lg font-medium transition-colors ${
                     plan.highlighted
-                      ? 'bg-[#25D366] text-white hover:bg-[#128C7E]'
-                      : 'border-2 border-gray-200 hover:border-[#25D366] hover:text-[#25D366]'
+                      ? 'bg-[#F26522] text-white hover:bg-[#C94E10]'
+                      : 'border-2 border-gray-200 hover:border-[#F26522] hover:text-[#F26522]'
                   }`}
                 >
                   Começar grátis

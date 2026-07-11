@@ -75,8 +75,8 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-[#25D366] flex items-center justify-center">
-              <MessageCircle className="h-7 w-7 text-white" />
+            <div className="h-12 w-12 rounded-lg bg-[#F26522] flex items-center justify-center">
+              <span className="text-white font-black text-2xl">B</span>
             </div>
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
