@@ -86,15 +86,19 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         const defaultGreeting = `Olá! Meu nome é ${agentName} e estarei te atendendo. Como posso ajudar? 😊`
         const greetingMessage = agent?.greeting_message || defaultGreeting
         
-        await fetch('/api/send-message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: conversation.id,
-            content: greetingMessage,
-            type: 'text',
-          }),
-        })
+        const contactPhone = conversation.contact?.phone
+        if (contactPhone) {
+          await fetch('/api/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationId: conversation.id,
+              phone: contactPhone,
+              content: greetingMessage,
+              type: 'text',
+            }),
+          })
+        }
       } else {
         const err = await response.json()
         toast({ title: 'Erro ao assumir', description: err.error, variant: 'destructive' })
