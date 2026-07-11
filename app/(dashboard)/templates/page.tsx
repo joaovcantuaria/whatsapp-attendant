@@ -178,7 +178,8 @@ export default function TemplatesPage() {
       {/* Templates Sugeridos */}
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-muted-foreground">Templates Sugeridos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="max-h-[320px] overflow-y-auto rounded-lg border p-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {suggestedTemplates.map((template) => {
             const Icon = template.icon
             return (
@@ -217,6 +218,7 @@ export default function TemplatesPage() {
               </Card>
             )
           })}
+          </div>
         </div>
       </div>
 
