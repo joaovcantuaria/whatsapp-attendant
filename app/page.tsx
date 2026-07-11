@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { MessageCircle, Users, Zap, BarChart3, Clock, Shield, Check } from 'lucide-react'
+import { LOGO_BASE64 } from '@/lib/logo-base64'
 
 export default function LandingPage() {
   return (
@@ -9,7 +10,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '60px' }} />
+            <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '60px' }} />
           </div>
           <div className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">
@@ -139,7 +140,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '40px' }} />
+              <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '40px' }} />
             </div>
             <div className="flex gap-6 text-sm text-gray-600">
               <Link href="/pricing">Planos</Link>
