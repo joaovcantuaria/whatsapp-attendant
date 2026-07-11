@@ -59,12 +59,17 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const userId = agent?.id || session?.user?.id
-      const agentName = agent?.name || session?.user?.user_metadata?.name || 'Atendente'
       
       if (!userId) {
         toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
         return
       }
+
+      // Buscar dados atualizados do agente direto do banco
+      const profileRes = await fetch('/api/agents/profile')
+      const agentProfile = profileRes.ok ? await profileRes.json() : null
+      const agentName = agentProfile?.name || agent?.name || 'Atendente'
+      const agentGreeting = agentProfile?.greeting_message || agent?.greeting_message || null
       
       // 1. Assumir a conversa
       const response = await fetch('/api/conversations', {
@@ -83,10 +88,9 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         toast({ title: 'Conversa atribuída a você' })
 
         // 2. Enviar mensagem automática de apresentação
-        const rawFirstName = agentName.split(' ')[0]
-        const firstName = rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase()
+        const firstName = agentName.split(' ')[0]
         const defaultGreeting = `Olá! Meu nome é ${firstName} e estarei te atendendo. Como posso ajudar? 😊`
-        const greetingMessage = agent?.greeting_message || defaultGreeting
+        const greetingMessage = agentGreeting || defaultGreeting
         
         const contactPhone = conversation.contact?.phone
         if (contactPhone) {
