@@ -170,7 +170,7 @@ export function Sidebar() {
           </div>
 
           {/* Supervisor - admin only */}
-          {agent?.role === 'admin' && (() => {
+          {(() => {
             const supervisorItem = { href: '/dashboard/supervisor', icon: Shield, label: 'Supervisor' }
             const isActive = pathname === supervisorItem.href
 
