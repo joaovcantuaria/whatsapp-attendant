@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Check, Zap } from 'lucide-react'
 
 const plans = [
@@ -51,7 +50,8 @@ export default function PricingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <Image src="/logo.png" alt="BoraGerir Conversas" width={180} height={45} className="h-10 w-auto" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '50px' }} />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Login</Link>

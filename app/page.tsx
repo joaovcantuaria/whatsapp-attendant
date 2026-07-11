@@ -1,16 +1,15 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { MessageCircle, Users, Zap, BarChart3, Clock, Shield, Check } from 'lucide-react'
-import logoImg from './logo.png'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
-            <Image src={logoImg} alt="BoraGerir Conversas" style={{ height: '48px', width: 'auto' }} priority />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '60px' }} />
           </div>
           <div className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">
@@ -139,7 +138,8 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center">
-              <Image src={logoImg} alt="BoraGerir Conversas" className="h-10 w-auto" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '40px' }} />
             </div>
             <div className="flex gap-6 text-sm text-gray-600">
               <Link href="/pricing">Planos</Link>
