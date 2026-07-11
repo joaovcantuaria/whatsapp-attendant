@@ -65,22 +65,7 @@ export async function POST(request: NextRequest) {
       components.push({ type: 'BUTTONS', buttons })
     }
 
-    // Enviar para aprovação na Meta
-    let metaTemplateId: string | null = null
-    try {
-      const metaResponse = await createTemplate({
-        name,
-        language,
-        category: category?.toUpperCase() || 'UTILITY',
-        components,
-      })
-      metaTemplateId = metaResponse.id || null
-    } catch (error) {
-      console.error('Error creating template on Meta:', error)
-      // Salvar mesmo se falhar na Meta (para edição posterior)
-    }
-
-    // Buscar company_id
+    // Buscar company_id e credenciais
     const serviceClient = createServiceRoleClient()
     const { data: member } = await serviceClient
       .from('company_members')
@@ -91,6 +76,45 @@ export async function POST(request: NextRequest) {
 
     if (!member) {
       return NextResponse.json({ error: 'Sem empresa vinculada' }, { status: 400 })
+    }
+
+    const { data: company } = await serviceClient
+      .from('companies')
+      .select('whatsapp_token, whatsapp_business_account_id')
+      .eq('id', member.company_id)
+      .single()
+
+    if (!company?.whatsapp_token || !company?.whatsapp_business_account_id) {
+      return NextResponse.json({ error: 'WhatsApp não configurado. Configure as credenciais primeiro.' }, { status: 400 })
+    }
+
+    // Enviar para aprovação na Meta
+    let metaTemplateId: string | null = null
+    try {
+      const metaUrl = `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates`
+      const metaResponse = await fetch(metaUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${company.whatsapp_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          language,
+          category: category?.toUpperCase() || 'UTILITY',
+          components,
+        }),
+      })
+
+      if (metaResponse.ok) {
+        const metaData = await metaResponse.json()
+        metaTemplateId = metaData.id || null
+      } else {
+        const metaError = await metaResponse.json()
+        console.error('Meta template error:', metaError)
+      }
+    } catch (error) {
+      console.error('Error creating template on Meta:', error)
     }
 
     // Salvar no banco
@@ -133,13 +157,49 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const metaTemplates = await getTemplates()
+    const serviceClient = createServiceRoleClient()
+
+    // Buscar credenciais da empresa
+    const { data: member } = await serviceClient
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .single()
+
+    if (!member) {
+      return NextResponse.json({ error: 'Sem empresa' }, { status: 400 })
+    }
+
+    const { data: company } = await serviceClient
+      .from('companies')
+      .select('whatsapp_token, whatsapp_business_account_id')
+      .eq('id', member.company_id)
+      .single()
+
+    if (!company?.whatsapp_token || !company?.whatsapp_business_account_id) {
+      return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
+    }
+
+    // Buscar templates da Meta
+    const metaUrl = `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates`
+    const metaResponse = await fetch(metaUrl, {
+      headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+    })
+
+    if (!metaResponse.ok) {
+      const err = await metaResponse.json()
+      return NextResponse.json({ error: `Meta API: ${err.error?.message || 'Erro'}` }, { status: 500 })
+    }
+
+    const metaTemplates = await metaResponse.json()
     
     if (metaTemplates.data) {
       for (const template of metaTemplates.data) {
-        await supabase
+        await serviceClient
           .from('message_templates')
           .upsert({
+            company_id: member.company_id,
             meta_template_id: template.id,
             name: template.name,
             language: template.language,
@@ -151,8 +211,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ synced: true })
+    return NextResponse.json({ synced: true, count: metaTemplates.data?.length || 0 })
   } catch (error) {
+    console.error('Sync templates error:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
