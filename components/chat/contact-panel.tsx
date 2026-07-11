@@ -6,15 +6,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuthStore } from '@/store/auth-store'
 import { createClient } from '@/lib/supabase'
 import { formatPhone, getInitials } from '@/lib/utils'
-import { Mail, Phone, Tag, StickyNote, Send } from 'lucide-react'
+import { Mail, Phone, Tag, StickyNote, Send, Target } from 'lucide-react'
 
 interface ContactPanelProps {
   conversation: Conversation
@@ -27,6 +29,55 @@ export function ContactPanel({ conversation }: ContactPanelProps) {
   const { toast } = useToast()
   const [noteContent, setNoteContent] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [showDealDialog, setShowDealDialog] = useState(false)
+  const [dealTitle, setDealTitle] = useState('')
+  const [dealValue, setDealValue] = useState('')
+  const [isCreatingDeal, setIsCreatingDeal] = useState(false)
+
+  const handleCreateDeal = async () => {
+    if (!dealTitle.trim()) {
+      toast({ title: 'Título obrigatório', variant: 'destructive' })
+      return
+    }
+    setIsCreatingDeal(true)
+    try {
+      // Buscar pipeline e primeiro stage
+      const pipelineRes = await fetch('/api/crm/pipeline')
+      if (!pipelineRes.ok) throw new Error('Erro ao buscar pipeline')
+      const pipelineData = await pipelineRes.json()
+      const firstStage = pipelineData.stages?.[0]
+
+      if (!firstStage || !pipelineData.pipeline) {
+        toast({ title: 'Pipeline não configurado', variant: 'destructive' })
+        return
+      }
+
+      const response = await fetch('/api/crm/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: dealTitle,
+          value: parseFloat(dealValue) || 0,
+          contact_id: contact?.id || null,
+          stage_id: firstStage.id,
+          pipeline_id: pipelineData.pipeline.id,
+        }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Negociação criada no CRM!' })
+        setShowDealDialog(false)
+        setDealTitle('')
+        setDealValue('')
+      } else {
+        toast({ title: 'Erro ao criar negociação', variant: 'destructive' })
+      }
+    } catch (error) {
+      toast({ title: 'Erro ao criar negociação', variant: 'destructive' })
+    } finally {
+      setIsCreatingDeal(false)
+    }
+  }
 
   const handleSaveNote = async () => {
     if (!noteContent.trim() || !agent) return
@@ -155,7 +206,50 @@ export function ContactPanel({ conversation }: ContactPanelProps) {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Separator />
+
+        {/* CRM Action */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowDealDialog(true)}
+        >
+          <Target className="h-4 w-4 mr-2" />
+          Criar Negociação
+        </Button>
       </div>
+
+      {/* Create Deal Dialog */}
+      <Dialog open={showDealDialog} onOpenChange={setShowDealDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Negociação — {contact?.name || contact?.phone}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título da negociação</Label>
+              <Input
+                placeholder="Ex: Proposta de serviço"
+                value={dealTitle}
+                onChange={(e) => setDealTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor estimado (R$)</Label>
+              <Input
+                placeholder="0,00"
+                type="number"
+                value={dealValue}
+                onChange={(e) => setDealValue(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleCreateDeal} className="w-full" disabled={isCreatingDeal}>
+              {isCreatingDeal ? 'Criando...' : 'Criar e enviar pro CRM'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </ScrollArea>
   )
 }
