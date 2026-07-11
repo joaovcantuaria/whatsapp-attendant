@@ -56,22 +56,36 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   }, [conversation.id, conversation.unread_count, supabase])
 
   const handleAssign = async () => {
-    if (!agent) return
-    
-    const response = await fetch('/api/conversations', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: conversation.id,
-        agent_id: agent.id,
-        status: 'open',
-      }),
-    })
+    try {
+      // Buscar session diretamente pra garantir que temos o user id
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = agent?.id || session?.user?.id
+      
+      if (!userId) {
+        toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
+        return
+      }
+      
+      const response = await fetch('/api/conversations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: conversation.id,
+          agent_id: userId,
+          status: 'open',
+        }),
+      })
 
-    if (response.ok) {
-      const updated = await response.json()
-      setSelectedConversation(updated)
-      toast({ title: 'Conversa atribuída a você' })
+      if (response.ok) {
+        const updated = await response.json()
+        setSelectedConversation(updated)
+        toast({ title: 'Conversa atribuída a você' })
+      } else {
+        const err = await response.json()
+        toast({ title: 'Erro ao assumir', description: err.error, variant: 'destructive' })
+      }
+    } catch (error) {
+      toast({ title: 'Erro ao assumir conversa', variant: 'destructive' })
     }
   }
 
