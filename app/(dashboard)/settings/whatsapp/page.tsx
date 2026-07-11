@@ -34,7 +34,10 @@ export default function WhatsAppSettingsPage() {
   const verifyToken = `${company?.slug || ''}_${process.env.NEXT_PUBLIC_WEBHOOK_SECRET || 'WEBHOOK_SECRET'}`
 
   const handleTestConnection = async () => {
-    if (!company) return
+    if (!company) {
+      toast({ title: 'Erro', description: 'Dados da empresa não carregados. Recarregue a página.', variant: 'destructive' })
+      return
+    }
     setIsTesting(true)
 
     try {
@@ -170,10 +173,18 @@ export default function WhatsAppSettingsPage() {
               onChange={(e) => setCredentials({ ...credentials, businessAccountId: e.target.value })}
             />
           </div>
-          <Button onClick={handleTestConnection} disabled={isTesting || !credentials.accessToken}>
+          <Button 
+            onClick={handleTestConnection} 
+            disabled={isTesting || !credentials.accessToken || !credentials.phoneNumberId || !credentials.businessAccountId}
+          >
             {isTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Testar e Salvar
           </Button>
+          {!company && (
+            <p className="text-sm text-red-500 mt-2">
+              Erro: dados da empresa não carregados. Recarregue a página.
+            </p>
+          )}
         </CardContent>
       </Card>
 
