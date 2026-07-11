@@ -8,9 +8,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <Image src={logoImg} alt="BoraGerir Conversas" className="h-14 w-auto" priority />
+            <Image src={logoImg} alt="BoraGerir Conversas" style={{ height: '48px', width: 'auto' }} priority />
           </div>
           <div className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">
