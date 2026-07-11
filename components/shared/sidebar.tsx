@@ -1,14 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
 import { useCompany } from '@/hooks/use-company'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
@@ -35,46 +30,43 @@ import {
   Kanban,
   Bot,
   MessagesSquare,
-  ChevronLeft,
-  ChevronRight,
   Settings,
   Shield,
   UserCircle,
   ListTodo,
   BarChart3,
   Bell,
+  Megaphone,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
 
-const navItems = [
+const mainNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/conversations', icon: MessageCircle, label: 'Conversas' },
+  { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/crm', icon: Kanban, label: 'CRM' },
   { href: '/crm/tasks', icon: ListTodo, label: 'Tarefas' },
   { href: '/crm/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/crm/alerts', icon: Bell, label: 'Alertas' },
-  { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
   { href: '/ai-agent', icon: Bot, label: 'Agente IA' },
   { href: '/team-chat', icon: MessagesSquare, label: 'Chat Interno' },
 ]
 
-const settingsItems = [
+const bottomNavItems = [
+  { href: '/dashboard/supervisor', icon: Shield, label: 'Supervisor' },
   { href: '/settings/profile', icon: UserCircle, label: 'Meu Perfil' },
-  { href: '/settings/company', icon: Building2, label: 'Empresa' },
   { href: '/settings/whatsapp', icon: Wifi, label: 'WhatsApp' },
-  { href: '/settings/billing', icon: CreditCard, label: 'Plano' },
+  { href: '/settings/company', icon: Building2, label: 'Empresa' },
 ]
 
 export function Sidebar() {
-  const [isExpanded, setIsExpanded] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const { agent } = useAuthStore()
-  const { company, plan, trialDaysLeft } = useCompany()
 
   const handleLogout = async () => {
     if (agent) {
@@ -86,220 +78,83 @@ export function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside
-        className={cn(
-          'relative flex flex-col h-full bg-slate-900 text-white transition-all duration-300 ease-in-out',
-          isExpanded ? 'w-64' : 'w-[68px]'
-        )}
-      >
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute -right-3 top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-white text-slate-900 shadow-md hover:bg-slate-50 transition-colors"
-        >
-          {isExpanded ? (
-            <ChevronLeft className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
-          )}
-        </button>
-
-        {/* Logo / Company Header */}
-        <div className={cn('h-16 flex items-center border-b border-slate-700/50 px-4', !isExpanded && 'justify-center px-0')}>
-          {isExpanded ? (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
-                <img src="/icon.png" alt="BoraGerir" className="h-6 w-6 object-contain" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-sm truncate text-white">
-                  {company?.name || 'BoraGerir'}
-                </p>
-                {company?.plan_status === 'trial' && trialDaysLeft !== null && (
-                  <span className="text-[10px] text-orange-400">
-                    Trial • {trialDaysLeft} dias
-                  </span>
-                )}
-                {company?.plan_status === 'active' && plan && (
-                  <span className="text-[10px] text-orange-400">{plan.name}</span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
-              <img src="/icon.png" alt="BoraGerir" className="h-6 w-6 object-contain" />
-            </div>
-          )}
+      <aside className="w-[52px] flex flex-col h-full bg-slate-900 border-r border-slate-800 shrink-0">
+        {/* Logo */}
+        <div className="h-14 flex items-center justify-center border-b border-slate-800">
+          <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
+            <img src="/icon.png" alt="BG" className="h-5 w-5 object-contain" />
+          </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-
-            const linkContent = (
-              <Link key={item.href} href={item.href} prefetch={true}>
-                <div
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
-                    isActive
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                    !isExpanded && 'justify-center px-0'
-                  )}
-                >
-                  <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-orange-400')} />
-                  {isExpanded && (
-                    <span className="text-sm font-medium">{item.label}</span>
-                  )}
-                  {isActive && isExpanded && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-                  )}
-                </div>
-              </Link>
+        {/* Main Nav */}
+        <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto">
+          {mainNavItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  <Link href={item.href} prefetch={true}>
+                    <div
+                      className={cn(
+                        'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                        isActive
+                          ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      )}
+                    >
+                      <item.icon className="h-[18px] w-[18px]" />
+                    </div>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
             )
-
-            if (!isExpanded) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              )
-            }
-
-            return linkContent
-          })}
-
-          <div className="py-2">
-            <Separator className="bg-slate-700/50" />
-          </div>
-
-          {/* Supervisor - admin only */}
-          {(() => {
-            const supervisorItem = { href: '/dashboard/supervisor', icon: Shield, label: 'Supervisor' }
-            const isActive = pathname === supervisorItem.href
-
-            const linkContent = (
-              <Link href={supervisorItem.href} prefetch={true}>
-                <div
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
-                    isActive
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                    !isExpanded && 'justify-center px-0'
-                  )}
-                >
-                  <Shield className={cn('h-5 w-5 shrink-0', isActive && 'text-orange-400')} />
-                  {isExpanded && (
-                    <span className="text-sm font-medium">{supervisorItem.label}</span>
-                  )}
-                  {isActive && isExpanded && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
-                  )}
-                </div>
-              </Link>
-            )
-
-            if (!isExpanded) {
-              return (
-                <Tooltip>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    Supervisor
-                  </TooltipContent>
-                </Tooltip>
-              )
-            }
-
-            return linkContent
-          })()}
-
-          {isExpanded && (
-            <p className="text-[10px] uppercase text-slate-500 px-3 py-1 font-semibold tracking-wider">
-              Configurações
-            </p>
-          )}
-
-          {settingsItems.map((item) => {
-            const isActive = pathname === item.href
-
-            const linkContent = (
-              <Link key={item.href} href={item.href} prefetch={true}>
-                <div
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
-                    isActive
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
-                    !isExpanded && 'justify-center px-0'
-                  )}
-                >
-                  <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'text-orange-400')} />
-                  {isExpanded && (
-                    <span className="text-xs font-medium">{item.label}</span>
-                  )}
-                </div>
-              </Link>
-            )
-
-            if (!isExpanded) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              )
-            }
-
-            return linkContent
           })}
         </nav>
 
-        {/* User Footer */}
-        <div className="border-t border-slate-700/50 p-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        {/* Bottom Nav */}
+        <div className="flex flex-col items-center py-3 gap-1 border-t border-slate-800">
+          {bottomNavItems.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  <Link href={item.href} prefetch={true}>
+                    <div
+                      className={cn(
+                        'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                        isActive
+                          ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                          : 'text-slate-500 hover:text-white hover:bg-slate-800'
+                      )}
+                    >
+                      <item.icon className="h-[16px] w-[16px]" />
+                    </div>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            )
+          })}
+
+          {/* Logout */}
+          <Tooltip>
+            <TooltipTrigger asChild>
               <button
-                className={cn(
-                  'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors',
-                  !isExpanded && 'justify-center'
-                )}
+                onClick={handleLogout}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800 transition-all duration-150"
               >
-                <div className="relative">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={agent?.avatar_url || ''} />
-                    <AvatarFallback className="bg-slate-700 text-xs text-white">
-                      {agent?.name ? getInitials(agent.name) : '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-slate-900" />
-                </div>
-                {isExpanded && (
-                  <div className="text-left min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">{agent?.name}</p>
-                    <p className="text-[10px] text-slate-400 truncate">{agent?.role === 'admin' ? 'Administrador' : 'Agente'}</p>
-                  </div>
-                )}
+                <LogOut className="h-[16px] w-[16px]" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="right" className="w-56">
-              <DropdownMenuItem onClick={() => router.push('/settings/company')}>
-                <Settings className="mr-2 h-4 w-4" />
-                Configurações
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+              Sair
+            </TooltipContent>
+          </Tooltip>
         </div>
       </aside>
     </TooltipProvider>
