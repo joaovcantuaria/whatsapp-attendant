@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { LOGO_BASE64 } from '@/lib/logo-base64'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -65,7 +66,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '60px' }} />
+            <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '60px' }} />
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>

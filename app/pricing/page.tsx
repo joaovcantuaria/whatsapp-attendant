@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Check, Zap } from 'lucide-react'
+import { LOGO_BASE64 } from '@/lib/logo-base64'
 
 const plans = [
   {
@@ -51,7 +52,7 @@ export default function PricingPage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="BoraGerir Conversas" style={{ height: '50px' }} />
+            <img src={LOGO_BASE64} alt="BoraGerir Conversas" style={{ height: '50px' }} />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Login</Link>
