@@ -24,7 +24,64 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, RefreshCw, FileText } from 'lucide-react'
+import { Plus, RefreshCw, FileText, Hand, CalendarCheck, MessageCircle, Gift, Star, CreditCard } from 'lucide-react'
+
+const suggestedTemplates = [
+  {
+    id: 'boas_vindas',
+    name: 'boas_vindas',
+    title: 'Boas-vindas',
+    icon: Hand,
+    category: 'utility' as const,
+    body: 'Olá {{1}}! 👋 Seja bem-vindo(a) à {{2}}. Como podemos ajudar você hoje?',
+    footer: '',
+  },
+  {
+    id: 'confirmacao_agendamento',
+    name: 'confirmacao_agendamento',
+    title: 'Confirmação de Agendamento',
+    icon: CalendarCheck,
+    category: 'utility' as const,
+    body: 'Olá {{1}}, seu agendamento está confirmado! 📅\n\nData: {{2}}\nHorário: {{3}}\n\nQualquer dúvida, estamos à disposição.',
+    footer: '',
+  },
+  {
+    id: 'follow_up',
+    name: 'follow_up',
+    title: 'Follow-up',
+    icon: MessageCircle,
+    category: 'utility' as const,
+    body: 'Olá {{1}}! 😊 Notamos que você entrou em contato conosco recentemente. Gostaríamos de saber se podemos ajudar com algo mais.',
+    footer: '',
+  },
+  {
+    id: 'promocao',
+    name: 'promocao',
+    title: 'Promoção',
+    icon: Gift,
+    category: 'marketing' as const,
+    body: '🎉 Oferta especial para você, {{1}}!\n\n{{2}}\n\nVálido até {{3}}. Responda para saber mais!',
+    footer: '',
+  },
+  {
+    id: 'pesquisa_satisfacao',
+    name: 'pesquisa_satisfacao',
+    title: 'Pesquisa de Satisfação',
+    icon: Star,
+    category: 'marketing' as const,
+    body: 'Olá {{1}}! Gostaríamos de saber como foi seu atendimento. De 1 a 5, qual nota você daria? ⭐',
+    footer: '',
+  },
+  {
+    id: 'lembrete_pagamento',
+    name: 'lembrete_pagamento',
+    title: 'Lembrete de Pagamento',
+    icon: CreditCard,
+    category: 'utility' as const,
+    body: 'Olá {{1}}, este é um lembrete gentil sobre seu pagamento de {{2}} com vencimento em {{3}}. Caso já tenha efetuado, desconsidere esta mensagem. 🙏',
+    footer: '',
+  },
+]
 
 export default function TemplatesPage() {
   const { templates, isLoading, refetch } = useTemplates()
@@ -40,6 +97,19 @@ export default function TemplatesPage() {
     footer: '',
   })
   const { toast } = useToast()
+
+  const handleUseSuggested = (template: typeof suggestedTemplates[number]) => {
+    setFormData({
+      name: template.name,
+      language: 'pt_BR',
+      category: template.category,
+      header_type: '',
+      header_content: '',
+      body: template.body,
+      footer: template.footer,
+    })
+    setShowCreateDialog(true)
+  }
 
   const handleCreate = async () => {
     if (!formData.name || !formData.body) {
@@ -112,6 +182,52 @@ export default function TemplatesPage() {
         </div>
       </div>
 
+      {/* Templates Sugeridos */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-muted-foreground">Templates Sugeridos</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {suggestedTemplates.map((template) => {
+            const Icon = template.icon
+            return (
+              <Card
+                key={template.id}
+                className="group hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => handleUseSuggested(template)}
+              >
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{template.title}</p>
+                      <Badge variant="secondary" className="text-[10px] mt-0.5">
+                        {template.category === 'marketing' ? 'Marketing' : 'Utilidade'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap">
+                    {template.body}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-primary hover:text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleUseSuggested(template)
+                    }}
+                  >
+                    Usar template
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Templates Existentes */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => (
@@ -124,25 +240,28 @@ export default function TemplatesPage() {
           <p>Nenhum template cadastrado</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {templates.map((template) => (
-            <Card key={template.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{template.name}</span>
-                  {statusBadge(template.status)}
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                  {template.body}
-                </p>
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  <span>{template.language}</span>
-                  {template.category && <span>• {template.category}</span>}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          <h2 className="text-lg font-semibold text-muted-foreground">Seus Templates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {templates.map((template) => (
+              <Card key={template.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{template.name}</span>
+                    {statusBadge(template.status)}
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+                    {template.body}
+                  </p>
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <span>{template.language}</span>
+                    {template.category && <span>• {template.category}</span>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Create Template Dialog */}
