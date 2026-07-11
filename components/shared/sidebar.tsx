@@ -1,22 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
-import { useCompany } from '@/hooks/use-company'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   MessageCircle,
   LayoutDashboard,
@@ -36,19 +29,24 @@ import {
   ListTodo,
   BarChart3,
   Bell,
-  Megaphone,
 } from 'lucide-react'
-import { cn, getInitials } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
 const mainNavItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/conversations', icon: MessageCircle, label: 'Conversas' },
   { href: '/contacts', icon: Users, label: 'Contatos' },
-  { href: '/crm', icon: Kanban, label: 'CRM' },
+]
+
+const crmItems = [
+  { href: '/crm', icon: Kanban, label: 'Pipeline' },
   { href: '/crm/tasks', icon: ListTodo, label: 'Tarefas' },
   { href: '/crm/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/crm/alerts', icon: Bell, label: 'Alertas' },
+]
+
+const toolsNavItems = [
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
   { href: '/ai-agent', icon: Bot, label: 'Agente IA' },
@@ -67,6 +65,7 @@ export function Sidebar() {
   const router = useRouter()
   const supabase = createClient()
   const { agent } = useAuthStore()
+  const [crmExpanded, setCrmExpanded] = useState(pathname.startsWith('/crm'))
 
   const handleLogout = async () => {
     if (agent) {
@@ -74,6 +73,33 @@ export function Sidebar() {
     }
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  const isCrmActive = pathname.startsWith('/crm')
+
+  const NavItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
+    const isActive = pathname === href || (href !== '/dashboard' && href !== '/crm' && pathname.startsWith(href + '/'))
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link href={href} prefetch={true}>
+            <div
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                isActive
+                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              )}
+            >
+              <Icon className="h-[18px] w-[18px]" />
+            </div>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    )
   }
 
   return (
@@ -88,30 +114,61 @@ export function Sidebar() {
 
         {/* Main Nav */}
         <nav className="flex-1 flex flex-col items-center py-3 gap-1 overflow-y-auto">
-          {mainNavItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger asChild>
-                  <Link href={item.href} prefetch={true}>
-                    <div
-                      className={cn(
-                        'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
-                        isActive
-                          ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                      )}
-                    >
-                      <item.icon className="h-[18px] w-[18px]" />
-                    </div>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
-                  {item.label}
-                </TooltipContent>
-              </Tooltip>
-            )
-          })}
+          {mainNavItems.map((item) => <NavItem key={item.href} {...item} />)}
+
+          {/* CRM Group */}
+          <div className="relative">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    setCrmExpanded(!crmExpanded)
+                    if (!isCrmActive) router.push('/crm')
+                  }}
+                  className={cn(
+                    'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                    isCrmActive
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  )}
+                >
+                  <Kanban className="h-[18px] w-[18px]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+                CRM
+              </TooltipContent>
+            </Tooltip>
+
+            {/* CRM Sub-items popup */}
+            {crmExpanded && (
+              <div className="absolute left-full top-0 ml-2 bg-slate-800 rounded-lg py-1.5 px-1 shadow-xl border border-slate-700 z-50 min-w-[120px]">
+                {crmItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link key={item.href} href={item.href} prefetch={true}>
+                      <div
+                        className={cn(
+                          'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors',
+                          isActive
+                            ? 'bg-orange-500/20 text-orange-400'
+                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                        )}
+                      >
+                        <item.icon className="h-3 w-3" />
+                        {item.label}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Separator */}
+          <div className="w-5 h-px bg-slate-700 my-1" />
+
+          {toolsNavItems.map((item) => <NavItem key={item.href} {...item} />)}
         </nav>
 
         {/* Bottom Nav */}
