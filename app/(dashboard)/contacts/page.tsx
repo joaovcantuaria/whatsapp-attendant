@@ -93,81 +93,83 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Contatos</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowImportDialog(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Contato
-          </Button>
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-slate-800">Contatos</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)}>
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              Importar CSV
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Novo Contato
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome ou telefone..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-
-      {/* Contact List */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou telefone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredContacts.map((contact) => (
-            <Card key={contact.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback>
-                      {contact.name ? getInitials(contact.name) : '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">
-                      {contact.name || 'Sem nome'}
-                    </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      <span>{formatPhone(contact.phone)}</span>
-                    </div>
-                    {contact.email && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span className="truncate">{contact.email}</span>
+
+        {/* Contact List */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredContacts.map((contact) => (
+              <Card key={contact.id} className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="text-xs">
+                        {contact.name ? getInitials(contact.name) : '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">
+                        {contact.name || 'Sem nome'}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                        <Phone className="h-3 w-3" />
+                        <span>{formatPhone(contact.phone)}</span>
                       </div>
-                    )}
+                      {contact.email && (
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate">{contact.email}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {contact.tags && contact.tags.length > 0 && (
-                  <div className="flex gap-1 mt-2 flex-wrap">
-                    {contact.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px]">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  {contact.tags && contact.tags.length > 0 && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {contact.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px]">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Create Contact Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -226,7 +228,7 @@ export default function ContactsPage() {
               onChange={(e) => setCsvContent(e.target.value)}
             />
             <Button onClick={handleImport} className="w-full">
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
               Importar
             </Button>
           </div>

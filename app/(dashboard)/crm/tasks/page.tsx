@@ -86,82 +86,97 @@ export default function TasksPage() {
   const overdueTasks = tasks.filter(t => isOverdue(t))
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ListTodo className="h-6 w-6 text-primary" />
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Tarefas</h1>
-            <p className="text-sm text-muted-foreground">Gerencie seus follow-ups e compromissos</p>
+            <h1 className="text-lg font-semibold text-slate-800">Tarefas</h1>
+            <p className="text-xs text-slate-500">Gerencie seus follow-ups e compromissos</p>
           </div>
+          <Button onClick={() => setShowNewTask(true)} size="sm"><Plus className="h-3.5 w-3.5 mr-1" /> Nova Tarefa</Button>
         </div>
-        <Button onClick={() => setShowNewTask(true)}><Plus className="h-4 w-4 mr-1" /> Nova Tarefa</Button>
-      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-blue-500" />
-            <div><p className="text-lg font-bold">{todayTasks.length}</p><p className="text-[10px] text-muted-foreground">Para hoje</p></div>
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-            <div><p className="text-lg font-bold">{overdueTasks.length}</p><p className="text-[10px] text-muted-foreground">Atrasadas</p></div>
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <div><p className="text-lg font-bold">{tasks.filter(t => t.status === 'completed').length}</p><p className="text-[10px] text-muted-foreground">Concluídas</p></div>
-          </div>
-        </Card>
-      </div>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{todayTasks.length}</p>
+                  <p className="text-[11px] text-slate-500">Para hoje</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{overdueTasks.length}</p>
+                  <p className="text-[11px] text-slate-500">Atrasadas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{tasks.filter(t => t.status === 'completed').length}</p>
+                  <p className="text-[11px] text-slate-500">Concluídas</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Filter */}
-      <Tabs value={filter} onValueChange={setFilter}>
-        <TabsList>
-          <TabsTrigger value="all">Todas</TabsTrigger>
-          <TabsTrigger value="pending">Pendentes</TabsTrigger>
-          <TabsTrigger value="completed">Concluídas</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        {/* Filter */}
+        <Tabs value={filter} onValueChange={setFilter}>
+          <TabsList>
+            <TabsTrigger value="all">Todas</TabsTrigger>
+            <TabsTrigger value="pending">Pendentes</TabsTrigger>
+            <TabsTrigger value="completed">Concluídas</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      {/* Task List */}
-      {isLoading ? (
-        <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
-      ) : tasks.length === 0 ? (
-        <Card className="border-dashed"><CardContent className="py-12 text-center text-muted-foreground">Nenhuma tarefa encontrada</CardContent></Card>
-      ) : (
-        <div className="space-y-2">
-          {tasks.map(task => (
-            <Card key={task.id} className={`${isOverdue(task) ? 'border-red-500/50 bg-red-500/5' : ''}`}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <Button
-                  variant="ghost" size="icon" className="shrink-0"
-                  onClick={() => task.status !== 'completed' && handleComplete(task.id)}
-                  disabled={task.status === 'completed'}
-                >
-                  <CheckCircle className={`h-5 w-5 ${task.status === 'completed' ? 'text-green-500' : 'text-muted-foreground'}`} />
-                </Button>
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium text-sm ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {task.contact && <span className="text-xs text-muted-foreground">👤 {task.contact.name}</span>}
-                    {task.due_date && <span className="text-xs text-muted-foreground">📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
+        {/* Task List */}
+        {isLoading ? (
+          <div className="space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
+        ) : tasks.length === 0 ? (
+          <Card className="border-0 shadow-sm bg-white"><CardContent className="py-12 text-center text-muted-foreground">Nenhuma tarefa encontrada</CardContent></Card>
+        ) : (
+          <div className="space-y-2">
+            {tasks.map(task => (
+              <Card key={task.id} className={`border-0 shadow-sm bg-white ${isOverdue(task) ? 'ring-1 ring-red-200' : ''}`}>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Button
+                    variant="ghost" size="icon" className="shrink-0 h-8 w-8"
+                    onClick={() => task.status !== 'completed' && handleComplete(task.id)}
+                    disabled={task.status === 'completed'}
+                  >
+                    <CheckCircle className={`h-4 w-4 ${task.status === 'completed' ? 'text-green-500' : 'text-muted-foreground'}`} />
+                  </Button>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {task.contact && <span className="text-xs text-muted-foreground">👤 {task.contact.name}</span>}
+                      {task.due_date && <span className="text-xs text-muted-foreground">📅 {new Date(task.due_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={priorityColor(task.priority) as any} className="text-[10px]">{priorityLabel(task.priority)}</Badge>
-                  {isOverdue(task) && <Badge variant="destructive" className="text-[10px]">Atrasada</Badge>}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  <div className="flex items-center gap-2">
+                    <Badge variant={priorityColor(task.priority) as any} className="text-[10px]">{priorityLabel(task.priority)}</Badge>
+                    {isOverdue(task) && <Badge variant="destructive" className="text-[10px]">Atrasada</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* New Task Dialog */}
       <Dialog open={showNewTask} onOpenChange={setShowNewTask}>

@@ -24,7 +24,6 @@ export default function WhatsAppSettingsPage() {
   const [isTesting, setIsTesting] = useState(false)
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
-  // Mensagens automáticas
   const [welcomeEnabled, setWelcomeEnabled] = useState(company?.welcome_message_enabled || false)
   const [welcomeMessage, setWelcomeMessage] = useState(company?.welcome_message || '')
   const [awayEnabled, setAwayEnabled] = useState(company?.away_message_enabled || false)
@@ -112,163 +111,166 @@ export default function WhatsAppSettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Configurações WhatsApp</h1>
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
+        <h1 className="text-lg font-semibold text-slate-800">Configurações WhatsApp</h1>
 
-      {/* Status */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Status da Conexão</CardTitle>
-            <Badge variant={company?.whatsapp_connected ? 'success' : 'destructive'} className="flex items-center gap-1">
-              {company?.whatsapp_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {company?.whatsapp_connected ? 'Conectado' : 'Desconectado'}
-            </Badge>
-          </div>
-        </CardHeader>
-        {company?.whatsapp_connected && (
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Phone Number ID: {company.whatsapp_phone_number_id}
-            </p>
-            <Button variant="destructive" size="sm" onClick={handleDisconnect} disabled={isDisconnecting}>
-              {isDisconnecting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Desconectar
+        {/* Status */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Status da Conexão</CardTitle>
+              <Badge variant={company?.whatsapp_connected ? 'success' : 'destructive'} className="text-[10px] flex items-center gap-1">
+                {company?.whatsapp_connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                {company?.whatsapp_connected ? 'Conectado' : 'Desconectado'}
+              </Badge>
+            </div>
+          </CardHeader>
+          {company?.whatsapp_connected && (
+            <CardContent>
+              <p className="text-xs text-slate-500 mb-3">
+                Phone Number ID: {company.whatsapp_phone_number_id}
+              </p>
+              <Button variant="destructive" size="sm" onClick={handleDisconnect} disabled={isDisconnecting}>
+                {isDisconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                Desconectar
+              </Button>
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Credenciais */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700">
+              {company?.whatsapp_connected ? 'Atualizar Credenciais' : 'Conectar WhatsApp'}
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Credenciais da Meta Cloud API (developers.facebook.com)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Access Token</Label>
+              <Input
+                type="password"
+                placeholder="EAAxxxxxxx..."
+                value={credentials.accessToken}
+                onChange={(e) => setCredentials({ ...credentials, accessToken: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone Number ID</Label>
+              <Input
+                value={credentials.phoneNumberId}
+                onChange={(e) => setCredentials({ ...credentials, phoneNumberId: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Business Account ID</Label>
+              <Input
+                value={credentials.businessAccountId}
+                onChange={(e) => setCredentials({ ...credentials, businessAccountId: e.target.value })}
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={handleTestConnection}
+              disabled={isTesting || !credentials.accessToken || !credentials.phoneNumberId || !credentials.businessAccountId}
+            >
+              {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+              Testar e Salvar
+            </Button>
+            {!company && (
+              <p className="text-xs text-red-500 mt-2">
+                Erro: dados da empresa não carregados. Recarregue a página.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Webhook */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700">Webhook</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Configure esta URL no painel da Meta para receber mensagens</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL do Webhook</Label>
+              <div className="flex gap-2">
+                <Input value={webhookUrl} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => copyToClipboard(webhookUrl, 'URL')}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Token de Verificação</Label>
+              <div className="flex gap-2">
+                <Input value={verifyToken} readOnly className="font-mono text-xs" />
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => copyToClipboard(verifyToken, 'Token')}>
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mensagens Automáticas */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700">Mensagens Automáticas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Mensagem de Boas-vindas</Label>
+                <Button
+                  size="sm"
+                  variant={welcomeEnabled ? 'default' : 'outline'}
+                  onClick={() => setWelcomeEnabled(!welcomeEnabled)}
+                >
+                  {welcomeEnabled ? 'Ativada' : 'Desativada'}
+                </Button>
+              </div>
+              {welcomeEnabled && (
+                <Textarea
+                  value={welcomeMessage}
+                  onChange={(e) => setWelcomeMessage(e.target.value)}
+                  placeholder="Olá! Bem-vindo ao nosso atendimento..."
+                />
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Mensagem de Ausência</Label>
+                <Button
+                  size="sm"
+                  variant={awayEnabled ? 'default' : 'outline'}
+                  onClick={() => setAwayEnabled(!awayEnabled)}
+                >
+                  {awayEnabled ? 'Ativada' : 'Desativada'}
+                </Button>
+              </div>
+              {awayEnabled && (
+                <Textarea
+                  value={awayMessage}
+                  onChange={(e) => setAwayMessage(e.target.value)}
+                  placeholder="No momento estamos fora do horário de atendimento..."
+                />
+              )}
+            </div>
+
+            <Button onClick={handleSaveMessages} size="sm" className="w-full">
+              Salvar Configurações
             </Button>
           </CardContent>
-        )}
-      </Card>
-
-      {/* Credenciais */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">
-            {company?.whatsapp_connected ? 'Atualizar Credenciais' : 'Conectar WhatsApp'}
-          </CardTitle>
-          <CardDescription>
-            Credenciais da Meta Cloud API (developers.facebook.com)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Access Token</Label>
-            <Input
-              type="password"
-              placeholder="EAAxxxxxxx..."
-              value={credentials.accessToken}
-              onChange={(e) => setCredentials({ ...credentials, accessToken: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Phone Number ID</Label>
-            <Input
-              value={credentials.phoneNumberId}
-              onChange={(e) => setCredentials({ ...credentials, phoneNumberId: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Business Account ID</Label>
-            <Input
-              value={credentials.businessAccountId}
-              onChange={(e) => setCredentials({ ...credentials, businessAccountId: e.target.value })}
-            />
-          </div>
-          <Button 
-            onClick={handleTestConnection} 
-            disabled={isTesting || !credentials.accessToken || !credentials.phoneNumberId || !credentials.businessAccountId}
-          >
-            {isTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Testar e Salvar
-          </Button>
-          {!company && (
-            <p className="text-sm text-red-500 mt-2">
-              Erro: dados da empresa não carregados. Recarregue a página.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Webhook */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Webhook</CardTitle>
-          <CardDescription>Configure esta URL no painel da Meta para receber mensagens</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>URL do Webhook</Label>
-            <div className="flex gap-2">
-              <Input value={webhookUrl} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={() => copyToClipboard(webhookUrl, 'URL')}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Token de Verificação</Label>
-            <div className="flex gap-2">
-              <Input value={verifyToken} readOnly className="font-mono text-xs" />
-              <Button variant="outline" size="icon" onClick={() => copyToClipboard(verifyToken, 'Token')}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Mensagens Automáticas */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Mensagens Automáticas</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Mensagem de Boas-vindas</Label>
-              <Button
-                size="sm"
-                variant={welcomeEnabled ? 'default' : 'outline'}
-                onClick={() => setWelcomeEnabled(!welcomeEnabled)}
-              >
-                {welcomeEnabled ? 'Ativada' : 'Desativada'}
-              </Button>
-            </div>
-            {welcomeEnabled && (
-              <Textarea
-                value={welcomeMessage}
-                onChange={(e) => setWelcomeMessage(e.target.value)}
-                placeholder="Olá! Bem-vindo ao nosso atendimento..."
-              />
-            )}
-          </div>
-
-          <Separator />
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Mensagem de Ausência</Label>
-              <Button
-                size="sm"
-                variant={awayEnabled ? 'default' : 'outline'}
-                onClick={() => setAwayEnabled(!awayEnabled)}
-              >
-                {awayEnabled ? 'Ativada' : 'Desativada'}
-              </Button>
-            </div>
-            {awayEnabled && (
-              <Textarea
-                value={awayMessage}
-                onChange={(e) => setAwayMessage(e.target.value)}
-                placeholder="No momento estamos fora do horário de atendimento..."
-              />
-            )}
-          </div>
-
-          <Button onClick={handleSaveMessages} className="w-full">
-            Salvar Configurações
-          </Button>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

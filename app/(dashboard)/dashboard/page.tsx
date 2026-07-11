@@ -58,7 +58,7 @@ export default function DashboardPage() {
   })) || []
 
   return (
-    <div className="p-6 space-y-5 h-full overflow-y-auto bg-slate-50/50">
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
       {/* Header */}
       <div className="max-w-5xl mx-auto space-y-5">
         <h1 className="text-lg font-semibold text-slate-800">Dashboard</h1>

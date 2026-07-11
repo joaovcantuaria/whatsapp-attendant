@@ -24,7 +24,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, RefreshCw, FileText, Hand, CalendarCheck, MessageCircle, Gift, Star, CreditCard, Trash2, Clock, Truck, ShieldCheck, UserCheck, Bell, Heart, Repeat, AlertTriangle, Package, Receipt } from 'lucide-react'
+import { Plus, RefreshCw, FileText, Hand, CalendarCheck, MessageCircle,
+  Gift, Star, CreditCard, Trash2, Clock, Truck, ShieldCheck, UserCheck,
+  Bell, Heart, Repeat, AlertTriangle, Package, Receipt } from 'lucide-react'
 
 const suggestedTemplates = [
   { id: 'boas_vindas', name: 'boas_vindas', title: 'Boas-vindas', icon: Hand, category: 'utility' as const, body: 'Olá {{1}}! Seja bem-vindo(a) à {{2}}. Estamos aqui para ajudar. Como podemos atendê-lo(a) hoje?', footer: '' },
@@ -149,130 +151,133 @@ export default function TemplatesPage() {
   const statusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge variant="success">Aprovado</Badge>
+        return <Badge variant="success" className="text-[10px]">Aprovado</Badge>
       case 'rejected':
-        return <Badge variant="destructive">Rejeitado</Badge>
+        return <Badge variant="destructive" className="text-[10px]">Rejeitado</Badge>
       case 'pending':
-        return <Badge variant="warning">Pendente</Badge>
+        return <Badge variant="warning" className="text-[10px]">Pendente</Badge>
       default:
-        return <Badge variant="secondary">{status}</Badge>
+        return <Badge variant="secondary" className="text-[10px]">{status}</Badge>
     }
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Templates de Mensagem</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleSync} disabled={isSyncing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            Sincronizar
-          </Button>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Template
-          </Button>
-        </div>
-      </div>
-
-      {/* Templates Sugeridos */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-muted-foreground">Templates Sugeridos</h2>
-        <div className="max-h-[320px] overflow-y-auto rounded-lg border p-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {suggestedTemplates.map((template) => {
-            const Icon = template.icon
-            return (
-              <Card
-                key={template.id}
-                className="group hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => handleUseSuggested(template)}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{template.title}</p>
-                      <Badge variant="secondary" className="text-[10px] mt-0.5">
-                        {template.category === 'marketing' ? 'Marketing' : 'Utilidade'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap">
-                    {template.body}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs text-primary hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleUseSuggested(template)
-                    }}
-                  >
-                    Usar template
-                  </Button>
-                </CardContent>
-              </Card>
-            )
-          })}
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-slate-800">Templates de Mensagem</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleSync} disabled={isSyncing}>
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              Sincronizar
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Novo Template
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Templates Existentes */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Nenhum template cadastrado</p>
-        </div>
-      ) : (
-        <>
-          <h2 className="text-lg font-semibold text-muted-foreground">Seus Templates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {templates.map((template) => (
-              <Card key={template.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{template.name}</span>
-                    <div className="flex items-center gap-2">
-                      {statusBadge(template.status)}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(template.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+        {/* Templates Sugeridos */}
+        <div className="space-y-3">
+          <h2 className="text-xs text-slate-500 font-medium uppercase tracking-wide">Templates Sugeridos</h2>
+          <div className="max-h-[320px] overflow-y-auto rounded-lg border p-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {suggestedTemplates.map((template) => {
+              const Icon = template.icon
+              return (
+                <Card
+                  key={template.id}
+                  className="group hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => handleUseSuggested(template)}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{template.title}</p>
+                        <Badge variant="secondary" className="text-[10px] mt-0.5">
+                          {template.category === 'marketing' ? 'Marketing' : 'Utilidade'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                    {template.body}
-                  </p>
-                  {template.status === 'rejected' && (template as any).rejected_reason && (
-                    <p className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-2">
-                      ⚠️ {(template as any).rejected_reason}
+                    <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-wrap">
+                      {template.body}
                     </p>
-                  )}
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    <span>{template.language}</span>
-                    {template.category && <span>• {template.category}</span>}
-                  </div>
-                </CardContent>
-              </Card>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs text-primary hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleUseSuggested(template)
+                      }}
+                    >
+                      Usar template
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
+            </div>
+          </div>
+        </div>
+
+        {/* Templates Existentes */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
             ))}
           </div>
-        </>
-      )}
+        ) : templates.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">Nenhum template cadastrado</p>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-xs text-slate-500 font-medium uppercase tracking-wide">Seus Templates</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {templates.map((template) => (
+                <Card key={template.id} className="border-0 shadow-sm bg-white">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">{template.name}</span>
+                      <div className="flex items-center gap-2">
+                        {statusBadge(template.status)}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(template.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
+                      {template.body}
+                    </p>
+                    {template.status === 'rejected' && (template as any).rejected_reason && (
+                      <p className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-2">
+                        ⚠️ {(template as any).rejected_reason}
+                      </p>
+                    )}
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>{template.language}</span>
+                      {template.category && <span>• {template.category}</span>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Create Template Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

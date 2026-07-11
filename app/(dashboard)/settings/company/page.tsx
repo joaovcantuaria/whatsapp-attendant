@@ -45,57 +45,59 @@ export default function CompanySettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-3xl">
-      <h1 className="text-2xl font-bold">Dados da Empresa</h1>
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
+        <h1 className="text-lg font-semibold text-slate-800">Dados da Empresa</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Informações
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome da Empresa</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Telefone</Label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>CNPJ</Label>
-            <Input
-              value={formData.document}
-              onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Slug (URL do Webhook)</Label>
-            <Input value={company?.slug || ''} disabled />
-            <p className="text-xs text-muted-foreground">O slug não pode ser alterado</p>
-          </div>
-          <Button onClick={handleSave} disabled={isLoading}>
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </CardContent>
-      </Card>
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <Building2 className="h-3.5 w-3.5" />
+              Informações
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da Empresa</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={formData.document}
+                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Slug (URL do Webhook)</Label>
+              <Input value={company?.slug || ''} disabled />
+              <p className="text-xs text-slate-500">O slug não pode ser alterado</p>
+            </div>
+            <Button onClick={handleSave} disabled={isLoading} size="sm">
+              <Save className="h-3.5 w-3.5 mr-1.5" />
+              {isLoading ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

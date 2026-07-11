@@ -112,7 +112,6 @@ export default function CrmPage() {
 
     if (result.source.droppableId === destStageId) return
 
-    // Optimistic update
     setDeals(prev => prev.map(d => d.id === dealId ? { ...d, stage_id: destStageId } : d))
 
     try {
@@ -196,9 +195,9 @@ export default function CrmPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6 space-y-6 h-full">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-4 gap-4"><Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
+      <div className="p-6 space-y-5 h-full">
+        <Skeleton className="h-6 w-48" />
+        <div className="grid grid-cols-4 gap-3"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div>
         <Skeleton className="h-96" />
       </div>
     )
@@ -208,17 +207,17 @@ export default function CrmPage() {
     <div className="p-6 space-y-4 h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Kanban className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">CRM</h1>
+        <div className="flex items-center gap-2">
+          <Kanban className="h-4 w-4 text-primary" />
+          <h1 className="text-lg font-semibold text-slate-800">CRM</h1>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-52" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-52 h-8 text-sm" />
           </div>
-          <Button onClick={() => setShowNewDeal(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova Negociação
+          <Button onClick={() => setShowNewDeal(true)} size="sm">
+            <Plus className="h-3.5 w-3.5 mr-1" /> Nova Negociação
           </Button>
         </div>
       </div>
@@ -226,41 +225,49 @@ export default function CrmPage() {
       {/* Dashboard KPIs */}
       {dashboard && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-blue-500" />
-              <div>
-                <p className="text-lg font-bold">{dashboard.totalOpenDeals}</p>
-                <p className="text-[10px] text-muted-foreground">No funil</p>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Target className="h-3.5 w-3.5 text-blue-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{dashboard.totalOpenDeals}</p>
+                  <p className="text-[11px] text-slate-500">No funil</p>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-500" />
-              <div>
-                <p className="text-lg font-bold">R$ {dashboard.totalPipelineValue.toLocaleString('pt-BR')}</p>
-                <p className="text-[10px] text-muted-foreground">Valor aberto</p>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-green-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">R$ {dashboard.totalPipelineValue.toLocaleString('pt-BR')}</p>
+                  <p className="text-[11px] text-slate-500">Valor aberto</p>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-              <div>
-                <p className="text-lg font-bold">{dashboard.wonThisMonth}</p>
-                <p className="text-[10px] text-muted-foreground">Ganhas (mês)</p>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{dashboard.wonThisMonth}</p>
+                  <p className="text-[11px] text-slate-500">Ganhas (mês)</p>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
-          <Card className="p-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-purple-500" />
-              <div>
-                <p className="text-lg font-bold">{dashboard.conversionRate}%</p>
-                <p className="text-[10px] text-muted-foreground">Conversão</p>
+          <Card className="border-0 shadow-sm bg-white">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-3.5 w-3.5 text-purple-500" />
+                <div>
+                  <p className="text-xl font-bold text-slate-800">{dashboard.conversionRate}%</p>
+                  <p className="text-[11px] text-slate-500">Conversão</p>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
       )}
@@ -305,7 +312,7 @@ export default function CrmPage() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`p-3 cursor-grab active:cursor-grabbing ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}`}
+                              className={`p-3 cursor-grab active:cursor-grabbing border-0 shadow-sm bg-white ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}`}
                             >
                               <p className="font-medium text-sm mb-1">{deal.title}</p>
                               {deal.contact && (

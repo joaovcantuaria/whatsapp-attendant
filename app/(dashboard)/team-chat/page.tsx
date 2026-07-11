@@ -106,9 +106,9 @@ export default function TeamChatPage() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b flex items-center gap-3">
-          <MessagesSquare className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">Chat da Equipe</h1>
-          <Badge variant="secondary" className="text-xs">
+          <MessagesSquare className="h-4 w-4 text-primary" />
+          <h1 className="text-lg font-semibold text-slate-800">Chat da Equipe</h1>
+          <Badge variant="secondary" className="text-[10px]">
             {onlineAgents.length} online
           </Badge>
         </div>
@@ -121,9 +121,9 @@ export default function TeamChatPage() {
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <MessagesSquare className="h-12 w-12 mb-3 opacity-50" />
+              <MessagesSquare className="h-10 w-10 mb-3 opacity-50" />
               <p className="text-sm">Nenhuma mensagem ainda</p>
-              <p className="text-xs">Comece uma conversa com sua equipe!</p>
+              <p className="text-xs text-slate-500">Comece uma conversa com sua equipe!</p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -140,7 +140,7 @@ export default function TeamChatPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className={`max-w-[70%] ${isMe ? 'text-right' : ''}`}>
-                    <p className="text-xs text-muted-foreground mb-1">
+                    <p className="text-xs text-slate-500 mb-1">
                       {isMe ? 'Você' : msg.agent_name} •{' '}
                       {new Date(msg.created_at).toLocaleTimeString('pt-BR', {
                         hour: '2-digit',
@@ -178,7 +178,7 @@ export default function TeamChatPage() {
               onChange={(e) => setNewMessage(e.target.value)}
               className="flex-1"
             />
-            <Button type="submit" disabled={!newMessage.trim()}>
+            <Button type="submit" size="sm" disabled={!newMessage.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </form>
@@ -188,8 +188,8 @@ export default function TeamChatPage() {
       {/* Online Agents Sidebar */}
       <div className="w-64 border-l p-4 hidden lg:block">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Equipe Online</span>
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-slate-700">Equipe Online</span>
         </div>
         <div className="space-y-3">
           {onlineAgents.map((a) => (
@@ -207,7 +207,7 @@ export default function TeamChatPage() {
             </div>
           ))}
           {onlineAgents.length === 0 && (
-            <p className="text-xs text-muted-foreground">Ninguém online</p>
+            <p className="text-xs text-slate-500">Ninguém online</p>
           )}
         </div>
       </div>
