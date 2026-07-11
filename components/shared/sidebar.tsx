@@ -99,8 +99,8 @@ export function Sidebar() {
         <div className={cn('h-16 flex items-center border-b border-slate-700/50 px-4', !isExpanded && 'justify-center px-0')}>
           {isExpanded ? (
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
-                <MessageCircle className="h-5 w-5 text-white" />
+              <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
+                <img src="/icon.png" alt="BoraGerir" className="h-6 w-6 object-contain" />
               </div>
               <div className="min-w-0">
                 <p className="font-semibold text-sm truncate text-white">
@@ -117,8 +117,8 @@ export function Sidebar() {
               </div>
             </div>
           ) : (
-            <div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <MessageCircle className="h-5 w-5 text-white" />
+            <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
+              <img src="/icon.png" alt="BoraGerir" className="h-6 w-6 object-contain" />
             </div>
           )}
         </div>
