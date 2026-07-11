@@ -28,7 +28,7 @@ export default function DashboardPage() {
     }
 
     fetchMetrics()
-    const interval = setInterval(fetchMetrics, 30000) // Atualiza a cada 30s
+    const interval = setInterval(fetchMetrics, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -50,7 +50,6 @@ export default function DashboardPage() {
     <div className="p-6 space-y-6 overflow-y-auto h-full">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -93,7 +92,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>

@@ -32,6 +32,7 @@ import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
 
 const navItems = [
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/conversations', icon: MessageCircle, label: 'Conversas' },
   { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/templates', icon: FileText, label: 'Templates' },
