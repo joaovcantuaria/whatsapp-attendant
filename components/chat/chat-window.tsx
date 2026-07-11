@@ -5,6 +5,7 @@ import { Conversation } from '@/types'
 import { useMessages } from '@/hooks/use-messages'
 import { useWindowExpiry } from '@/hooks/use-window-expiry'
 import { useAuthStore } from '@/store/auth-store'
+import { useConversationStore } from '@/store/conversation-store'
 import { createClient } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   const { messages, isLoading } = useMessages(conversation.id)
   const windowStatus = useWindowExpiry(conversation.last_message_at)
   const { agent } = useAuthStore()
+  const { setSelectedConversation } = useConversationStore()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const { toast } = useToast()
@@ -67,6 +69,8 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     })
 
     if (response.ok) {
+      const updated = await response.json()
+      setSelectedConversation(updated)
       toast({ title: 'Conversa atribuída a você' })
     }
   }
@@ -82,6 +86,8 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     })
 
     if (response.ok) {
+      const updated = await response.json()
+      setSelectedConversation(updated)
       toast({ title: 'Conversa encerrada' })
     }
   }
@@ -97,6 +103,8 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     })
 
     if (response.ok) {
+      const updated = await response.json()
+      setSelectedConversation(updated)
       toast({ title: 'Conversa reaberta' })
     }
   }
