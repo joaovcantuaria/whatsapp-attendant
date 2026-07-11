@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
 import { useCompany } from '@/hooks/use-company'
-import { LOGO_BASE64 } from '@/lib/logo-base64'
+import { ICON_BASE64 } from '@/lib/icon-base64'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -67,11 +67,11 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-3 border-b">
         <div className="flex items-center gap-2 min-w-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '32px' }} className="shrink-0 hidden lg:block" />
+          <img src={ICON_BASE64} alt="BoraGerir" style={{ height: '32px', width: '32px', objectFit: 'contain' }} className="shrink-0" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '28px', width: '28px', objectFit: 'contain' }} className="shrink-0 lg:hidden" />
+          <img src={ICON_BASE64} alt="BoraGerir" style={{ height: '28px', width: '28px', objectFit: 'contain' }} className="shrink-0 lg:hidden hidden" />
           <div className="hidden lg:block min-w-0">
-            <p className="font-semibold text-sm truncate">{company?.name || 'BoraGerir'}</p>
+            <p className="font-semibold text-sm truncate">{company?.name || 'BoraGerir Conversas'}</p>
             <div className="flex items-center gap-1">
               {company?.plan_status === 'trial' && trialDaysLeft !== null && (
                 <Badge variant="warning" className="text-[9px] px-1 py-0">
