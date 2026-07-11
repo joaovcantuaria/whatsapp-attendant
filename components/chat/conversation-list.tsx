@@ -1,16 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import { useConversations } from '@/hooks/use-conversations'
 import { useConversationStore } from '@/store/conversation-store'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConversationItem } from './conversation-item'
 import { AgentFilter } from './agent-filter'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Search } from 'lucide-react'
+import { Search, MessageCircle } from 'lucide-react'
 import { ConversationStatus } from '@/types'
 
 export function ConversationList() {
@@ -18,9 +16,7 @@ export function ConversationList() {
   const { conversations, isLoading } = useConversations(filter)
 
   const filteredConversations = conversations.filter((conv) => {
-    // Agent filter
     if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
-    // Search filter
     if (searchQuery) {
       const contactName = conv.contact?.name || ''
       const contactPhone = conv.contact?.phone || ''
@@ -32,57 +28,75 @@ export function ConversationList() {
     return true
   })
 
+  const tabs = [
+    { value: 'all', label: 'Todas', count: conversations.length },
+    { value: 'pending', label: 'Pendentes', count: conversations.filter(c => c.status === 'pending').length },
+    { value: 'open', label: 'Abertas', count: conversations.filter(c => c.status === 'open').length },
+    { value: 'closed', label: 'Fechadas', count: conversations.filter(c => c.status === 'closed').length },
+  ]
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 border-b space-y-3">
-        <h2 className="font-semibold text-lg">Conversas</h2>
+      <div className="px-4 pt-4 pb-3 space-y-3 border-b">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-800">Conversas</h2>
+          <Badge variant="secondary" className="text-[10px] px-1.5">{filteredConversations.length}</Badge>
+        </div>
         
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
           <Input
-            placeholder="Buscar conversa..."
+            placeholder="Buscar..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-8 h-8 text-xs border-slate-200 bg-slate-50 focus:bg-white"
           />
         </div>
 
         {/* Agent Filter */}
         <AgentFilter />
 
-        {/* Filter Tabs */}
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as ConversationStatus | 'all')}>
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1 text-xs">Todas</TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1 text-xs">Pendentes</TabsTrigger>
-            <TabsTrigger value="open" className="flex-1 text-xs">Abertas</TabsTrigger>
-            <TabsTrigger value="closed" className="flex-1 text-xs">Fechadas</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Tabs */}
+        <div className="flex gap-0.5 bg-slate-100 rounded-lg p-0.5">
+          {tabs.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setFilter(tab.value as ConversationStatus | 'all')}
+              className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                filter === tab.value
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Conversation List */}
       <ScrollArea className="flex-1">
         {isLoading ? (
-          <div className="p-4 space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex gap-3">
-                <Skeleton className="h-12 w-12 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
+          <div className="p-3 space-y-2">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex gap-2.5 p-2">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-2.5 w-full" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredConversations.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground text-sm">
-            Nenhuma conversa encontrada
+          <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+            <MessageCircle className="h-8 w-8 mb-2 opacity-50" />
+            <p className="text-xs">Nenhuma conversa</p>
           </div>
         ) : (
-          <div className="divide-y">
+          <div>
             {filteredConversations.map((conversation) => (
               <ConversationItem key={conversation.id} conversation={conversation} />
             ))}

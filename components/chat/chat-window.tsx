@@ -16,11 +16,12 @@ import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import { WindowExpiryBanner } from './window-expiry-banner'
 import { getInitials, formatPhone } from '@/lib/utils'
-import { Phone, MoreVertical, UserPlus, XCircle } from 'lucide-react'
+import { MoreVertical, UserPlus, XCircle, RotateCcw } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useToast } from '@/components/ui/use-toast'
@@ -39,19 +40,13 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   const { toast } = useToast()
   const contact = conversation.contact
 
-  // Scroll para baixo ao receber mensagens
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Marcar como lidas
   useEffect(() => {
     if (conversation.unread_count > 0) {
-      supabase
-        .from('conversations')
-        .update({ unread_count: 0 })
-        .eq('id', conversation.id)
-        .then()
+      supabase.from('conversations').update({ unread_count: 0 }).eq('id', conversation.id).then()
     }
   }, [conversation.id, conversation.unread_count, supabase])
 
@@ -59,186 +54,143 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const userId = agent?.id || session?.user?.id
-      
-      if (!userId) {
-        toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
-        return
-      }
+      if (!userId) { toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' }); return }
 
-      // Buscar dados atualizados do agente direto do banco
       const profileRes = await fetch('/api/agents/profile')
       const agentProfile = profileRes.ok ? await profileRes.json() : null
       const agentName = agentProfile?.name || agent?.name || 'Atendente'
       const agentGreeting = agentProfile?.greeting_message || agent?.greeting_message || null
-      
-      // 1. Assumir a conversa
+
       const response = await fetch('/api/conversations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: conversation.id,
-          agent_id: userId,
-          status: 'open',
-        }),
+        body: JSON.stringify({ id: conversation.id, agent_id: userId, status: 'open' }),
       })
 
       if (response.ok) {
         const updated = await response.json()
         setSelectedConversation(updated)
-        toast({ title: 'Conversa atribuída a você' })
+        toast({ title: 'Conversa assumida' })
 
-        // 2. Enviar mensagem automática de apresentação
         const firstName = agentName.split(' ')[0]
         const defaultGreeting = `Olá! Meu nome é ${firstName} e estarei te atendendo. Como posso ajudar? 😊`
         const greetingMessage = agentGreeting || defaultGreeting
-        
         const contactPhone = conversation.contact?.phone
         if (contactPhone) {
           await fetch('/api/send-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              conversationId: conversation.id,
-              phone: contactPhone,
-              content: greetingMessage,
-              type: 'text',
-            }),
+            body: JSON.stringify({ conversationId: conversation.id, phone: contactPhone, content: greetingMessage, type: 'text' }),
           })
         }
-      } else {
-        const err = await response.json()
-        toast({ title: 'Erro ao assumir', description: err.error, variant: 'destructive' })
       }
-    } catch (error) {
-      toast({ title: 'Erro ao assumir conversa', variant: 'destructive' })
-    }
+    } catch { toast({ title: 'Erro ao assumir', variant: 'destructive' }) }
   }
 
   const handleClose = async () => {
     const response = await fetch('/api/conversations', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: conversation.id,
-        status: 'closed',
-      }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: conversation.id, status: 'closed' }),
     })
-
-    if (response.ok) {
-      const updated = await response.json()
-      setSelectedConversation(updated)
-      toast({ title: 'Conversa encerrada' })
-    }
+    if (response.ok) { setSelectedConversation(await response.json()); toast({ title: 'Conversa encerrada' }) }
   }
 
   const handleReopen = async () => {
     const response = await fetch('/api/conversations', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: conversation.id,
-        status: 'open',
-      }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: conversation.id, status: 'open' }),
     })
-
-    if (response.ok) {
-      const updated = await response.json()
-      setSelectedConversation(updated)
-      toast({ title: 'Conversa reaberta' })
-    }
+    if (response.ok) { setSelectedConversation(await response.json()); toast({ title: 'Conversa reaberta' }) }
   }
 
+  const statusConfig = {
+    open: { label: 'Aberta', color: 'bg-green-500' },
+    pending: { label: 'Pendente', color: 'bg-yellow-500' },
+    closed: { label: 'Fechada', color: 'bg-slate-400' },
+  }
+  const status = statusConfig[conversation.status] || statusConfig.open
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="h-16 border-b flex items-center justify-between px-4">
+      <div className="h-14 border-b flex items-center justify-between px-4 bg-white">
         <div className="flex items-center gap-3">
-          <Avatar>
+          <Avatar className="h-8 w-8">
             <AvatarImage src={contact?.profile_picture || ''} />
-            <AvatarFallback>
+            <AvatarFallback className="text-xs bg-slate-100 text-slate-600">
               {contact?.name ? getInitials(contact.name) : '?'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium text-sm">
-              {contact?.name || 'Desconhecido'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {contact?.phone ? formatPhone(contact.phone) : ''}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-slate-800">{contact?.name || 'Desconhecido'}</p>
+              <div className={`w-1.5 h-1.5 rounded-full ${status.color}`} />
+              <span className="text-[10px] text-slate-500">{status.label}</span>
+            </div>
+            <p className="text-[11px] text-slate-400">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
           </div>
-          <Badge variant={conversation.status === 'open' ? 'success' : conversation.status === 'pending' ? 'warning' : 'secondary'}>
-            {conversation.status === 'open' ? 'Aberta' : conversation.status === 'pending' ? 'Pendente' : 'Fechada'}
-          </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {(conversation.status === 'pending' || !conversation.agent_id) && (
-            <Button size="sm" onClick={handleAssign} variant="default">
-              <UserPlus className="h-4 w-4 mr-1" />
-              Assumir
+            <Button size="sm" onClick={handleAssign} className="h-7 text-[11px] px-2.5">
+              <UserPlus className="h-3 w-3 mr-1" /> Assumir
             </Button>
           )}
           {conversation.status !== 'closed' && (
-            <Button size="sm" onClick={handleClose} variant="outline">
-              <XCircle className="h-4 w-4 mr-1" />
-              Encerrar
+            <Button size="sm" variant="ghost" onClick={handleClose} className="h-7 text-[11px] px-2.5 text-slate-500">
+              <XCircle className="h-3 w-3 mr-1" /> Encerrar
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleAssign}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Assumir atendimento
+            <DropdownMenuContent align="end" className="text-xs">
+              <DropdownMenuItem onClick={handleAssign} className="text-xs">
+                <UserPlus className="mr-2 h-3 w-3" /> Assumir
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleReopen}>
-                <Phone className="mr-2 h-4 w-4" />
-                Reabrir conversa
+              <DropdownMenuItem onClick={handleReopen} className="text-xs">
+                <RotateCcw className="mr-2 h-3 w-3" /> Reabrir
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleClose} className="text-destructive">
-                <XCircle className="mr-2 h-4 w-4" />
-                Encerrar conversa
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleClose} className="text-xs text-red-600">
+                <XCircle className="mr-2 h-3 w-3" /> Encerrar
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      {/* Window Expiry Banner */}
-      {windowStatus !== 'open' && (
-        <WindowExpiryBanner status={windowStatus} />
-      )}
+      {/* Expiry Banner */}
+      {windowStatus !== 'open' && <WindowExpiryBanner status={windowStatus} />}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
-                <Skeleton className="h-12 w-48 rounded-lg" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+      <ScrollArea className="flex-1 bg-slate-50">
+        <div className="p-4 max-w-3xl mx-auto">
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}>
+                  <Skeleton className="h-10 w-44 rounded-xl" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {messages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </ScrollArea>
 
       {/* Message Input */}
-      <MessageInput
-        conversation={conversation}
-        windowStatus={windowStatus}
-      />
+      <MessageInput conversation={conversation} windowStatus={windowStatus} />
     </div>
   )
 }

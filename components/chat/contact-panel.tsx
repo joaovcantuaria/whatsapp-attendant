@@ -102,25 +102,25 @@ export function ContactPanel({ conversation }: ContactPanelProps) {
   }
 
   return (
-    <ScrollArea className="h-full">
+    <ScrollArea className="h-full bg-white">
       <div className="p-4 space-y-4">
         {/* Contact Info */}
-        <div className="text-center space-y-3">
-          <Avatar className="h-16 w-16 mx-auto">
+        <div className="text-center space-y-2">
+          <Avatar className="h-14 w-14 mx-auto">
             <AvatarImage src={contact?.profile_picture || ''} />
-            <AvatarFallback className="text-lg">
+            <AvatarFallback className="text-base bg-slate-100 text-slate-600">
               {contact?.name ? getInitials(contact.name) : '?'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold">{contact?.name || 'Desconhecido'}</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-sm font-semibold text-slate-800">{contact?.name || 'Desconhecido'}</h3>
+            <p className="text-[11px] text-slate-400">
               {contact?.phone ? formatPhone(contact.phone) : ''}
             </p>
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-slate-100" />
 
         {/* Contact Details */}
         <div className="space-y-3">

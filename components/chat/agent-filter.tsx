@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Users } from 'lucide-react'
 
 export function AgentFilter() {
   const { agents } = useAgents()
@@ -17,14 +16,13 @@ export function AgentFilter() {
 
   return (
     <Select value={agentFilter} onValueChange={setAgentFilter}>
-      <SelectTrigger className="h-8 text-xs">
-        <Users className="h-3 w-3 mr-1" />
+      <SelectTrigger className="h-8 text-[11px] border-slate-200 bg-slate-50">
         <SelectValue placeholder="Todos os agentes" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">Todos os agentes</SelectItem>
+        <SelectItem value="all" className="text-xs">Todos os agentes</SelectItem>
         {agents.map((agent) => (
-          <SelectItem key={agent.id} value={agent.id}>
+          <SelectItem key={agent.id} value={agent.id} className="text-xs">
             {agent.name}
           </SelectItem>
         ))}
