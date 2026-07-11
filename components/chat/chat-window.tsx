@@ -83,7 +83,8 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         toast({ title: 'Conversa atribuída a você' })
 
         // 2. Enviar mensagem automática de apresentação
-        const defaultGreeting = `Olá! Meu nome é ${agentName} e estarei te atendendo. Como posso ajudar? 😊`
+        const firstName = agentName.split(' ')[0]
+        const defaultGreeting = `Olá! Meu nome é ${firstName} e estarei te atendendo. Como posso ajudar? 😊`
         const greetingMessage = agent?.greeting_message || defaultGreeting
         
         const contactPhone = conversation.contact?.phone

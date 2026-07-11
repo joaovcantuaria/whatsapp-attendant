@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/components/ui/use-toast'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { User, MessageSquare, Save } from 'lucide-react'
@@ -16,16 +17,33 @@ export default function ProfilePage() {
   const { agent, setAgent } = useAuthStore()
   const { toast } = useToast()
 
-  const [name, setName] = useState(agent?.name || '')
-  const [greetingMessage, setGreetingMessage] = useState(agent?.greeting_message || '')
+  const [name, setName] = useState('')
+  const [greetingMessage, setGreetingMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('')
 
+  // Buscar dados do perfil diretamente da API
   useEffect(() => {
-    if (agent) {
-      setName(agent.name)
-      setGreetingMessage(agent.greeting_message || '')
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/agents/profile')
+        if (response.ok) {
+          const data = await response.json()
+          setName(data.name || '')
+          setGreetingMessage(data.greeting_message || '')
+          setEmail(data.email || '')
+          setRole(data.role || 'agent')
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [agent])
+    fetchProfile()
+  }, [])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -55,7 +73,18 @@ export default function ProfilePage() {
     }
   }
 
-  const defaultGreeting = `Olá! Meu nome é ${name || 'Atendente'} e estarei te atendendo. Como posso ajudar? 😊`
+  const firstName = name.split(' ')[0] || 'Atendente'
+  const defaultGreeting = `Olá! Meu nome é ${firstName} e estarei te atendendo. Como posso ajudar? 😊`
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6 h-full overflow-y-auto max-w-2xl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-48" />
+        <Skeleton className="h-48" />
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto max-w-2xl">
@@ -82,9 +111,9 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">{agent?.email}</p>
+              <p className="font-medium">{email}</p>
               <p className="text-sm text-muted-foreground">
-                {agent?.role === 'admin' ? 'Administrador' : 'Agente'}
+                {role === 'admin' ? 'Administrador' : 'Agente'}
               </p>
             </div>
           </div>
@@ -124,7 +153,7 @@ export default function ProfilePage() {
               rows={3}
             />
             <p className="text-xs text-muted-foreground">
-              Deixe em branco para usar a mensagem padrão
+              Deixe em branco para usar a mensagem padrão (usa só o primeiro nome)
             </p>
           </div>
 
