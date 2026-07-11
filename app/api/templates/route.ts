@@ -196,6 +196,11 @@ export async function PUT(request: NextRequest) {
     
     if (metaTemplates.data) {
       for (const template of metaTemplates.data) {
+        // Extrair motivo de rejeição se existir
+        const rejectedReason = template.quality_score?.reasons?.join(', ') 
+          || template.rejected_reason 
+          || template.status === 'REJECTED' ? (template.quality_score?.reasons?.[0] || 'Verificação da empresa pendente ou conteúdo não aprovado') : null
+
         await serviceClient
           .from('message_templates')
           .upsert({
@@ -206,6 +211,8 @@ export async function PUT(request: NextRequest) {
             category: template.category?.toLowerCase(),
             status: template.status?.toLowerCase() === 'approved' ? 'approved' : template.status?.toLowerCase(),
             body: template.components?.find((c: { type: string }) => c.type === 'BODY')?.text || '',
+            footer: template.components?.find((c: { type: string }) => c.type === 'FOOTER')?.text || null,
+            rejected_reason: template.status === 'REJECTED' ? (rejectedReason || 'Motivo não especificado pela Meta. Verifique se a empresa está verificada.') : null,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'meta_template_id' })
       }

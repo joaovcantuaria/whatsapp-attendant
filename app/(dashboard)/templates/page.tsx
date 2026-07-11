@@ -286,6 +286,11 @@ export default function TemplatesPage() {
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
                     {template.body}
                   </p>
+                  {template.status === 'rejected' && (template as any).rejected_reason && (
+                    <p className="text-xs text-destructive bg-destructive/10 p-2 rounded mb-2">
+                      ⚠️ {(template as any).rejected_reason}
+                    </p>
+                  )}
                   <div className="flex gap-2 text-xs text-muted-foreground">
                     <span>{template.language}</span>
                     {template.category && <span>• {template.category}</span>}
