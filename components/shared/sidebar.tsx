@@ -121,27 +121,18 @@ export function Sidebar() {
 
           {/* CRM Group */}
           <Popover>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <button
-                    className={cn(
-                      'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
-                      isCrmActive
-                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    )}
-                  >
-                    <Kanban className="h-[18px] w-[18px]" />
-                  </button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              {!isCrmActive && (
-                <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
-                  CRM
-                </TooltipContent>
-              )}
-            </Tooltip>
+            <PopoverTrigger asChild>
+              <button
+                className={cn(
+                  'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                  isCrmActive
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                )}
+              >
+                <Kanban className="h-[18px] w-[18px]" />
+              </button>
+            </PopoverTrigger>
             <PopoverContent side="right" align="start" sideOffset={8} className="w-[130px] p-1.5 bg-slate-800 border-slate-700">
               {crmItems.map((item) => {
                 const isActive = pathname === item.href
