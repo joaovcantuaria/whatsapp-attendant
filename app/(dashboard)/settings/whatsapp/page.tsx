@@ -30,7 +30,7 @@ export default function WhatsAppSettingsPage() {
   const [awayEnabled, setAwayEnabled] = useState(company?.away_message_enabled || false)
   const [awayMessage, setAwayMessage] = useState(company?.away_message || '')
 
-  const webhookUrl = company?.webhook_url || ''
+  const webhookUrl = company?.webhook_url || `https://whatsapp-attendant-lemon.vercel.app/api/webhook/${company?.slug || ''}`
   const verifyToken = `${company?.slug || ''}_${process.env.NEXT_PUBLIC_WEBHOOK_SECRET || 'WEBHOOK_SECRET'}`
 
   const handleTestConnection = async () => {
