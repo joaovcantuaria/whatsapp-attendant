@@ -58,29 +58,29 @@ export default function DashboardPage() {
   })) || []
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto bg-slate-50/50">
+    <div className="p-6 space-y-5 h-full overflow-y-auto bg-slate-50/50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-800">Dashboard</h1>
+      <div className="max-w-5xl mx-auto space-y-5">
+        <h1 className="text-lg font-semibold text-slate-800">Dashboard</h1>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="max-w-5xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((kpi, i) => (
           <Card key={i} className="border-0 shadow-sm bg-white">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
               </div>
-              <p className="text-2xl font-bold text-slate-800">{kpi.value}</p>
-              <p className="text-xs text-slate-500 mt-1">{kpi.label}</p>
+              <p className="text-xl font-bold text-slate-800">{kpi.value}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{kpi.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Conversas Iniciadas */}
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="pb-2">

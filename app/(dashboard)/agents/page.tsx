@@ -87,63 +87,51 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Users className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Agentes</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie sua equipe de atendimento
-            </p>
-          </div>
+        <div>
+          <h1 className="text-lg font-semibold text-slate-800">Agentes</h1>
+          <p className="text-xs text-slate-500">Gerencie sua equipe de atendimento</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
+        <Button onClick={() => setShowCreateDialog(true)} size="sm">
+          <UserPlus className="h-3.5 w-3.5 mr-1.5" />
           Convidar Agente
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="border-0 shadow-sm bg-white">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-green-500/10">
-                <Circle className="h-4 w-4 text-green-500 fill-green-500" />
-              </div>
+              <Circle className="h-3 w-3 text-green-500 fill-green-500" />
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.is_online).length}</p>
-                <p className="text-xs text-muted-foreground">Online agora</p>
+                <p className="text-xl font-bold text-slate-800">{agents.filter(a => a.is_online).length}</p>
+                <p className="text-[11px] text-slate-500">Online agora</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card className="border-0 shadow-sm bg-white">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-blue-500/10">
-                <Users className="h-4 w-4 text-blue-500" />
-              </div>
+              <Users className="h-3.5 w-3.5 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{agents.length}</p>
-                <p className="text-xs text-muted-foreground">Total de agentes</p>
+                <p className="text-xl font-bold text-slate-800">{agents.length}</p>
+                <p className="text-[11px] text-slate-500">Total de agentes</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
+        <Card className="border-0 shadow-sm bg-white">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-purple-500/10">
-                <ShieldCheck className="h-4 w-4 text-purple-500" />
-              </div>
+              <ShieldCheck className="h-3.5 w-3.5 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold">{agents.filter(a => a.role === 'admin').length}</p>
-                <p className="text-xs text-muted-foreground">Administradores</p>
+                <p className="text-xl font-bold text-slate-800">{agents.filter(a => a.role === 'admin').length}</p>
+                <p className="text-[11px] text-slate-500">Administradores</p>
               </div>
             </div>
           </CardContent>
@@ -282,6 +270,7 @@ export default function AgentsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   )
 }
