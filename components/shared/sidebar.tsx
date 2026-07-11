@@ -42,6 +42,7 @@ import {
   UserCircle,
   ListTodo,
   BarChart3,
+  Bell,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -52,6 +53,7 @@ const navItems = [
   { href: '/crm', icon: Kanban, label: 'CRM' },
   { href: '/crm/tasks', icon: ListTodo, label: 'Tarefas' },
   { href: '/crm/reports', icon: BarChart3, label: 'Relatórios' },
+  { href: '/crm/alerts', icon: Bell, label: 'Alertas' },
   { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
