@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, RefreshCw, FileText, Hand, CalendarCheck, MessageCircle, Gift, Star, CreditCard } from 'lucide-react'
+import { Plus, RefreshCw, FileText, Hand, CalendarCheck, MessageCircle, Gift, Star, CreditCard, Trash2 } from 'lucide-react'
 
 const suggestedTemplates = [
   {
@@ -153,6 +153,25 @@ export default function TemplatesPage() {
     }
   }
 
+  const handleDelete = async (templateId: string) => {
+    try {
+      const response = await fetch('/api/templates', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: templateId }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Template excluído' })
+        refetch()
+      } else {
+        toast({ title: 'Erro ao excluir', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Erro ao excluir', variant: 'destructive' })
+    }
+  }
+
   const statusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -248,7 +267,17 @@ export default function TemplatesPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{template.name}</span>
-                    {statusBadge(template.status)}
+                    <div className="flex items-center gap-2">
+                      {statusBadge(template.status)}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(template.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
                     {template.body}

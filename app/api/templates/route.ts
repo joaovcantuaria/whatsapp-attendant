@@ -217,3 +217,78 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+
+
+// Deletar template
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient()
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+    }
+
+    const serviceClient = createServiceRoleClient()
+
+    // Buscar template pra ver se precisa deletar na Meta também
+    const { data: template } = await serviceClient
+      .from('message_templates')
+      .select('meta_template_id, name')
+      .eq('id', id)
+      .single()
+
+    // Se tem meta_template_id, tentar deletar na Meta
+    if (template?.meta_template_id) {
+      const { data: member } = await serviceClient
+        .from('company_members')
+        .select('company_id')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .single()
+
+      if (member) {
+        const { data: company } = await serviceClient
+          .from('companies')
+          .select('whatsapp_token, whatsapp_business_account_id')
+          .eq('id', member.company_id)
+          .single()
+
+        if (company?.whatsapp_token && company?.whatsapp_business_account_id) {
+          try {
+            await fetch(
+              `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates?name=${template.name}`,
+              {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+              }
+            )
+          } catch (e) {
+            console.error('Error deleting template from Meta:', e)
+          }
+        }
+      }
+    }
+
+    // Deletar do banco
+    const { error } = await serviceClient
+      .from('message_templates')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
