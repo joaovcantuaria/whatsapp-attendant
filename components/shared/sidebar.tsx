@@ -65,7 +65,8 @@ export function Sidebar() {
       {/* Company Header */}
       <div className="h-16 flex items-center px-3 border-b">
         <div className="flex items-center gap-2 min-w-0">
-          <img src="/logo.png" alt="BoraGerir" className="h-8 w-8 rounded-lg shrink-0" />
+          <img src="/logo.png" alt="BoraGerir" className="h-8 shrink-0 hidden lg:block" />
+          <img src="/logo.png" alt="BoraGerir" className="h-8 w-8 object-contain shrink-0 lg:hidden" />
           <div className="hidden lg:block min-w-0">
             <p className="font-semibold text-sm truncate">{company?.name || 'BoraGerir'}</p>
             <div className="flex items-center gap-1">

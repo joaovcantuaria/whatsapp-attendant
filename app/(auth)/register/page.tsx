@@ -75,7 +75,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="BoraGerir" className="h-12 w-12 rounded-lg" />
+            <img src="/logo.png" alt="BoraGerir Conversas" className="h-12" />
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
           <CardDescription>

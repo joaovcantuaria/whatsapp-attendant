@@ -64,13 +64,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="BoraGerir" className="h-12 w-12 rounded-lg" />
+            <img src="/logo.png" alt="BoraGerir Conversas" className="h-12" />
           </div>
-          <CardTitle className="text-2xl">
-            <span className="text-[#F26522]">Bora</span>
-            <span>Gerir</span>
-            <span className="text-[#25D366] ml-1">Conversas</span>
-          </CardTitle>
+          <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>

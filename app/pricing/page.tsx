@@ -49,13 +49,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-white">
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="BoraGerir" className="h-8 w-8 rounded-lg" />
-            <span className="font-bold text-xl">
-              <span className="text-[#F26522]">Bora</span>
-              <span>Gerir</span>
-              <span className="text-[#25D366] ml-1">Conversas</span>
-            </span>
+          <Link href="/" className="flex items-center">
+            <img src="/logo.png" alt="BoraGerir Conversas" className="h-10" />
           </Link>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Login</Link>
