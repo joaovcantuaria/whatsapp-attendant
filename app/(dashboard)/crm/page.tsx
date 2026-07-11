@@ -65,13 +65,15 @@ export default function CrmPage() {
   const [showNewDeal, setShowNewDeal] = useState(false)
   const [newDeal, setNewDeal] = useState({ title: '', value: '', contact_id: '' })
   const [isCreating, setIsCreating] = useState(false)
+  const [contacts, setContacts] = useState<any[]>([])
   const { toast } = useToast()
 
   const fetchData = useCallback(async () => {
     try {
-      const [pipelineRes, dashRes] = await Promise.all([
+      const [pipelineRes, dashRes, contactsRes] = await Promise.all([
         fetch('/api/crm/pipeline'),
         fetch('/api/crm/dashboard'),
+        fetch('/api/contacts'),
       ])
 
       if (pipelineRes.ok) {
@@ -84,6 +86,11 @@ export default function CrmPage() {
       if (dashRes.ok) {
         const dashData = await dashRes.json()
         setDashboard(dashData)
+      }
+
+      if (contactsRes.ok) {
+        const contactsData = await contactsRes.json()
+        setContacts(contactsData || [])
       }
     } catch (error) {
       console.error('Error fetching CRM data:', error)
@@ -343,6 +350,18 @@ export default function CrmPage() {
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
               <Input placeholder="0,00" type="number" value={newDeal.value} onChange={(e) => setNewDeal({ ...newDeal, value: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Contato (opcional)</Label>
+              <Select value={newDeal.contact_id || 'none'} onValueChange={(v) => setNewDeal({ ...newDeal, contact_id: v === 'none' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar contato" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem contato vinculado</SelectItem>
+                  {contacts.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name || c.phone}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleCreateDeal} className="w-full" disabled={isCreating}>
               {isCreating ? 'Criando...' : 'Criar Negociação'}
