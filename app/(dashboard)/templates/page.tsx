@@ -87,6 +87,7 @@ export default function TemplatesPage() {
   const { templates, isLoading, refetch } = useTemplates()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     language: 'pt_BR',
@@ -117,6 +118,7 @@ export default function TemplatesPage() {
       return
     }
 
+    setIsCreating(true)
     try {
       const response = await fetch('/api/templates', {
         method: 'POST',
@@ -135,6 +137,8 @@ export default function TemplatesPage() {
       }
     } catch (error) {
       toast({ title: 'Erro ao criar template', variant: 'destructive' })
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -370,8 +374,8 @@ export default function TemplatesPage() {
               </div>
             )}
 
-            <Button onClick={handleCreate} className="w-full">
-              Criar e Enviar para Aprovação
+            <Button onClick={handleCreate} className="w-full" disabled={isCreating}>
+              {isCreating ? 'Enviando para aprovação...' : 'Criar e Enviar para Aprovação'}
             </Button>
           </div>
         </DialogContent>
