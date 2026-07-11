@@ -100,6 +100,7 @@ export interface Agent {
   avatar_url: string | null
   role: AgentRole
   is_online: boolean
+  greeting_message: string | null
   created_at: string
 }
 

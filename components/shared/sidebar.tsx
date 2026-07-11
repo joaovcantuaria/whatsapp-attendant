@@ -39,6 +39,7 @@ import {
   ChevronRight,
   Settings,
   Shield,
+  UserCircle,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -55,6 +56,7 @@ const navItems = [
 ]
 
 const settingsItems = [
+  { href: '/settings/profile', icon: UserCircle, label: 'Meu Perfil' },
   { href: '/settings/company', icon: Building2, label: 'Empresa' },
   { href: '/settings/whatsapp', icon: Wifi, label: 'WhatsApp' },
   { href: '/settings/billing', icon: CreditCard, label: 'Plano' },

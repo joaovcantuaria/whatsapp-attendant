@@ -83,7 +83,8 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         toast({ title: 'Conversa atribuída a você' })
 
         // 2. Enviar mensagem automática de apresentação
-        const greetingMessage = `Olá! Meu nome é ${agentName} e estarei te atendendo. Como posso ajudar? 😊`
+        const defaultGreeting = `Olá! Meu nome é ${agentName} e estarei te atendendo. Como posso ajudar? 😊`
+        const greetingMessage = agent?.greeting_message || defaultGreeting
         
         await fetch('/api/send-message', {
           method: 'POST',
