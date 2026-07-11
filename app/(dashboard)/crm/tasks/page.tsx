@@ -90,9 +90,14 @@ export default function TasksPage() {
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-800">Tarefas</h1>
-            <p className="text-xs text-slate-500">Gerencie seus follow-ups e compromissos</p>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold text-slate-800">CRM</h1>
+            <nav className="flex gap-0.5 bg-slate-100 rounded-lg p-0.5">
+              <a href="/crm" className="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 hover:text-slate-700">Pipeline</a>
+              <a href="/crm/tasks" className="px-3 py-1.5 rounded-md text-[11px] font-medium bg-white text-slate-800 shadow-sm">Tarefas</a>
+              <a href="/crm/reports" className="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 hover:text-slate-700">Relatórios</a>
+              <a href="/crm/alerts" className="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 hover:text-slate-700">Alertas</a>
+            </nav>
           </div>
           <Button onClick={() => setShowNewTask(true)} size="sm"><Plus className="h-3.5 w-3.5 mr-1" /> Nova Tarefa</Button>
         </div>

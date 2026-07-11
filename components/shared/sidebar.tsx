@@ -10,6 +10,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
   MessageCircle,
   LayoutDashboard,
   Users,
@@ -115,11 +120,11 @@ export function Sidebar() {
           {mainNavItems.map((item) => <NavItem key={item.href} {...item} />)}
 
           {/* CRM Group */}
-          <div className="relative group">
+          <Popover>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Link href="/crm" prefetch={true}>
-                  <div
+                <PopoverTrigger asChild>
+                  <button
                     className={cn(
                       'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
                       isCrmActive
@@ -128,8 +133,8 @@ export function Sidebar() {
                     )}
                   >
                     <Kanban className="h-[18px] w-[18px]" />
-                  </div>
-                </Link>
+                  </button>
+                </PopoverTrigger>
               </TooltipTrigger>
               {!isCrmActive && (
                 <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
@@ -137,31 +142,27 @@ export function Sidebar() {
                 </TooltipContent>
               )}
             </Tooltip>
-
-            {/* CRM Sub-items on hover */}
-            <div className="absolute left-full top-0 ml-1 hidden group-hover:block z-[100]">
-              <div className="bg-slate-800 rounded-lg py-1.5 px-1 shadow-xl border border-slate-700 min-w-[120px]">
-                {crmItems.map((item) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <Link key={item.href} href={item.href} prefetch={true}>
-                      <div
-                        className={cn(
-                          'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors whitespace-nowrap',
-                          isActive
-                            ? 'bg-orange-500/20 text-orange-400'
-                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                        )}
-                      >
-                        <item.icon className="h-3 w-3" />
-                        {item.label}
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+            <PopoverContent side="right" align="start" sideOffset={8} className="w-[130px] p-1.5 bg-slate-800 border-slate-700">
+              {crmItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link key={item.href} href={item.href} prefetch={true}>
+                    <div
+                      className={cn(
+                        'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors whitespace-nowrap',
+                        isActive
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                      )}
+                    >
+                      <item.icon className="h-3 w-3" />
+                      {item.label}
+                    </div>
+                  </Link>
+                )
+              })}
+            </PopoverContent>
+          </Popover>
 
           {/* Separator */}
           <div className="w-5 h-px bg-slate-700 my-1" />
