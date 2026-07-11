@@ -30,17 +30,25 @@ export default function ProfilePage() {
   }, [agent])
 
   const handleSave = async () => {
-    if (!agent) return
     setIsSaving(true)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = agent?.id || session?.user?.id
+
+      if (!userId) {
+        toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
+        setIsSaving(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('agents')
         .update({
           name,
           greeting_message: greetingMessage || null,
         })
-        .eq('id', agent.id)
+        .eq('id', userId)
         .select()
         .single()
 
