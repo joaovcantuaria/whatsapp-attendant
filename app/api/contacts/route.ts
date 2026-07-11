@@ -58,10 +58,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const companyId = await getUserCompanyId(session.user.id)
-    if (!companyId) {
-      return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 400 })
+    const serviceClient = createServiceRoleClient()
+    
+    // Buscar company_id usando service client (bypassa RLS)
+    const { data: memberData, error: memberError } = await serviceClient
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .single()
+
+    if (memberError || !memberData?.company_id) {
+      return NextResponse.json({ 
+        error: 'Empresa não encontrada', 
+        details: `user_id: ${session.user.id}, error: ${memberError?.message || 'no member found'}` 
+      }, { status: 400 })
     }
+
+    const companyId = memberData.company_id
 
     const body = await request.json()
 
