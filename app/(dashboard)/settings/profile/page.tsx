@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/auth-store'
-import { createClient } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +14,6 @@ import { getInitials } from '@/lib/utils'
 
 export default function ProfilePage() {
   const { agent, setAgent } = useAuthStore()
-  const supabase = createClient()
   const { toast } = useToast()
 
   const [name, setName] = useState(agent?.name || '')
@@ -33,31 +31,23 @@ export default function ProfilePage() {
     setIsSaving(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const userId = agent?.id || session?.user?.id
-
-      if (!userId) {
-        toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
-        setIsSaving(false)
-        return
-      }
-
-      const { data, error } = await supabase
-        .from('agents')
-        .update({
+      const response = await fetch('/api/agents/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           name,
           greeting_message: greetingMessage || null,
-        })
-        .eq('id', userId)
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) throw error
-
-      if (data) {
+      if (response.ok) {
+        const data = await response.json()
         setAgent(data)
+        toast({ title: 'Perfil atualizado!' })
+      } else {
+        const err = await response.json()
+        toast({ title: 'Erro ao salvar', description: err.error, variant: 'destructive' })
       }
-      toast({ title: 'Perfil atualizado!' })
     } catch (error) {
       toast({ title: 'Erro ao salvar', variant: 'destructive' })
     } finally {
