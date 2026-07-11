@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
 import { createTemplate, getTemplates } from '@/lib/meta'
 
 export const dynamic = 'force-dynamic'
@@ -80,19 +80,33 @@ export async function POST(request: NextRequest) {
       // Salvar mesmo se falhar na Meta (para edição posterior)
     }
 
+    // Buscar company_id
+    const serviceClient = createServiceRoleClient()
+    const { data: member } = await serviceClient
+      .from('company_members')
+      .select('company_id')
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
+      .single()
+
+    if (!member) {
+      return NextResponse.json({ error: 'Sem empresa vinculada' }, { status: 400 })
+    }
+
     // Salvar no banco
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('message_templates')
       .insert({
+        company_id: member.company_id,
         name,
         language,
         category,
-        header_type,
-        header_content,
+        header_type: header_type || null,
+        header_content: header_content || null,
         body: templateBody,
-        footer,
-        buttons,
-        variables,
+        footer: footer || null,
+        buttons: buttons || null,
+        variables: variables || null,
         status: metaTemplateId ? 'pending' : 'draft',
         meta_template_id: metaTemplateId,
       })
