@@ -38,6 +38,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Shield,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -167,6 +168,47 @@ export function Sidebar() {
           <div className="py-2">
             <Separator className="bg-slate-700/50" />
           </div>
+
+          {/* Supervisor - admin only */}
+          {agent?.role === 'admin' && (() => {
+            const supervisorItem = { href: '/dashboard/supervisor', icon: Shield, label: 'Supervisor' }
+            const isActive = pathname === supervisorItem.href
+
+            const linkContent = (
+              <Link href={supervisorItem.href} prefetch={true}>
+                <div
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
+                    isActive
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                    !isExpanded && 'justify-center px-0'
+                  )}
+                >
+                  <Shield className={cn('h-5 w-5 shrink-0', isActive && 'text-orange-400')} />
+                  {isExpanded && (
+                    <span className="text-sm font-medium">{supervisorItem.label}</span>
+                  )}
+                  {isActive && isExpanded && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
+                  )}
+                </div>
+              </Link>
+            )
+
+            if (!isExpanded) {
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    Supervisor
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return linkContent
+          })()}
 
           {isExpanded && (
             <p className="text-[10px] uppercase text-slate-500 px-3 py-1 font-semibold tracking-wider">

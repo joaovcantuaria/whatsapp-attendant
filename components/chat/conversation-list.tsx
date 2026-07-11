@@ -8,22 +8,28 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ConversationItem } from './conversation-item'
+import { AgentFilter } from './agent-filter'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search } from 'lucide-react'
 import { ConversationStatus } from '@/types'
 
 export function ConversationList() {
-  const { filter, setFilter, searchQuery, setSearchQuery } = useConversationStore()
+  const { filter, setFilter, searchQuery, setSearchQuery, agentFilter } = useConversationStore()
   const { conversations, isLoading } = useConversations(filter)
 
   const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery) return true
-    const contactName = conv.contact?.name || ''
-    const contactPhone = conv.contact?.phone || ''
-    return (
-      contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contactPhone.includes(searchQuery)
-    )
+    // Agent filter
+    if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
+    // Search filter
+    if (searchQuery) {
+      const contactName = conv.contact?.name || ''
+      const contactPhone = conv.contact?.phone || ''
+      if (
+        !contactName.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !contactPhone.includes(searchQuery)
+      ) return false
+    }
+    return true
   })
 
   return (
@@ -42,6 +48,9 @@ export function ConversationList() {
             className="pl-9"
           />
         </div>
+
+        {/* Agent Filter */}
+        <AgentFilter />
 
         {/* Filter Tabs */}
         <Tabs value={filter} onValueChange={(v) => setFilter(v as ConversationStatus | 'all')}>
