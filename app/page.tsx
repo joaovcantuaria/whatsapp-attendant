@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { MessageCircle, Users, Zap, BarChart3, Clock, Shield, Check } from 'lucide-react'
 
 export default function LandingPage() {
@@ -8,7 +9,7 @@ export default function LandingPage() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src="/logo.png" alt="BoraGerir Conversas" className="h-10" />
+            <Image src="/logo.png" alt="BoraGerir Conversas" width={180} height={45} className="h-10 w-auto" priority />
           </div>
           <div className="flex items-center gap-4">
             <Link href="/pricing" className="text-sm text-gray-600 hover:text-gray-900">
@@ -137,7 +138,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center">
-              <img src="/logo.png" alt="BoraGerir Conversas" className="h-8" />
+              <Image src="/logo.png" alt="BoraGerir Conversas" width={140} height={35} className="h-8 w-auto" />
             </div>
             <div className="flex gap-6 text-sm text-gray-600">
               <Link href="/pricing">Planos</Link>

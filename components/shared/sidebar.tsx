@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
 import { useCompany } from '@/hooks/use-company'
@@ -65,8 +66,8 @@ export function Sidebar() {
       {/* Company Header */}
       <div className="h-16 flex items-center px-3 border-b">
         <div className="flex items-center gap-2 min-w-0">
-          <img src="/logo.png" alt="BoraGerir" className="h-8 shrink-0 hidden lg:block" />
-          <img src="/logo.png" alt="BoraGerir" className="h-8 w-8 object-contain shrink-0 lg:hidden" />
+          <Image src="/logo.png" alt="BoraGerir" width={120} height={32} className="h-8 w-auto shrink-0 hidden lg:block" />
+          <Image src="/logo.png" alt="BoraGerir" width={32} height={32} className="h-8 w-8 object-contain shrink-0 lg:hidden" />
           <div className="hidden lg:block min-w-0">
             <p className="font-semibold text-sm truncate">{company?.name || 'BoraGerir'}</p>
             <div className="flex items-center gap-1">

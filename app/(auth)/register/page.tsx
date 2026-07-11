@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,7 +76,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/logo.png" alt="BoraGerir Conversas" className="h-12" />
+            <Image src="/logo.png" alt="BoraGerir Conversas" width={160} height={40} className="h-12 w-auto" />
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
           <CardDescription>
