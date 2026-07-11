@@ -28,6 +28,9 @@ import {
   Building2,
   Wifi,
   CreditCard,
+  Kanban,
+  Bot,
+  MessagesSquare,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -35,9 +38,12 @@ import Link from 'next/link'
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/conversations', icon: MessageCircle, label: 'Conversas' },
+  { href: '/crm', icon: Kanban, label: 'CRM' },
   { href: '/contacts', icon: Users, label: 'Contatos' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
+  { href: '/ai-agent', icon: Bot, label: 'Agente IA' },
+  { href: '/team-chat', icon: MessagesSquare, label: 'Chat Interno' },
 ]
 
 const settingsItems = [
