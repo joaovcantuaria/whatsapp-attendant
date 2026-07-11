@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
@@ -65,7 +64,6 @@ export function Sidebar() {
   const router = useRouter()
   const supabase = createClient()
   const { agent } = useAuthStore()
-  const [crmExpanded, setCrmExpanded] = useState(pathname.startsWith('/crm'))
 
   const handleLogout = async () => {
     if (agent) {
@@ -117,39 +115,39 @@ export function Sidebar() {
           {mainNavItems.map((item) => <NavItem key={item.href} {...item} />)}
 
           {/* CRM Group */}
-          <div className="relative">
+          <div className="relative group">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    setCrmExpanded(!crmExpanded)
-                    if (!isCrmActive) router.push('/crm')
-                  }}
-                  className={cn(
-                    'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
-                    isCrmActive
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  )}
-                >
-                  <Kanban className="h-[18px] w-[18px]" />
-                </button>
+                <Link href="/crm" prefetch={true}>
+                  <div
+                    className={cn(
+                      'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-150',
+                      isCrmActive
+                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    )}
+                  >
+                    <Kanban className="h-[18px] w-[18px]" />
+                  </div>
+                </Link>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
-                CRM
-              </TooltipContent>
+              {!isCrmActive && (
+                <TooltipContent side="right" sideOffset={8} className="font-medium text-xs">
+                  CRM
+                </TooltipContent>
+              )}
             </Tooltip>
 
-            {/* CRM Sub-items popup */}
-            {crmExpanded && (
-              <div className="absolute left-full top-0 ml-2 bg-slate-800 rounded-lg py-1.5 px-1 shadow-xl border border-slate-700 z-50 min-w-[120px]">
+            {/* CRM Sub-items on hover */}
+            <div className="absolute left-full top-0 ml-1 hidden group-hover:block z-[100]">
+              <div className="bg-slate-800 rounded-lg py-1.5 px-1 shadow-xl border border-slate-700 min-w-[120px]">
                 {crmItems.map((item) => {
                   const isActive = pathname === item.href
                   return (
                     <Link key={item.href} href={item.href} prefetch={true}>
                       <div
                         className={cn(
-                          'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors',
+                          'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-colors whitespace-nowrap',
                           isActive
                             ? 'bg-orange-500/20 text-orange-400'
                             : 'text-slate-300 hover:bg-slate-700 hover:text-white'
@@ -162,7 +160,7 @@ export function Sidebar() {
                   )
                 })}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Separator */}
