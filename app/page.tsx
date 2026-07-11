@@ -8,9 +8,7 @@ export default function LandingPage() {
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-[#F26522] flex items-center justify-center">
-              <span className="text-white font-black text-lg">B</span>
-            </div>
+            <img src="/logo.png" alt="BoraGerir" className="h-9 w-9 rounded-lg" />
             <span className="font-bold text-xl">
               <span className="text-[#F26522]">Bora</span>
               <span className="text-gray-900">Gerir</span>
@@ -144,9 +142,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-[#F26522] flex items-center justify-center">
-                <span className="text-white font-black text-sm">B</span>
-              </div>
+              <img src="/logo.png" alt="BoraGerir" className="h-7 w-7 rounded-lg" />
               <span className="font-bold">
                 <span className="text-[#F26522]">Bora</span>
                 <span className="text-gray-900">Gerir</span>

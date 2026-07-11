@@ -50,9 +50,7 @@ export default function PricingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-[#F26522] flex items-center justify-center">
-              <span className="text-white font-black text-sm">B</span>
-            </div>
+            <img src="/logo.png" alt="BoraGerir" className="h-8 w-8 rounded-lg" />
             <span className="font-bold text-xl">
               <span className="text-[#F26522]">Bora</span>
               <span>Gerir</span>
