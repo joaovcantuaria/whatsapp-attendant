@@ -22,7 +22,7 @@ export function AgentStats({ data }: AgentStatsProps) {
         <XAxis dataKey="agent" fontSize={12} />
         <YAxis fontSize={12} />
         <Tooltip />
-        <Bar dataKey="count" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Conversas" />
+        <Bar dataKey="count" fill="hsl(24, 95%, 53%)" radius={[4, 4, 0, 0]} name="Conversas" />
       </BarChart>
     </ResponsiveContainer>
   )

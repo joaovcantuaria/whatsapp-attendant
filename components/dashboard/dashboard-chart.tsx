@@ -30,7 +30,7 @@ export function DashboardChart({ data }: DashboardChartProps) {
         <Line
           type="monotone"
           dataKey="count"
-          stroke="hsl(142, 71%, 45%)"
+          stroke="hsl(24, 95%, 53%)"
           strokeWidth={2}
           dot={{ r: 4 }}
           name="Mensagens"

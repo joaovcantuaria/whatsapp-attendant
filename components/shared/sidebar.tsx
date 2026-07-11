@@ -107,12 +107,12 @@ export function Sidebar() {
                   {company?.name || 'BoraGerir'}
                 </p>
                 {company?.plan_status === 'trial' && trialDaysLeft !== null && (
-                  <span className="text-[10px] text-emerald-400">
+                  <span className="text-[10px] text-orange-400">
                     Trial • {trialDaysLeft} dias
                   </span>
                 )}
                 {company?.plan_status === 'active' && plan && (
-                  <span className="text-[10px] text-emerald-400">{plan.name}</span>
+                  <span className="text-[10px] text-orange-400">{plan.name}</span>
                 )}
               </div>
             </div>
@@ -134,17 +134,17 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
                     isActive
-                      ? 'bg-emerald-500/20 text-emerald-400'
+                      ? 'bg-orange-500/20 text-orange-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800',
                     !isExpanded && 'justify-center px-0'
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-emerald-400')} />
+                  <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-orange-400')} />
                   {isExpanded && (
                     <span className="text-sm font-medium">{item.label}</span>
                   )}
                   {isActive && isExpanded && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />
                   )}
                 </div>
               </Link>
@@ -183,12 +183,12 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
                     isActive
-                      ? 'bg-emerald-500/20 text-emerald-400'
+                      ? 'bg-orange-500/20 text-orange-400'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800',
                     !isExpanded && 'justify-center px-0'
                   )}
                 >
-                  <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'text-emerald-400')} />
+                  <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'text-orange-400')} />
                   {isExpanded && (
                     <span className="text-xs font-medium">{item.label}</span>
                   )}
@@ -228,7 +228,7 @@ export function Sidebar() {
                       {agent?.name ? getInitials(agent.name) : '?'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-slate-900" />
                 </div>
                 {isExpanded && (
                   <div className="text-left min-w-0 flex-1">
