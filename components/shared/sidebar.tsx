@@ -1,14 +1,20 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
 import { useCompany } from '@/hooks/use-company'
-import { ICON_BASE64 } from '@/lib/icon-base64'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,15 +28,16 @@ import {
   Users,
   FileText,
   UserCog,
-  Settings,
   LogOut,
-  Zap,
   Building2,
   Wifi,
   CreditCard,
   Kanban,
   Bot,
   MessagesSquare,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import Link from 'next/link'
@@ -53,6 +60,7 @@ const settingsItems = [
 ]
 
 export function Sidebar() {
+  const [isExpanded, setIsExpanded] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -68,104 +76,182 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-16 lg:w-64 border-r bg-card flex flex-col h-full">
-      {/* Company Header */}
-      <div className="h-16 flex items-center px-3 border-b">
-        <div className="flex items-center gap-2 min-w-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={ICON_BASE64} alt="BoraGerir" style={{ height: '32px', width: '32px', objectFit: 'contain' }} className="shrink-0" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={ICON_BASE64} alt="BoraGerir" style={{ height: '28px', width: '28px', objectFit: 'contain' }} className="shrink-0 lg:hidden hidden" />
-          <div className="hidden lg:block min-w-0">
-            <p className="font-semibold text-sm truncate">{company?.name || 'BoraGerir Conversas'}</p>
-            <div className="flex items-center gap-1">
-              {company?.plan_status === 'trial' && trialDaysLeft !== null && (
-                <Badge variant="warning" className="text-[9px] px-1 py-0">
-                  Trial • {trialDaysLeft}d
-                </Badge>
-              )}
-              {company?.plan_status === 'active' && plan && (
-                <Badge variant="secondary" className="text-[9px] px-1 py-0">
-                  {plan.name}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+    <TooltipProvider delayDuration={0}>
+      <aside
+        className={cn(
+          'relative flex flex-col h-full bg-slate-900 text-white transition-all duration-300 ease-in-out',
+          isExpanded ? 'w-64' : 'w-[68px]'
+        )}
+      >
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute -right-3 top-7 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-white text-slate-900 shadow-md hover:bg-slate-50 transition-colors"
+        >
+          {isExpanded ? (
+            <ChevronLeft className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <Link key={item.href} href={item.href} prefetch={true}>
-              <Button
-                variant={isActive ? 'secondary' : 'ghost'}
-                className={cn('w-full justify-start gap-3', isActive && 'bg-primary/10 text-primary')}
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                <span className="hidden lg:block">{item.label}</span>
-              </Button>
-            </Link>
-          )
-        })}
-
-        <Separator className="my-2" />
-
-        <p className="text-[10px] uppercase text-muted-foreground px-3 py-1 hidden lg:block">
-          Configurações
-        </p>
-
-        {settingsItems.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link key={item.href} href={item.href} prefetch={true}>
-              <Button
-                variant={isActive ? 'secondary' : 'ghost'}
-                className={cn('w-full justify-start gap-3', isActive && 'bg-primary/10 text-primary')}
-                size="sm"
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span className="hidden lg:block text-xs">{item.label}</span>
-              </Button>
-            </Link>
-          )
-        })}
-      </nav>
-
-      <Separator />
-
-      {/* User */}
-      <div className="p-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-3 h-12">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={agent?.avatar_url || ''} />
-                <AvatarFallback className="text-xs">
-                  {agent?.name ? getInitials(agent.name) : '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden lg:block text-left min-w-0">
-                <p className="text-sm font-medium truncate">{agent?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{agent?.email}</p>
+        {/* Logo / Company Header */}
+        <div className={cn('h-16 flex items-center border-b border-slate-700/50 px-4', !isExpanded && 'justify-center px-0')}>
+          {isExpanded ? (
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
+                <MessageCircle className="h-5 w-5 text-white" />
               </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => router.push('/settings/company')}>
-              <Building2 className="mr-2 h-4 w-4" />
+              <div className="min-w-0">
+                <p className="font-semibold text-sm truncate text-white">
+                  {company?.name || 'BoraGerir'}
+                </p>
+                {company?.plan_status === 'trial' && trialDaysLeft !== null && (
+                  <span className="text-[10px] text-emerald-400">
+                    Trial • {trialDaysLeft} dias
+                  </span>
+                )}
+                {company?.plan_status === 'active' && plan && (
+                  <span className="text-[10px] text-emerald-400">{plan.name}</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center">
+              <MessageCircle className="h-5 w-5 text-white" />
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+
+            const linkContent = (
+              <Link key={item.href} href={item.href} prefetch={true}>
+                <div
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
+                    isActive
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                    !isExpanded && 'justify-center px-0'
+                  )}
+                >
+                  <item.icon className={cn('h-5 w-5 shrink-0', isActive && 'text-emerald-400')} />
+                  {isExpanded && (
+                    <span className="text-sm font-medium">{item.label}</span>
+                  )}
+                  {isActive && isExpanded && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  )}
+                </div>
+              </Link>
+            )
+
+            if (!isExpanded) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return linkContent
+          })}
+
+          <div className="py-2">
+            <Separator className="bg-slate-700/50" />
+          </div>
+
+          {isExpanded && (
+            <p className="text-[10px] uppercase text-slate-500 px-3 py-1 font-semibold tracking-wider">
               Configurações
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </aside>
+            </p>
+          )}
+
+          {settingsItems.map((item) => {
+            const isActive = pathname === item.href
+
+            const linkContent = (
+              <Link key={item.href} href={item.href} prefetch={true}>
+                <div
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
+                    isActive
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800',
+                    !isExpanded && 'justify-center px-0'
+                  )}
+                >
+                  <item.icon className={cn('h-4 w-4 shrink-0', isActive && 'text-emerald-400')} />
+                  {isExpanded && (
+                    <span className="text-xs font-medium">{item.label}</span>
+                  )}
+                </div>
+              </Link>
+            )
+
+            if (!isExpanded) {
+              return (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return linkContent
+          })}
+        </nav>
+
+        {/* User Footer */}
+        <div className="border-t border-slate-700/50 p-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition-colors',
+                  !isExpanded && 'justify-center'
+                )}
+              >
+                <div className="relative">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={agent?.avatar_url || ''} />
+                    <AvatarFallback className="bg-slate-700 text-xs text-white">
+                      {agent?.name ? getInitials(agent.name) : '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                </div>
+                {isExpanded && (
+                  <div className="text-left min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">{agent?.name}</p>
+                    <p className="text-[10px] text-slate-400 truncate">{agent?.role === 'admin' ? 'Administrador' : 'Agente'}</p>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="right" className="w-56">
+              <DropdownMenuItem onClick={() => router.push('/settings/company')}>
+                <Settings className="mr-2 h-4 w-4" />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+    </TooltipProvider>
   )
 }
