@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
     }
 
     const companyId = memberData.company_id
-
     const body = await request.json()
 
     // Importação CSV em lote
@@ -89,7 +88,6 @@ export async function POST(request: NextRequest) {
         company_id: companyId,
       })).filter((c) => c.phone)
 
-      const serviceClient = createServiceRoleClient()
       const { data, error } = await serviceClient
         .from('contacts')
         .upsert(contacts, { onConflict: 'phone' })
@@ -103,7 +101,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Criação individual
-    const serviceClient = createServiceRoleClient()
     const { data, error } = await serviceClient
       .from('contacts')
       .insert({ ...body, company_id: companyId })
