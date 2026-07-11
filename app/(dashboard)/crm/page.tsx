@@ -211,7 +211,12 @@ export default function CrmPage() {
             <div className="space-y-1.5"><Label className="text-xs">Contato</Label>
               <Select value={newDeal.contact_id || 'none'} onValueChange={v => setNewDeal({ ...newDeal, contact_id: v === 'none' ? '' : v })}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{<SelectItem value="none" className="text-xs">Sem contato</SelectItem>}{contacts.map(c => <SelectItem key={c.id} value={c.id} className="text-xs">{c.name || c.phone}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="none" className="text-xs">Sem contato</SelectItem>
+                  {contacts.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">{c.name || c.phone}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <Button onClick={handleCreateDeal} className="w-full h-8 text-xs" disabled={isCreating}>{isCreating ? 'Criando...' : 'Criar'}</Button>
