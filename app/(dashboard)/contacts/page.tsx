@@ -44,16 +44,27 @@ export default function ContactsPage() {
     }
 
     try {
-      await createContact({
-        phone: newContact.phone,
-        name: newContact.name || null,
-        email: newContact.email || null,
+      const response = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: newContact.phone,
+          name: newContact.name || null,
+          email: newContact.email || null,
+        }),
       })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error)
+      }
+
       toast({ title: 'Contato criado com sucesso' })
       setShowCreateDialog(false)
       setNewContact({ phone: '', name: '', email: '' })
+      refetch()
     } catch (error) {
-      toast({ title: 'Erro ao criar contato', variant: 'destructive' })
+      toast({ title: 'Erro ao criar contato', description: error instanceof Error ? error.message : 'Erro desconhecido', variant: 'destructive' })
     }
   }
 
