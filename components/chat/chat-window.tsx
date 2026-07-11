@@ -86,6 +86,21 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     }
   }
 
+  const handleReopen = async () => {
+    const response = await fetch('/api/conversations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: conversation.id,
+        status: 'open',
+      }),
+    })
+
+    if (response.ok) {
+      toast({ title: 'Conversa reaberta' })
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -111,10 +126,16 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {conversation.status === 'pending' && (
-            <Button size="sm" onClick={handleAssign}>
+          {(conversation.status === 'pending' || !conversation.agent_id) && (
+            <Button size="sm" onClick={handleAssign} variant="default">
               <UserPlus className="h-4 w-4 mr-1" />
               Assumir
+            </Button>
+          )}
+          {conversation.status !== 'closed' && (
+            <Button size="sm" onClick={handleClose} variant="outline">
+              <XCircle className="h-4 w-4 mr-1" />
+              Encerrar
             </Button>
           )}
           <DropdownMenu>
@@ -127,6 +148,10 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
               <DropdownMenuItem onClick={handleAssign}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Assumir atendimento
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleReopen}>
+                <Phone className="mr-2 h-4 w-4" />
+                Reabrir conversa
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleClose} className="text-destructive">
                 <XCircle className="mr-2 h-4 w-4" />
