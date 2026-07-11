@@ -57,15 +57,16 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
 
   const handleAssign = async () => {
     try {
-      // Buscar session diretamente pra garantir que temos o user id
       const { data: { session } } = await supabase.auth.getSession()
       const userId = agent?.id || session?.user?.id
+      const agentName = agent?.name || session?.user?.user_metadata?.name || 'Atendente'
       
       if (!userId) {
         toast({ title: 'Erro: sessão não encontrada', variant: 'destructive' })
         return
       }
       
+      // 1. Assumir a conversa
       const response = await fetch('/api/conversations', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -80,6 +81,19 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
         const updated = await response.json()
         setSelectedConversation(updated)
         toast({ title: 'Conversa atribuída a você' })
+
+        // 2. Enviar mensagem automática de apresentação
+        const greetingMessage = `Olá! Meu nome é ${agentName} e estarei te atendendo. Como posso ajudar? 😊`
+        
+        await fetch('/api/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            content: greetingMessage,
+            type: 'text',
+          }),
+        })
       } else {
         const err = await response.json()
         toast({ title: 'Erro ao assumir', description: err.error, variant: 'destructive' })
