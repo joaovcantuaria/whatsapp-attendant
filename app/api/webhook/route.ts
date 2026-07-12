@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { getMediaUrl, markMessageAsRead } from '@/lib/meta'
 import { processAiResponse } from '@/lib/ai-agent'
+import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 
 // GET - Validação do webhook pela Meta
@@ -211,7 +212,7 @@ async function processInboundMessage(
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
 
-  // 7. Processar com Agente IA (se ativo e sem agente humano)
+  // 7. Processar com Chatbot e/ou Agente IA
   if (content && message.type === 'text') {
     try {
       // Buscar company_id do contato
@@ -230,7 +231,8 @@ async function processInboundMessage(
           .single()
 
         if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
-          await processAiResponse(
+          // Primeiro: tentar chatbot de fluxo (tem prioridade sobre IA)
+          const chatbotResult = await processChatbotMessage(
             contactData.company_id,
             conversation.id,
             phone,
@@ -238,10 +240,22 @@ async function processInboundMessage(
             company.whatsapp_phone_number_id,
             company.whatsapp_token
           )
+
+          // Se chatbot não tratou, tentar Agente IA
+          if (!chatbotResult.handled) {
+            await processAiResponse(
+              contactData.company_id,
+              conversation.id,
+              phone,
+              content,
+              company.whatsapp_phone_number_id,
+              company.whatsapp_token
+            )
+          }
         }
       }
     } catch (e) {
-      console.error('AI Agent processing error:', e)
+      console.error('Automation processing error:', e)
     }
   }
 }

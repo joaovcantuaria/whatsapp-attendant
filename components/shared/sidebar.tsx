@@ -26,6 +26,7 @@ import {
   CreditCard,
   Kanban,
   Bot,
+  Brain,
   MessagesSquare,
   Megaphone,
   Settings,
@@ -53,9 +54,10 @@ const crmItems = [
 
 const toolsNavItems = [
   { href: '/campaigns', icon: Megaphone, label: 'Campanhas' },
+  { href: '/chatbots', icon: Bot, label: 'Robôs' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
-  { href: '/ai-agent', icon: Bot, label: 'Agente IA' },
+  { href: '/ai-agent', icon: Brain, label: 'Agente IA' },
   { href: '/team-chat', icon: MessagesSquare, label: 'Chat Interno' },
 ]
 
