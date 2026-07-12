@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Menu, X } from 'lucide-react'
-import { LOGO_BASE64 } from '@/lib/logo-base64'
+
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -28,8 +28,7 @@ export function Navbar() {
       <div className="flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '70px' }} />
+          <img src="/icon-topo.png" alt="BoraGerir" style={{ height: '70px' }} />
         </Link>
 
         {/* Desktop Nav */}
