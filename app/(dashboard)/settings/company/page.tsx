@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import { Building2, Save } from 'lucide-react'
+import { SettingsBack } from '@/components/shared/settings-back'
 
 export default function CompanySettingsPage() {
   const { company, refetch } = useCompany()
@@ -47,6 +48,7 @@ export default function CompanySettingsPage() {
   return (
     <div className="p-6 space-y-5 h-full overflow-y-auto">
       <div className="max-w-5xl mx-auto space-y-5">
+        <SettingsBack />
         <h1 className="text-lg font-semibold text-slate-800">Dados da Empresa</h1>
 
         <Card className="border-0 shadow-sm bg-white">

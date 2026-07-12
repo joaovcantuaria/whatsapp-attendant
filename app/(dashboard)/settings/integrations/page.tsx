@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { Key, Copy, RefreshCw, Trash2, Plus, Code, Send, Clock } from 'lucide-react'
+import { SettingsBack } from '@/components/shared/settings-back'
 
 interface ApiKey {
   id: string
@@ -79,6 +80,7 @@ export default function IntegrationsPage() {
   return (
     <div className="p-6 space-y-5 h-full overflow-y-auto">
       <div className="max-w-5xl mx-auto space-y-5">
+        <SettingsBack />
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Integrações (API)</h1>
           <p className="text-xs text-slate-500">Conecte sistemas externos para enviar mensagens via WhatsApp</p>

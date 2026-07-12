@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CreditCard, Clock, Zap } from 'lucide-react'
+import { SettingsBack } from '@/components/shared/settings-back'
 
 export default function BillingPage() {
   const { company, plan, trialDaysLeft, isPlanActive } = useCompany()
@@ -26,7 +27,8 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-3xl">
+    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-3xl mx-auto">
+      <SettingsBack />
       <h1 className="text-2xl font-bold">Faturamento</h1>
 
       {/* Plano Atual */}

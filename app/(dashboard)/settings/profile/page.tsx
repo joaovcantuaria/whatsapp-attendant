@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { User, MessageSquare, Save } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
+import { SettingsBack } from '@/components/shared/settings-back'
 
 export default function ProfilePage() {
   const { agent, setAgent } = useAuthStore()
@@ -93,6 +94,7 @@ export default function ProfilePage() {
   return (
     <div className="p-6 space-y-5 h-full overflow-y-auto">
       <div className="max-w-5xl mx-auto space-y-5">
+        <SettingsBack />
         <div>
           <h1 className="text-lg font-semibold text-slate-800">Meu Perfil</h1>
           <p className="text-xs text-slate-500">Configure suas informações de atendente</p>
