@@ -241,16 +241,16 @@ async function processInboundMessage(
         .single()
 
       if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
-        // Executar sem await para não bloquear resposta do webhook
-        processChatbotAndAI(
-          aiCompanyId,
-          conversation.id,
-          phone,
-          content,
-          company.whatsapp_phone_number_id,
-          company.whatsapp_token
-        ).catch((e) => console.error('AI/Chatbot error:', e))
-      }
+          // Await para garantir que executa antes da function morrer
+          await processChatbotAndAI(
+            aiCompanyId,
+            conversation.id,
+            phone,
+            content,
+            company.whatsapp_phone_number_id,
+            company.whatsapp_token
+          )
+        }
     }
   }
 }
@@ -264,14 +264,32 @@ async function processChatbotAndAI(
   phoneNumberId: string,
   whatsappToken: string
 ) {
+  const supabase = createServiceRoleClient()
+
   try {
-    // Primeiro: tentar chatbot de fluxo
-    const chatbotResult = await processChatbotMessage(
-      companyId, conversationId, phone, content, phoneNumberId, whatsappToken
-    )
+    // Verificar se tem chatbot ativo antes de chamar o engine
+    const { data: activeFlows } = await supabase
+      .from('chatbot_flows')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('is_active', true)
+      .limit(1)
+
+    let chatbotHandled = false
+
+    if (activeFlows && activeFlows.length > 0) {
+      try {
+        const chatbotResult = await processChatbotMessage(
+          companyId, conversationId, phone, content, phoneNumberId, whatsappToken
+        )
+        chatbotHandled = chatbotResult.handled
+      } catch (e) {
+        console.error('Chatbot engine error:', e)
+      }
+    }
 
     // Se chatbot não tratou, tentar Agente IA
-    if (!chatbotResult.handled) {
+    if (!chatbotHandled) {
       await processAiResponse(
         companyId, conversationId, phone, content, phoneNumberId, whatsappToken
       )
