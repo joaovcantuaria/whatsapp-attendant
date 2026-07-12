@@ -27,6 +27,7 @@ import {
   Kanban,
   Bot,
   MessagesSquare,
+  Megaphone,
   Settings,
   Shield,
   UserCircle,
@@ -51,6 +52,7 @@ const crmItems = [
 ]
 
 const toolsNavItems = [
+  { href: '/campaigns', icon: Megaphone, label: 'Campanhas' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
   { href: '/ai-agent', icon: Bot, label: 'Agente IA' },
