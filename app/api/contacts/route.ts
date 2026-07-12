@@ -170,3 +170,43 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient()
+    
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+    }
+
+    const serviceClient = createServiceRoleClient()
+
+    // Deletar assignments de categorias primeiro
+    await serviceClient
+      .from('contact_category_assignments')
+      .delete()
+      .eq('contact_id', id)
+
+    // Deletar contato
+    const { error } = await serviceClient
+      .from('contacts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}

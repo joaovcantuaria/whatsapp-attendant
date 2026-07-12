@@ -74,3 +74,44 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }
+
+
+// POST - Atualizar categorias de um contato (replace all)
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient()
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { contact_id, category_ids } = body
+
+    if (!contact_id) {
+      return NextResponse.json({ error: 'contact_id obrigatório' }, { status: 400 })
+    }
+
+    const serviceClient = createServiceRoleClient()
+
+    // Remover todas as categorias atuais
+    await serviceClient
+      .from('contact_category_assignments')
+      .delete()
+      .eq('contact_id', contact_id)
+
+    // Inserir novas (se houver)
+    if (category_ids && category_ids.length > 0) {
+      const assignments = category_ids.map((catId: string) => ({
+        contact_id,
+        category_id: catId,
+      }))
+      await serviceClient.from('contact_category_assignments').insert(assignments)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}

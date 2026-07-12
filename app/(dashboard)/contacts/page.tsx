@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { formatPhone, getInitials } from '@/lib/utils'
-import { Search, Plus, Upload, Phone, Mail, Tag, X, FolderPlus } from 'lucide-react'
+import { Search, Plus, Upload, Phone, Mail, Tag, X, FolderPlus, Pencil, Trash2 } from 'lucide-react'
 
 interface Contact {
   id: string
@@ -53,6 +53,10 @@ export default function ContactsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showCategoryDialog, setShowCategoryDialog] = useState(false)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editingContact, setEditingContact] = useState<Contact | null>(null)
+  const [editForm, setEditForm] = useState({ phone: '', name: '', email: '' })
+  const [editCategories, setEditCategories] = useState<string[]>([])
   const [newContact, setNewContact] = useState({ phone: '', name: '', email: '' })
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [csvContent, setCsvContent] = useState('')
@@ -154,6 +158,83 @@ export default function ContactsPage() {
     } catch (error) {
       toast({ title: 'Erro ao criar contato', description: error instanceof Error ? error.message : 'Erro', variant: 'destructive' })
     }
+  }
+
+  const openEditDialog = (contact: Contact) => {
+    setEditingContact(contact)
+    setEditForm({
+      phone: contact.phone,
+      name: contact.name || '',
+      email: contact.email || '',
+    })
+    setEditCategories(contactCategories[contact.id] || [])
+    setShowEditDialog(true)
+  }
+
+  const handleEdit = async () => {
+    if (!editingContact) return
+
+    try {
+      const response = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingContact.id,
+          phone: editForm.phone,
+          name: editForm.name || null,
+          email: editForm.email || null,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error)
+      }
+
+      // Atualizar categorias: remover todas e re-adicionar
+      await fetch('/api/categories/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: editingContact.id,
+          category_ids: editCategories,
+        }),
+      })
+
+      toast({ title: 'Contato atualizado!' })
+      setShowEditDialog(false)
+      setEditingContact(null)
+      fetchContacts()
+      fetchContactCategories()
+    } catch (error) {
+      toast({ title: 'Erro ao editar', description: error instanceof Error ? error.message : 'Erro', variant: 'destructive' })
+    }
+  }
+
+  const handleDelete = async (contactId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este contato?')) return
+
+    try {
+      const response = await fetch('/api/contacts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: contactId }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Contato excluído' })
+        fetchContacts()
+        fetchContactCategories()
+      }
+    } catch {
+      toast({ title: 'Erro ao excluir', variant: 'destructive' })
+    }
+  }
+
+  const toggleEditCategory = (catId: string) => {
+    setEditCategories((prev) =>
+      prev.includes(catId) ? prev.filter((x) => x !== catId) : [...prev, catId]
+    )
   }
 
   const handleImport = async () => {
@@ -309,7 +390,7 @@ export default function ContactsPage() {
             {filteredContacts.map((contact) => {
               const cats = getContactCategoryBadges(contact.id)
               return (
-                <Card key={contact.id} className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow">
+                <Card key={contact.id} className="border-0 shadow-sm bg-white hover:shadow-md transition-shadow group">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
@@ -331,6 +412,21 @@ export default function ContactsPage() {
                             <span className="truncate">{contact.email}</span>
                           </div>
                         )}
+                      </div>
+                      {/* Edit/Delete buttons */}
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEditDialog(contact)}
+                          className="h-7 w-7 rounded-md flex items-center justify-center text-slate-400 hover:text-[#F26522] hover:bg-orange-50 transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(contact.id)}
+                          className="h-7 w-7 rounded-md flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
                     {cats.length > 0 && (
@@ -552,6 +648,88 @@ export default function ContactsPage() {
                 ))}
               </div>
             </ScrollArea>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contact Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Contato</DialogTitle>
+            <DialogDescription>Atualize as informações do contato</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Telefone (com código do país)</Label>
+              <Input
+                placeholder="5511999999999"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                placeholder="Nome do contato"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                placeholder="email@exemplo.com"
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+              />
+            </div>
+
+            {/* Categorias */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Tag className="h-3.5 w-3.5" />
+                Categorias
+              </Label>
+              <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-slate-50 min-h-[60px]">
+                {categories.length === 0 ? (
+                  <span className="text-xs text-slate-400">Nenhuma categoria criada</span>
+                ) : (
+                  categories.map((cat) => {
+                    const isSelected = editCategories.includes(cat.id)
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleEditCategory(cat.id)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'text-white shadow-sm'
+                            : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                        style={isSelected ? { backgroundColor: cat.color } : {}}
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: isSelected ? 'white' : cat.color }}
+                        />
+                        {cat.name}
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={handleEdit} className="flex-1 bg-[#F26522] hover:bg-[#d4561c]">
+                Salvar
+              </Button>
+              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancelar
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
