@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { getMediaUrl, markMessageAsRead } from '@/lib/meta'
 import { checkConversationLimit, incrementUsage, isCompanyActive } from '@/lib/plan-limits'
+import { processAiResponse } from '@/lib/ai-agent'
+import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 
 // GET - Validação do webhook pela Meta (por empresa)
@@ -227,6 +229,46 @@ async function processInboundMessage(
 
   // Marcar como lida na Meta
   await markMessageAsReadWithToken(message.id, whatsappToken)
+
+  // Processar com Chatbot e/ou Agente IA
+  if (content && message.type === 'text') {
+    try {
+      // Buscar phone_number_id da empresa
+      const { data: companyData } = await supabase
+        .from('companies')
+        .select('whatsapp_phone_number_id')
+        .eq('id', companyId)
+        .single()
+
+      const phoneNumberId = companyData?.whatsapp_phone_number_id
+      if (phoneNumberId) {
+        // Verificar se tem chatbot ativo
+        const { data: activeFlows } = await supabase
+          .from('chatbot_flows')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('is_active', true)
+          .limit(1)
+
+        let chatbotHandled = false
+        if (activeFlows && activeFlows.length > 0) {
+          try {
+            const result = await processChatbotMessage(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
+            chatbotHandled = result.handled
+          } catch (e) {
+            console.error('Chatbot error:', e)
+          }
+        }
+
+        // Se chatbot não tratou, tentar Agente IA
+        if (!chatbotHandled) {
+          await processAiResponse(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
+        }
+      }
+    } catch (e) {
+      console.error('AI/Chatbot processing error:', e)
+    }
+  }
 }
 
 async function processStatusUpdate(
