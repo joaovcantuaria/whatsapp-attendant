@@ -44,18 +44,20 @@ export async function processAiResponse(
   const supabase = createServiceRoleClient()
 
   // 1. Buscar config do agente
-  const { data: config } = await supabase
+  const { data: config, error: configError } = await supabase
     .from('ai_agent_config')
     .select('*')
     .eq('company_id', companyId)
     .single()
 
   if (!config || !config.is_active || !config.api_key) {
+    console.error('AI Config issue:', { config: !!config, active: config?.is_active, hasKey: !!config?.api_key, error: configError?.message })
     return { responded: false, transferred: false }
   }
 
   // 2. Verificar se está no horário ativo
   if (!isWithinActiveHours(config)) {
+    await logAiMessage(supabase, companyId, conversationId, contactPhone, userMessage, '[BLOCKED: fora do horario]', 0, 0, false)
     return { responded: false, transferred: false }
   }
 
@@ -68,6 +70,7 @@ export async function processAiResponse(
 
   // Se status é 'open' e tem agente, humano está atendendo - IA não interfere
   if (conversation?.status === 'open' && conversation?.agent_id) {
+    await logAiMessage(supabase, companyId, conversationId, contactPhone, userMessage, '[BLOCKED: humano atendendo]', 0, 0, false)
     return { responded: false, transferred: false }
   }
 
@@ -144,7 +147,9 @@ export async function processAiResponse(
     })
 
     if (!aiResponse.ok) {
-      console.error(`${provider} AI error:`, await aiResponse.text())
+      const errText = await aiResponse.text()
+      console.error(`${provider} AI error:`, errText)
+      await logAiMessage(supabase, companyId, conversationId, contactPhone, userMessage, `[ERROR ${provider}: ${errText.slice(0, 200)}]`, 0, 0, false)
       return { responded: false, transferred: false }
     }
 

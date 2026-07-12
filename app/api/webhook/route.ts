@@ -229,45 +229,55 @@ async function processInboundMessage(
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
 
-  // 7. Processar com Chatbot e/ou Agente IA
+  // 7. Processar com Chatbot e/ou Agente IA (async - não bloqueia o webhook)
   if (content && message.type === 'text') {
-    try {
-      const aiCompanyId = companyId || contact.company_id
-      if (aiCompanyId) {
-        // Buscar credenciais
-        const { data: company } = await supabase
-          .from('companies')
-          .select('whatsapp_token, whatsapp_phone_number_id')
-          .eq('id', aiCompanyId)
-          .single()
+    const aiCompanyId = companyId || contact.company_id
+    if (aiCompanyId) {
+      // Buscar credenciais
+      const { data: company } = await supabase
+        .from('companies')
+        .select('whatsapp_token, whatsapp_phone_number_id')
+        .eq('id', aiCompanyId)
+        .single()
 
-        if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
-          // Primeiro: tentar chatbot de fluxo (tem prioridade sobre IA)
-          const chatbotResult = await processChatbotMessage(
-            aiCompanyId,
-            conversation.id,
-            phone,
-            content,
-            company.whatsapp_phone_number_id,
-            company.whatsapp_token
-          )
-
-          // Se chatbot não tratou, tentar Agente IA
-          if (!chatbotResult.handled) {
-            await processAiResponse(
-              aiCompanyId,
-              conversation.id,
-              phone,
-              content,
-              company.whatsapp_phone_number_id,
-              company.whatsapp_token
-            )
-          }
-        }
+      if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
+        // Executar sem await para não bloquear resposta do webhook
+        processChatbotAndAI(
+          aiCompanyId,
+          conversation.id,
+          phone,
+          content,
+          company.whatsapp_phone_number_id,
+          company.whatsapp_token
+        ).catch((e) => console.error('AI/Chatbot error:', e))
       }
-    } catch (e) {
-      console.error('Automation processing error:', e)
     }
+  }
+}
+
+// Função separada para processar IA/chatbot sem bloquear
+async function processChatbotAndAI(
+  companyId: string,
+  conversationId: string,
+  phone: string,
+  content: string,
+  phoneNumberId: string,
+  whatsappToken: string
+) {
+  try {
+    // Primeiro: tentar chatbot de fluxo
+    const chatbotResult = await processChatbotMessage(
+      companyId, conversationId, phone, content, phoneNumberId, whatsappToken
+    )
+
+    // Se chatbot não tratou, tentar Agente IA
+    if (!chatbotResult.handled) {
+      await processAiResponse(
+        companyId, conversationId, phone, content, phoneNumberId, whatsappToken
+      )
+    }
+  } catch (e) {
+    console.error('processChatbotAndAI error:', e)
   }
 }
 
