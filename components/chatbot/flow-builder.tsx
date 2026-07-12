@@ -216,7 +216,7 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-white z-10 relative">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-white z-50 relative shrink-0" style={{ pointerEvents: 'auto' }}>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack} className="text-xs">
             ← Voltar
@@ -246,7 +246,7 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
       </div>
 
       {/* Canvas */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -257,6 +257,7 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
           nodeTypes={nodeTypes}
           fitView
           className="bg-slate-50"
+          style={{ width: '100%', height: '100%' }}
           defaultEdgeOptions={{
             animated: true,
             style: { stroke: '#F26522', strokeWidth: 2 },
