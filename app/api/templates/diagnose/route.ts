@@ -133,20 +133,68 @@ export async function GET(request: NextRequest) {
       results.tests.token_debug = { error: e.message }
     }
 
-    // Test 6: Tentar com WABA ID 169083510203621 (descoberto via Meta Business UI)
+    // Test 6: Tentar listar WABAs do business via App
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v22.0/169083510203621/message_templates?limit=1`,
+        `https://graph.facebook.com/v22.0/me/whatsapp_business_accounts?fields=id,name,currency,timezone_id`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
       const data = await res.json()
-      results.tests.templates_with_known_waba = { 
-        status: res.status, 
-        data,
-        waba_used: '169083510203621'
-      }
+      results.tests.my_wabas = { status: res.status, data }
     } catch (e: any) {
-      results.tests.templates_with_known_waba = { error: e.message }
+      results.tests.my_wabas = { error: e.message }
+    }
+
+    // Test 7: Tentar buscar WABA pelo business_id (387842282914625 from URL)
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v22.0/387842282914625/owned_whatsapp_business_accounts?fields=id,name`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      )
+      const data = await res.json()
+      results.tests.business_wabas = { status: res.status, data }
+    } catch (e: any) {
+      results.tests.business_wabas = { error: e.message }
+    }
+
+    // Test 8: Tentar com o WABA ID direto (sem /message_templates) pra ver se existe
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v22.0/169083510203621?fields=id,name,currency,timezone_id,message_template_namespace`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      )
+      const data = await res.json()
+      results.tests.waba_direct_lookup = { status: res.status, data }
+    } catch (e: any) {
+      results.tests.waba_direct_lookup = { error: e.message }
+    }
+
+    // Test 9: Tentar com phone number ID como se fosse WABA (caso IDs trocados)
+    if (company.whatsapp_phone_number_id) {
+      try {
+        const res = await fetch(
+          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/message_templates?limit=1`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        )
+        const data = await res.json()
+        results.tests.templates_via_phone_id = { status: res.status, data }
+      } catch (e: any) {
+        results.tests.templates_via_phone_id = { error: e.message }
+      }
+    }
+
+    // Test 10: Listar phone numbers do WABA salvo
+    if (company.whatsapp_business_account_id) {
+      try {
+        const res = await fetch(
+          `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/phone_numbers?fields=id,display_phone_number,verified_name`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        )
+        const data = await res.json()
+        results.tests.waba_phone_numbers = { status: res.status, data }
+      } catch (e: any) {
+        results.tests.waba_phone_numbers = { error: e.message }
+      }
     }
 
     // Diagnóstico final
@@ -154,12 +202,16 @@ export async function GET(request: NextRequest) {
     const scopes = tokenDebug?.scopes || []
     
     if (!scopes.includes('whatsapp_business_management')) {
-      results.diagnosis = 'FALTA PERMISSÃO: O token não tem "whatsapp_business_management". Esta permissão é obrigatória para gerenciar templates. Gere um novo token via System Users no Meta Business com ambas permissões: whatsapp_business_messaging + whatsapp_business_management.'
-      results.solution = 'Acesse business.facebook.com → Configurações → System Users → Selecione o user → Gerar Token → Marque whatsapp_business_management + whatsapp_business_messaging → Cole o novo token nas Configurações do WhatsApp.'
+      results.diagnosis = 'FALTA PERMISSÃO: O token não tem "whatsapp_business_management".'
+      results.solution = 'Gere um novo token via System Users com whatsapp_business_management + whatsapp_business_messaging.'
     } else if (results.tests.templates_with_saved_waba?.status === 200) {
       results.diagnosis = 'Tudo OK! O token tem permissão e o WABA está correto.'
+    } else if (results.tests.my_wabas?.data?.data?.length > 0) {
+      const wabaList = results.tests.my_wabas.data.data
+      results.diagnosis = `Token tem permissão mas o WABA salvo não funciona. WABAs encontrados via API: ${JSON.stringify(wabaList)}`
+      results.solution = `Atualize o whatsapp_business_account_id no banco para um dos IDs encontrados.`
     } else {
-      results.diagnosis = 'Token tem permissão mas WABA ID pode estar incorreto. Verifique os testes acima.'
+      results.diagnosis = 'Token tem permissão mas WABA ID pode estar incorreto ou o App não está vinculado ao WABA. Verifique os testes acima.'
     }
 
     return NextResponse.json(results)
