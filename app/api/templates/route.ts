@@ -180,42 +180,78 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'WhatsApp não configurado. Vá em Configurações > WhatsApp e conecte sua conta.' }, { status: 400 })
     }
 
-    // Descobrir WABA ID a partir do phone_number_id (mais confiável)
-    // O whatsapp_business_account_id salvo no banco pode estar errado (pode ser o phone number ID)
+    // Descobrir WABA ID real
+    // Estratégia: tentar via phone_number_id -> whatsapp_business_account endpoint
+    // Se falhar, tentar o ID salvo no banco diretamente
     let wabaId: string | null = null
+    let discoveryLog: string[] = []
 
+    // Estratégia 1: Buscar WABA via phone_number_id (endpoint dedicado)
     if (company.whatsapp_phone_number_id) {
       try {
+        // Tenta o endpoint /whatsapp_business_account (edge)
         const wabaLookup = await fetch(
-          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=whatsapp_business_account`,
+          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/whatsapp_business_account`,
           { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
         )
-        if (wabaLookup.ok) {
-          const wabaData = await wabaLookup.json()
-          if (wabaData.whatsapp_business_account?.id) {
-            wabaId = wabaData.whatsapp_business_account.id
-            // Salvar o WABA ID correto no banco pra próxima vez
-            if (wabaId !== company.whatsapp_business_account_id) {
-              await serviceClient
-                .from('companies')
-                .update({ whatsapp_business_account_id: wabaId })
-                .eq('id', member.company_id)
-            }
-          }
+        const wabaLookupData = await wabaLookup.json()
+        discoveryLog.push(`Strategy 1 (edge): status=${wabaLookup.status}, data=${JSON.stringify(wabaLookupData)}`)
+        
+        if (wabaLookup.ok && wabaLookupData.id) {
+          wabaId = wabaLookupData.id
         }
-      } catch (e) {
-        console.error('Error discovering WABA ID:', e)
+      } catch (e: any) {
+        discoveryLog.push(`Strategy 1 error: ${e.message}`)
       }
     }
 
-    // Fallback: usar o que está salvo no banco (caso o discovery falhe)
-    if (!wabaId) {
-      wabaId = company.whatsapp_business_account_id
+    // Estratégia 2: Buscar via fields parameter
+    if (!wabaId && company.whatsapp_phone_number_id) {
+      try {
+        const phoneLookup = await fetch(
+          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=whatsapp_business_account`,
+          { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
+        )
+        const phoneLookupData = await phoneLookup.json()
+        discoveryLog.push(`Strategy 2 (fields): status=${phoneLookup.status}, data=${JSON.stringify(phoneLookupData)}`)
+
+        if (phoneLookup.ok && phoneLookupData.whatsapp_business_account?.id) {
+          wabaId = phoneLookupData.whatsapp_business_account.id
+        }
+      } catch (e: any) {
+        discoveryLog.push(`Strategy 2 error: ${e.message}`)
+      }
+    }
+
+    // Estratégia 3: Tentar usar o whatsapp_business_account_id salvo, mas validar se funciona
+    if (!wabaId && company.whatsapp_business_account_id) {
+      try {
+        const testUrl = `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/message_templates?limit=1`
+        const testRes = await fetch(testUrl, {
+          headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+        })
+        discoveryLog.push(`Strategy 3 (test saved ID ${company.whatsapp_business_account_id}): status=${testRes.status}`)
+        
+        if (testRes.ok) {
+          wabaId = company.whatsapp_business_account_id
+        }
+      } catch (e: any) {
+        discoveryLog.push(`Strategy 3 error: ${e.message}`)
+      }
+    }
+
+    // Salvar o WABA ID correto se descobrimos um novo
+    if (wabaId && wabaId !== company.whatsapp_business_account_id) {
+      await serviceClient
+        .from('companies')
+        .update({ whatsapp_business_account_id: wabaId })
+        .eq('id', member.company_id)
     }
 
     if (!wabaId) {
+      console.error('WABA Discovery failed:', discoveryLog)
       return NextResponse.json({ 
-        error: 'WABA ID não encontrado. Verifique se o WhatsApp Business Account ID está configurado nas configurações.' 
+        error: `Não foi possível encontrar o WABA ID. O token pode não ter a permissão whatsapp_business_management. Phone ID: ${company.whatsapp_phone_number_id || 'não configurado'}. Detalhes: ${discoveryLog.join(' | ')}` 
       }, { status: 400 })
     }
 
