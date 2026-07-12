@@ -40,6 +40,59 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST - Criar nova conversa manualmente
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient()
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { contact_id, channel } = body
+
+    if (!contact_id) {
+      return NextResponse.json({ error: 'contact_id obrigatório' }, { status: 400 })
+    }
+
+    // Verificar se já existe conversa aberta com esse contato
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('contact_id', contact_id)
+      .in('status', ['pending', 'open'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (existing) {
+      return NextResponse.json(existing)
+    }
+
+    // Criar nova conversa
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert({
+        contact_id,
+        status: 'open',
+        channel: channel || 'whatsapp',
+        agent_id: session.user.id,
+      })
+      .select('*, contact:contacts(*), agent:agents(*)')
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()

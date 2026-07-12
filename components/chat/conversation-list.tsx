@@ -1,19 +1,168 @@
 'use client'
 
+import { useState } from 'react'
 import { useConversations } from '@/hooks/use-conversations'
 import { useConversationStore } from '@/store/conversation-store'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConversationItem } from './conversation-item'
 import { AgentFilter } from './agent-filter'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Search, MessageCircle } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useToast } from '@/components/ui/use-toast'
+import { Search, MessageCircle, Plus, Send } from 'lucide-react'
 import { ConversationStatus } from '@/types'
 
 export function ConversationList() {
   const { filter, setFilter, searchQuery, setSearchQuery, agentFilter } = useConversationStore()
-  const { conversations, isLoading } = useConversations(filter)
+  const { conversations, isLoading, refetch } = useConversations(filter)
+  const [showNewConversation, setShowNewConversation] = useState(false)
+  const [newConvMode, setNewConvMode] = useState<'select' | 'create'>('select')
+  const [contacts, setContacts] = useState<any[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
+  const [selectedContactId, setSelectedContactId] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [newContactPhone, setNewContactPhone] = useState('')
+  const [newContactName, setNewContactName] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [contactSearch, setContactSearch] = useState('')
+  const { toast } = useToast()
+
+  const openNewConversation = async () => {
+    setShowNewConversation(true)
+    setNewConvMode('select')
+    setSelectedContactId('')
+    setSelectedTemplate('')
+    setNewContactPhone('')
+    setNewContactName('')
+    // Fetch contacts and templates
+    try {
+      const [contactsRes, templatesRes] = await Promise.all([
+        fetch('/api/contacts'),
+        fetch('/api/templates'),
+      ])
+      if (contactsRes.ok) setContacts(await contactsRes.json())
+      if (templatesRes.ok) {
+        const allTemplates = await templatesRes.json()
+        setTemplates(allTemplates.filter((t: any) => t.status === 'approved'))
+      }
+    } catch {}
+  }
+
+  const handleStartConversation = async () => {
+    let phone = ''
+    let contactId = ''
+
+    if (newConvMode === 'create') {
+      if (!newContactPhone) {
+        toast({ title: 'Telefone obrigatório', variant: 'destructive' })
+        return
+      }
+      // Criar contato
+      try {
+        const res = await fetch('/api/contacts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: newContactPhone, name: newContactName || null }),
+        })
+        if (res.ok) {
+          const contact = await res.json()
+          contactId = contact.id
+          phone = contact.phone
+        } else {
+          const err = await res.json()
+          toast({ title: err.error || 'Erro ao criar contato', variant: 'destructive' })
+          return
+        }
+      } catch {
+        toast({ title: 'Erro ao criar contato', variant: 'destructive' })
+        return
+      }
+    } else {
+      if (!selectedContactId) {
+        toast({ title: 'Selecione um contato', variant: 'destructive' })
+        return
+      }
+      const contact = contacts.find((c: any) => c.id === selectedContactId)
+      if (!contact) return
+      phone = contact.phone
+      contactId = contact.id
+    }
+
+    if (!selectedTemplate) {
+      toast({ title: 'Selecione um template para iniciar', variant: 'destructive' })
+      return
+    }
+
+    const template = templates.find((t: any) => t.name === selectedTemplate)
+    if (!template) return
+
+    setIsSending(true)
+    try {
+      // Criar conversa
+      const convRes = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_id: contactId, channel: 'whatsapp' }),
+      })
+
+      if (!convRes.ok) {
+        const err = await convRes.json()
+        toast({ title: err.error || 'Erro ao criar conversa', variant: 'destructive' })
+        return
+      }
+
+      const conversation = await convRes.json()
+
+      // Enviar template
+      const sendRes = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          phone,
+          type: 'template',
+          templateName: template.name,
+          templateLanguage: template.language || 'pt_BR',
+        }),
+      })
+
+      if (sendRes.ok) {
+        toast({ title: 'Conversa iniciada!' })
+        setShowNewConversation(false)
+        refetch()
+      } else {
+        const err = await sendRes.json()
+        toast({ title: err.error || 'Erro ao enviar template', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Erro ao iniciar conversa', variant: 'destructive' })
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const filteredConvContacts = contacts.filter((c: any) =>
+    !contactSearch ||
+    c.name?.toLowerCase().includes(contactSearch.toLowerCase()) ||
+    c.phone.includes(contactSearch)
+  )
 
   const filteredConversations = conversations.filter((conv) => {
     if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
@@ -41,7 +190,12 @@ export function ConversationList() {
       <div className="px-4 pt-4 pb-3 space-y-3 border-b">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-800">Conversas</h2>
-          <Badge variant="secondary" className="text-[10px] px-1.5">{filteredConversations.length}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-[10px] px-1.5">{filteredConversations.length}</Badge>
+            <Button size="sm" variant="ghost" onClick={openNewConversation} className="h-7 w-7 p-0 text-slate-500 hover:text-[#F26522]">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         {/* Search */}
@@ -103,6 +257,134 @@ export function ConversationList() {
           </div>
         )}
       </ScrollArea>
+
+      {/* New Conversation Dialog */}
+      <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Conversa</DialogTitle>
+            <DialogDescription>Inicie uma conversa enviando um template aprovado</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Toggle: select existing or create new */}
+            <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setNewConvMode('select')}
+                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                  newConvMode === 'select' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                }`}
+              >
+                Contato existente
+              </button>
+              <button
+                onClick={() => setNewConvMode('create')}
+                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                  newConvMode === 'create' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'
+                }`}
+              >
+                Novo contato
+              </button>
+            </div>
+
+            {newConvMode === 'select' ? (
+              <div className="space-y-2">
+                <Label className="text-xs">Selecionar contato</Label>
+                <Input
+                  placeholder="Buscar por nome ou telefone..."
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  className="h-9 text-xs"
+                />
+                <ScrollArea className="h-36 border rounded-lg">
+                  <div className="p-1">
+                    {filteredConvContacts.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">Nenhum contato</p>
+                    ) : (
+                      filteredConvContacts.map((contact: any) => (
+                        <button
+                          key={contact.id}
+                          onClick={() => setSelectedContactId(contact.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
+                            selectedContactId === contact.id ? 'bg-orange-50 border border-[#F26522]/30' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="h-7 w-7 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-medium">
+                            {contact.name?.[0]?.toUpperCase() || '?'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium">{contact.name || 'Sem nome'}</p>
+                            <p className="text-[10px] text-slate-400">{contact.phone}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Telefone (com código do país)</Label>
+                  <Input
+                    placeholder="5511999999999"
+                    value={newContactPhone}
+                    onChange={(e) => setNewContactPhone(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Nome (opcional)</Label>
+                  <Input
+                    placeholder="Nome do contato"
+                    value={newContactName}
+                    onChange={(e) => setNewContactName(e.target.value)}
+                    className="h-9"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Template selection */}
+            <div className="space-y-2">
+              <Label className="text-xs">Template para iniciar (obrigatório)</Label>
+              {templates.length === 0 ? (
+                <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                  Nenhum template aprovado. Crie um na aba Templates.
+                </p>
+              ) : (
+                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Selecione um template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t: any) => (
+                      <SelectItem key={t.id} value={t.name} className="text-xs">
+                        {t.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {selectedTemplate && (
+                <div className="bg-green-50 border border-green-100 rounded-lg p-2">
+                  <p className="text-[10px] text-slate-600 whitespace-pre-wrap">
+                    {templates.find((t: any) => t.name === selectedTemplate)?.body}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <Button
+              onClick={handleStartConversation}
+              disabled={isSending}
+              className="w-full bg-[#F26522] hover:bg-[#d4561c]"
+            >
+              <Send className="h-3.5 w-3.5 mr-2" />
+              {isSending ? 'Enviando...' : 'Iniciar Conversa'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
