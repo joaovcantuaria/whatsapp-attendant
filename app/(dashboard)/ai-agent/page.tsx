@@ -238,16 +238,6 @@ export default function AiAgentPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {(config.provider === 'groq' || !config.provider) && (
-                    <p className="text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded">
-                      ✨ Groq é gratuito! Usa modelos Llama e Mixtral de alta qualidade sem custo.
-                    </p>
-                  )}
-                  {config.provider === 'gemini' && (
-                    <p className="text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      ✨ Gemini tem um tier gratuito generoso. Ótimo para começar!
-                    </p>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -275,9 +265,9 @@ export default function AiAgentPage() {
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-400">
-                  {config.provider === 'groq' && 'Crie sua key gratuita em console.groq.com'}
-                  {config.provider === 'gemini' && 'Crie sua key gratuita em aistudio.google.com/apikey'}
-                  {config.provider === 'openai' && 'Crie sua key em platform.openai.com (pago por uso)'}
+                  {config.provider === 'groq' && 'Crie sua key em console.groq.com'}
+                  {config.provider === 'gemini' && 'Crie sua key em aistudio.google.com/apikey'}
+                  {config.provider === 'openai' && 'Crie sua key em platform.openai.com'}
                 </p>
               </CardContent>
             </Card>
