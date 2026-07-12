@@ -59,28 +59,28 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
               {contact?.name || contact?.phone || 'Desconhecido'}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-            {conversation.last_message_at
-              ? formatRelativeTime(conversation.last_message_at)
-              : ''}
-          </span>
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <span className="text-[11px] text-slate-500 truncate">
-            {conversation.last_message
-              ? truncateText(conversation.last_message, 35)
-              : 'Sem mensagens'}
-          </span>
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            {protocol && (
-              <span className="text-[8px] text-slate-400 font-mono">{protocol}</span>
-            )}
+            <span className="text-[10px] text-slate-400">
+              {conversation.last_message_at
+                ? formatRelativeTime(conversation.last_message_at)
+                : ''}
+            </span>
             {conversation.unread_count > 0 && (
               <span className="h-4 min-w-[16px] px-1 flex items-center justify-center text-[9px] font-bold text-white bg-orange-500 rounded-full">
                 {conversation.unread_count}
               </span>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[11px] text-slate-500 truncate flex-1">
+            {conversation.last_message
+              ? truncateText(conversation.last_message, 30)
+              : 'Sem mensagens'}
+          </span>
+          {protocol && (
+            <span className="text-[9px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded shrink-0">{protocol}</span>
+          )}
         </div>
       </div>
     </button>

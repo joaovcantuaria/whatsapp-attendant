@@ -12,7 +12,7 @@ export default function ConversationsPage() {
   return (
     <div className="flex h-full">
       {/* Lista de Conversas */}
-      <div className="w-72 border-r border-slate-200 flex-shrink-0">
+      <div className="w-80 border-r border-slate-200 flex-shrink-0">
         <ConversationList />
       </div>
 
