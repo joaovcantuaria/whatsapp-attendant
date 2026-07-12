@@ -130,9 +130,12 @@ export default function WhatsAppSettingsPage() {
           </CardHeader>
           {company?.whatsapp_connected && (
             <CardContent>
-              <p className="text-xs text-slate-500 mb-3">
-                Phone Number ID: {company.whatsapp_phone_number_id}
-              </p>
+              <div className="space-y-1 text-xs text-slate-500 mb-3">
+                <p>Phone Number ID: <span className="font-mono">{company.whatsapp_phone_number_id}</span></p>
+                {company.whatsapp_business_account_id && (
+                  <p>WABA ID: <span className="font-mono">{company.whatsapp_business_account_id}</span></p>
+                )}
+              </div>
               <Button variant="destructive" size="sm" onClick={handleDisconnect} disabled={isDisconnecting}>
                 {isDisconnecting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
                 Desconectar
@@ -164,21 +167,29 @@ export default function WhatsAppSettingsPage() {
             <div className="space-y-2">
               <Label>Phone Number ID</Label>
               <Input
+                placeholder="Ex: 207206995674506"
                 value={credentials.phoneNumberId}
                 onChange={(e) => setCredentials({ ...credentials, phoneNumberId: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Encontre em: Meta Developers → WhatsApp → API Setup
+              </p>
             </div>
             <div className="space-y-2">
-              <Label>Business Account ID</Label>
+              <Label>WhatsApp Business Account ID <span className="text-muted-foreground font-normal">(opcional)</span></Label>
               <Input
+                placeholder="Será detectado automaticamente se não preenchido"
                 value={credentials.businessAccountId}
                 onChange={(e) => setCredentials({ ...credentials, businessAccountId: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Diferente do Phone Number ID. Encontre em: Meta Business → Configurações → Contas do WhatsApp → Identificação
+              </p>
             </div>
             <Button
               size="sm"
               onClick={handleTestConnection}
-              disabled={isTesting || !credentials.accessToken || !credentials.phoneNumberId || !credentials.businessAccountId}
+              disabled={isTesting || !credentials.accessToken || !credentials.phoneNumberId}
             >
               {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
               Testar e Salvar

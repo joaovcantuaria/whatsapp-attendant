@@ -14,13 +14,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { companyId, accessToken, phoneNumberId, businessAccountId } = body
 
-    if (!accessToken || !phoneNumberId || !businessAccountId) {
-      return NextResponse.json({ error: 'Todas as credenciais são obrigatórias' }, { status: 400 })
+    if (!accessToken || !phoneNumberId) {
+      return NextResponse.json({ error: 'Access Token e Phone Number ID são obrigatórios' }, { status: 400 })
     }
 
     // Testar conexão com a Meta
     const testResponse = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneNumberId}`,
+      `https://graph.facebook.com/v22.0/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating`,
       { headers: { 'Authorization': `Bearer ${accessToken}` } }
     )
 
@@ -34,6 +34,43 @@ export async function POST(request: NextRequest) {
 
     const phoneData = await testResponse.json()
 
+    // Descobrir WABA ID automaticamente a partir do Phone Number ID
+    let wabaId = businessAccountId || null
+
+    try {
+      const wabaResponse = await fetch(
+        `https://graph.facebook.com/v22.0/${phoneNumberId}/whatsapp_business_account`,
+        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+      )
+      if (wabaResponse.ok) {
+        const wabaData = await wabaResponse.json()
+        if (wabaData.id) {
+          wabaId = wabaData.id
+        }
+      }
+    } catch (e) {
+      // Se não conseguir descobrir, usa o que o usuário passou
+      console.error('Could not auto-discover WABA ID:', e)
+    }
+
+    // Se não conseguiu descobrir e não foi fornecido, tenta fields
+    if (!wabaId) {
+      try {
+        const phoneLookup = await fetch(
+          `https://graph.facebook.com/v22.0/${phoneNumberId}?fields=whatsapp_business_account`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        )
+        if (phoneLookup.ok) {
+          const data = await phoneLookup.json()
+          if (data.whatsapp_business_account?.id) {
+            wabaId = data.whatsapp_business_account.id
+          }
+        }
+      } catch (e) {
+        console.error('Could not discover WABA via fields:', e)
+      }
+    }
+
     // Salvar credenciais
     const serviceClient = createServiceRoleClient()
     const { error } = await serviceClient
@@ -41,7 +78,7 @@ export async function POST(request: NextRequest) {
       .update({
         whatsapp_token: accessToken,
         whatsapp_phone_number_id: phoneNumberId,
-        whatsapp_business_account_id: businessAccountId,
+        whatsapp_business_account_id: wabaId,
         whatsapp_connected: true,
         updated_at: new Date().toISOString(),
       })
@@ -55,6 +92,8 @@ export async function POST(request: NextRequest) {
       success: true,
       phoneNumber: phoneData.display_phone_number || phoneNumberId,
       verifiedName: phoneData.verified_name || null,
+      wabaId: wabaId,
+      wabaDiscovered: wabaId && wabaId !== businessAccountId,
     })
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
