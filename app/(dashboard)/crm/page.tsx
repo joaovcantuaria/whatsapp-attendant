@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Plus, Filter } from 'lucide-react'
+import { Search, Plus, Filter, Trophy, XCircle } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
 
 interface CrmDeal {
@@ -48,7 +48,20 @@ export default function CrmPage() {
   const [newDealStage, setNewDealStage] = useState('')
   const [newDeal, setNewDeal] = useState({ title: '', value: '', contact_id: '' })
   const [isCreating, setIsCreating] = useState(false)
+  const [showLostDialog, setShowLostDialog] = useState(false)
+  const [lostDealId, setLostDealId] = useState('')
+  const [lostReason, setLostReason] = useState('')
   const { toast } = useToast()
+
+  const lostReasons = [
+    'Preço muito alto',
+    'Escolheu concorrente',
+    'Sem orçamento no momento',
+    'Não respondeu mais',
+    'Desistiu do projeto',
+    'Produto não atende',
+    'Outro',
+  ]
 
   const fetchData = useCallback(async () => {
     try {
@@ -80,6 +93,45 @@ export default function CrmPage() {
   }
 
   const openNewDeal = (stageId: string) => { setNewDealStage(stageId); setShowNewDeal(true) }
+
+  const handleMarkLost = (dealId: string) => {
+    setLostDealId(dealId)
+    setLostReason('')
+    setShowLostDialog(true)
+  }
+
+  const handleConfirmLost = async () => {
+    if (!lostReason) {
+      toast({ title: 'Informe o motivo da perda', variant: 'destructive' })
+      return
+    }
+    try {
+      await fetch('/api/crm/pipeline', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: lostDealId, status: 'lost', lost_reason: lostReason }),
+      })
+      toast({ title: 'Negociação marcada como perdida' })
+      setShowLostDialog(false)
+      fetchData()
+    } catch {
+      toast({ title: 'Erro', variant: 'destructive' })
+    }
+  }
+
+  const handleMarkWon = async (dealId: string) => {
+    try {
+      await fetch('/api/crm/pipeline', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: dealId, status: 'won' }),
+      })
+      toast({ title: '🎉 Negociação ganha!' })
+      fetchData()
+    } catch {
+      toast({ title: 'Erro', variant: 'destructive' })
+    }
+  }
 
   const handleCreateDeal = async () => {
     if (!newDeal.title) { toast({ title: 'Título obrigatório', variant: 'destructive' }); return }
@@ -170,11 +222,27 @@ export default function CrmPage() {
                                     </Avatar>
                                   )}
                                 </div>
-                                {Number(deal.value) > 0 && (
-                                  <span className="text-[10px] font-medium text-slate-500">
-                                    R$ {Number(deal.value).toLocaleString('pt-BR')}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1">
+                                  {Number(deal.value) > 0 && (
+                                    <span className="text-[10px] font-medium text-slate-500 mr-1">
+                                      R$ {Number(deal.value).toLocaleString('pt-BR')}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleMarkWon(deal.id) }}
+                                    className="h-5 w-5 rounded flex items-center justify-center hover:bg-green-100 text-slate-400 hover:text-green-600 transition-colors"
+                                    title="Marcar como ganha"
+                                  >
+                                    <Trophy className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleMarkLost(deal.id) }}
+                                    className="h-5 w-5 rounded flex items-center justify-center hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+                                    title="Marcar como perdida"
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -220,6 +288,50 @@ export default function CrmPage() {
               </Select>
             </div>
             <Button onClick={handleCreateDeal} className="w-full h-8 text-xs" disabled={isCreating}>{isCreating ? 'Criando...' : 'Criar'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lost Reason Dialog */}
+      <Dialog open={showLostDialog} onOpenChange={setShowLostDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-base text-red-600">Motivo da Perda</DialogTitle>
+            <DialogDescription className="text-xs">
+              Informe por que essa negociação foi perdida (obrigatório)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              {lostReasons.map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => setLostReason(reason)}
+                  className={`text-xs px-3 py-2 rounded-lg border transition-colors text-left ${
+                    lostReason === reason
+                      ? 'border-red-300 bg-red-50 text-red-700 font-medium'
+                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            {lostReason === 'Outro' && (
+              <Input
+                placeholder="Descreva o motivo..."
+                value={lostReason === 'Outro' ? '' : lostReason}
+                onChange={(e) => setLostReason(e.target.value || 'Outro')}
+                className="text-xs"
+              />
+            )}
+            <Button
+              onClick={handleConfirmLost}
+              className="w-full h-8 text-xs bg-red-600 hover:bg-red-700"
+              disabled={!lostReason}
+            >
+              Confirmar Perda
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

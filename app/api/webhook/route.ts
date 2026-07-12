@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { getMediaUrl, markMessageAsRead } from '@/lib/meta'
+import { processAiResponse } from '@/lib/ai-agent'
 import { WebhookMessage, WebhookStatus } from '@/types'
 
 // GET - Validação do webhook pela Meta
@@ -209,6 +210,40 @@ async function processInboundMessage(
 
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
+
+  // 7. Processar com Agente IA (se ativo e sem agente humano)
+  if (content && message.type === 'text') {
+    try {
+      // Buscar company_id do contato
+      const { data: contactData } = await supabase
+        .from('contacts')
+        .select('company_id')
+        .eq('id', contact.id)
+        .single()
+
+      if (contactData?.company_id) {
+        // Buscar credenciais
+        const { data: company } = await supabase
+          .from('companies')
+          .select('whatsapp_token, whatsapp_phone_number_id')
+          .eq('id', contactData.company_id)
+          .single()
+
+        if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
+          await processAiResponse(
+            contactData.company_id,
+            conversation.id,
+            phone,
+            content,
+            company.whatsapp_phone_number_id,
+            company.whatsapp_token
+          )
+        }
+      }
+    } catch (e) {
+      console.error('AI Agent processing error:', e)
+    }
+  }
 }
 
 async function processStatusUpdate(
