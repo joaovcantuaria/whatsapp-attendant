@@ -180,10 +180,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'WhatsApp não configurado. Vá em Configurações > WhatsApp e conecte sua conta.' }, { status: 400 })
     }
 
-    // Descobrir WABA ID - tenta a partir do phone_number_id primeiro (mais confiável)
-    let wabaId = company.whatsapp_business_account_id
+    // Descobrir WABA ID a partir do phone_number_id (mais confiável)
+    // O whatsapp_business_account_id salvo no banco pode estar errado (pode ser o phone number ID)
+    let wabaId: string | null = null
 
-    if (company.whatsapp_phone_number_id && !wabaId) {
+    if (company.whatsapp_phone_number_id) {
       try {
         const wabaLookup = await fetch(
           `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=whatsapp_business_account`,
@@ -194,15 +195,22 @@ export async function PUT(request: NextRequest) {
           if (wabaData.whatsapp_business_account?.id) {
             wabaId = wabaData.whatsapp_business_account.id
             // Salvar o WABA ID correto no banco pra próxima vez
-            await serviceClient
-              .from('companies')
-              .update({ whatsapp_business_account_id: wabaId })
-              .eq('id', member.company_id)
+            if (wabaId !== company.whatsapp_business_account_id) {
+              await serviceClient
+                .from('companies')
+                .update({ whatsapp_business_account_id: wabaId })
+                .eq('id', member.company_id)
+            }
           }
         }
       } catch (e) {
         console.error('Error discovering WABA ID:', e)
       }
+    }
+
+    // Fallback: usar o que está salvo no banco (caso o discovery falhe)
+    if (!wabaId) {
+      wabaId = company.whatsapp_business_account_id
     }
 
     if (!wabaId) {
