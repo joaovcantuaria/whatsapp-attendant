@@ -14,7 +14,7 @@ const features = [
   {
     icon: MessageSquare,
     title: 'Chat em tempo real',
-    description: 'Atenda múltiplos clientes simultaneamente com interface intuitiva.',
+    description: 'Atenda múltiplos clientes simultaneamente.',
   },
   {
     icon: Bot,
@@ -24,12 +24,12 @@ const features = [
   {
     icon: Send,
     title: 'Disparos em massa',
-    description: 'Envie campanhas segmentadas para toda sua base de contatos.',
+    description: 'Campanhas segmentadas para toda sua base.',
   },
   {
     icon: BarChart3,
     title: 'Relatórios detalhados',
-    description: 'Acompanhe métricas de atendimento e performance da equipe.',
+    description: 'Métricas de atendimento e performance da equipe.',
   },
 ]
 
@@ -91,74 +91,74 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Visual */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
         {/* Background animated elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-10 w-64 h-64 bg-[#F26522]/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-32 right-16 w-80 h-80 bg-[#F26522]/5 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className="absolute top-20 left-10 w-48 h-48 bg-[#F26522]/8 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-32 right-16 w-56 h-56 bg-[#F26522]/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
 
         {/* Floating icons */}
-        <div className="absolute top-16 right-20 opacity-20 animate-bounce" style={{ animationDuration: '3s' }}>
-          <MessageSquare className="w-8 h-8 text-[#F26522]" />
+        <div className="absolute top-20 right-16 opacity-15 animate-bounce" style={{ animationDuration: '3s' }}>
+          <MessageSquare className="w-5 h-5 text-[#F26522]" />
         </div>
-        <div className="absolute top-40 left-16 opacity-15 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
-          <Users className="w-6 h-6 text-white" />
+        <div className="absolute top-44 left-12 opacity-10 animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+          <Users className="w-4 h-4 text-white" />
         </div>
-        <div className="absolute bottom-40 left-24 opacity-20 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>
-          <Zap className="w-7 h-7 text-[#F26522]" />
+        <div className="absolute bottom-36 left-20 opacity-15 animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}>
+          <Zap className="w-5 h-5 text-[#F26522]" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 w-full">
+        <div className="relative z-10 flex flex-col justify-center px-10 xl:px-14 w-full">
           {/* Logo */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#F26522] rounded-xl flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
+          <div className="mb-10">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-[#F26522] rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-4 h-4 text-white" />
               </div>
-              <span className="text-2xl font-bold text-white">
+              <span className="text-lg font-bold text-white">
                 Bora<span className="text-[#F26522]">Gerir</span>
               </span>
             </div>
           </div>
 
           {/* Feature showcase */}
-          <div className="space-y-3">
-            <h2 className="text-3xl font-bold text-white leading-tight">
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-white leading-snug">
               Seja bem-vindo de volta!
             </h2>
-            <p className="text-gray-400 text-lg">
+            <p className="text-gray-400 text-sm">
               Entre com a sua conta
             </p>
           </div>
 
           {/* Animated features */}
-          <div className="mt-12 space-y-4">
+          <div className="mt-10 space-y-2.5">
             {features.map((feature, index) => {
               const Icon = feature.icon
               const isActive = index === activeFeature
               return (
                 <div
                   key={index}
-                  className={`flex items-start gap-4 p-4 rounded-2xl transition-all duration-500 ${
+                  className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-500 ${
                     isActive
-                      ? 'bg-white/10 border border-white/10 scale-[1.02]'
-                      : 'opacity-50 scale-100'
+                      ? 'bg-white/8 border border-white/10'
+                      : 'opacity-40'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors duration-500 ${
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-500 ${
                     isActive ? 'bg-[#F26522]' : 'bg-white/10'
                   }`}>
-                    <Icon className={`w-5 h-5 transition-colors duration-500 ${
+                    <Icon className={`w-4 h-4 transition-colors duration-500 ${
                       isActive ? 'text-white' : 'text-gray-400'
                     }`} />
                   </div>
                   <div>
-                    <h3 className={`font-semibold transition-colors duration-500 ${
+                    <h3 className={`text-sm font-medium transition-colors duration-500 ${
                       isActive ? 'text-white' : 'text-gray-400'
                     }`}>{feature.title}</h3>
-                    <p className={`text-sm transition-colors duration-500 ${
+                    <p className={`text-xs transition-colors duration-500 ${
                       isActive ? 'text-gray-300' : 'text-gray-500'
                     }`}>{feature.description}</p>
                   </div>
@@ -168,12 +168,12 @@ export default function LoginPage() {
           </div>
 
           {/* Progress dots */}
-          <div className="mt-8 flex gap-2">
+          <div className="mt-6 flex gap-1.5">
             {features.map((_, index) => (
               <div
                 key={index}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  index === activeFeature ? 'w-8 bg-[#F26522]' : 'w-1.5 bg-white/20'
+                className={`h-1 rounded-full transition-all duration-500 ${
+                  index === activeFeature ? 'w-6 bg-[#F26522]' : 'w-1.5 bg-white/20'
                 }`}
               />
             ))}
@@ -182,30 +182,30 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-white">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-16 bg-white">
+        <div className="w-full max-w-sm">
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2 mb-10">
-            <div className="w-9 h-9 bg-[#F26522] rounded-lg flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-white" />
+          <div className="lg:hidden flex items-center gap-2 mb-8">
+            <div className="w-8 h-8 bg-[#F26522] rounded-lg flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">
+            <span className="text-lg font-bold text-gray-900">
               Bora<span className="text-[#F26522]">Gerir</span>
             </span>
           </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar</h1>
-            <p className="text-gray-500">
+          <div className="mb-7">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Entrar</h1>
+            <p className="text-sm text-gray-500">
               Acesse sua conta para gerenciar seus atendimentos
             </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium text-gray-600">
                 Email
               </Label>
               <Input
@@ -215,13 +215,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#F26522] focus:ring-[#F26522]/20 transition-all"
+                className="h-10 rounded-lg border-gray-200 bg-gray-50/80 focus:bg-white focus:border-[#F26522] focus:ring-[#F26522]/20 transition-all text-sm"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-xs font-medium text-gray-600">
                   Senha
                 </Label>
                 <Link href="#" className="text-xs text-[#F26522] hover:underline">
@@ -235,13 +235,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-[#F26522] focus:ring-[#F26522]/20 transition-all"
+                className="h-10 rounded-lg border-gray-200 bg-gray-50/80 focus:bg-white focus:border-[#F26522] focus:ring-[#F26522]/20 transition-all text-sm"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 rounded-xl bg-[#F26522] hover:bg-[#d4561c] text-white font-semibold text-base shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 transition-all hover:-translate-y-0.5"
+              className="w-full h-10 rounded-lg bg-[#F26522] hover:bg-[#d4561c] text-white font-medium text-sm shadow-md shadow-orange-100 hover:shadow-lg hover:shadow-orange-200 transition-all"
               disabled={isLoading}
             >
               {isLoading ? 'Entrando...' : 'Entrar'}
@@ -249,21 +249,21 @@ export default function LoginPage() {
           </form>
 
           {/* Divider */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
+          <div className="mt-7 pt-5 border-t border-gray-100">
             <p className="text-center text-sm text-gray-500">
               Novo no BoraGerir?{' '}
-              <Link href="/register" className="text-[#F26522] font-semibold hover:underline">
+              <Link href="/register" className="text-[#F26522] font-medium hover:underline">
                 Crie sua conta
               </Link>
             </p>
           </div>
 
           {/* Trust badge */}
-          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-400">
-            <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
+          <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-gray-400">
+            <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
             </div>
-            <span>Plataforma segura com API Oficial da Meta</span>
+            <span>Plataforma segura · API Oficial da Meta</span>
           </div>
         </div>
       </div>
