@@ -173,16 +173,51 @@ export async function PUT(request: NextRequest) {
 
     const { data: company } = await serviceClient
       .from('companies')
-      .select('whatsapp_token, whatsapp_business_account_id')
+      .select('whatsapp_token, whatsapp_business_account_id, whatsapp_phone_number_id')
       .eq('id', member.company_id)
       .single()
 
-    if (!company?.whatsapp_token || !company?.whatsapp_business_account_id) {
+    if (!company?.whatsapp_token) {
       return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
     }
 
+    // Descobrir WABA ID a partir do phone_number_id (mais confiável)
+    let wabaId = company.whatsapp_business_account_id
+
+    if (company.whatsapp_phone_number_id) {
+      try {
+        const wabaRes = await fetch(
+          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=id,display_phone_number,name_status,verified_name`,
+          { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
+        )
+        if (wabaRes.ok) {
+          // Tentar buscar o WABA via outra rota
+          const phoneData = await wabaRes.json()
+          // Buscar WABA ID usando o phone number
+          const wabaLookup = await fetch(
+            `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/whatsapp_business_account`,
+            { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
+          )
+          if (wabaLookup.ok) {
+            const wabaData = await wabaLookup.json()
+            if (wabaData.id) {
+              wabaId = wabaData.id
+              // Salvar o WABA ID correto no banco pra próxima vez
+              await serviceClient.from('companies').update({ whatsapp_business_account_id: wabaId }).eq('id', member.company_id)
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error discovering WABA ID:', e)
+      }
+    }
+
+    if (!wabaId) {
+      return NextResponse.json({ error: 'WABA ID não encontrado. Configure o WhatsApp Business Account ID.' }, { status: 400 })
+    }
+
     // Buscar templates da Meta
-    const metaUrl = `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/message_templates`
+    const metaUrl = `https://graph.facebook.com/v22.0/${wabaId}/message_templates`
     const metaResponse = await fetch(metaUrl, {
       headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
     })
