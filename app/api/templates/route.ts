@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Enviar para aprovação na Meta
     let metaTemplateId: string | null = null
     try {
-      const metaUrl = `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates`
+      const metaUrl = `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/message_templates`
       const metaResponse = await fetch(metaUrl, {
         method: 'POST',
         headers: {
@@ -182,7 +182,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Buscar templates da Meta
-    const metaUrl = `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates`
+    const metaUrl = `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/message_templates`
     const metaResponse = await fetch(metaUrl, {
       headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
     })
@@ -271,7 +271,7 @@ export async function DELETE(request: NextRequest) {
         if (company?.whatsapp_token && company?.whatsapp_business_account_id) {
           try {
             await fetch(
-              `https://graph.facebook.com/v19.0/${company.whatsapp_business_account_id}/message_templates?name=${template.name}`,
+              `https://graph.facebook.com/v22.0/${company.whatsapp_business_account_id}/message_templates?name=${template.name}`,
               {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
