@@ -38,16 +38,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, greeting_message } = body
+    const { name, greeting_message, color } = body
 
     const serviceClient = createServiceRoleClient()
 
+    const updates: Record<string, any> = {}
+    if (name) updates.name = name
+    if (greeting_message !== undefined) updates.greeting_message = greeting_message
+    if (color) updates.color = color
+
     const { data, error } = await serviceClient
       .from('agents')
-      .update({
-        name: name || undefined,
-        greeting_message: greeting_message !== undefined ? greeting_message : undefined,
-      })
+      .update(updates)
       .eq('id', session.user.id)
       .select()
       .single()

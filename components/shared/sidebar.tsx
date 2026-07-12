@@ -111,7 +111,7 @@ export function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <aside className="w-[52px] flex flex-col h-full bg-slate-900 border-r border-slate-800 shrink-0">
+      <aside className="w-[52px] flex flex-col h-full bg-slate-800 rounded-2xl shrink-0 overflow-hidden">
         {/* Logo */}
         <div className="h-14 flex items-center justify-center border-b border-slate-800">
           <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">

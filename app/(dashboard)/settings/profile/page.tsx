@@ -19,6 +19,7 @@ export default function ProfilePage() {
 
   const [name, setName] = useState('')
   const [greetingMessage, setGreetingMessage] = useState('')
+  const [agentColor, setAgentColor] = useState('#F26522')
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [email, setEmail] = useState('')
@@ -34,6 +35,7 @@ export default function ProfilePage() {
           setGreetingMessage(data.greeting_message || '')
           setEmail(data.email || '')
           setRole(data.role || 'agent')
+          setAgentColor(data.color || '#F26522')
         }
       } catch (err) {
         console.error('Error fetching profile:', err)
@@ -54,6 +56,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name,
           greeting_message: greetingMessage || null,
+          color: agentColor,
         }),
       })
 
@@ -158,6 +161,32 @@ export default function ProfilePage() {
             <div className="p-3 bg-muted rounded-lg">
               <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
               <p className="text-sm">{greetingMessage || defaultGreeting}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cor do Agente */}
+        <Card className="border-0 shadow-sm bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-700">Minha Cor</CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Aparece nas conversas para identificar quem está atendendo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: agentColor }} />
+              <div className="flex gap-2 flex-wrap">
+                {['#F26522', '#EF4444', '#F59E0B', '#22C55E', '#3B82F6', '#6366F1', '#A855F7', '#EC4899', '#10B981', '#0EA5E9'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setAgentColor(color)}
+                    className={`w-7 h-7 rounded-full transition-transform ${agentColor === color ? 'scale-125 ring-2 ring-offset-2 ring-slate-400' : 'hover:scale-110'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>

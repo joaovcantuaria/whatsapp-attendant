@@ -73,9 +73,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <CompanyProvider>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden p-2 gap-2 bg-slate-900">
         <Sidebar />
-        <main className="flex-1 overflow-hidden bg-slate-50">
+        <main className="flex-1 overflow-hidden bg-slate-50 rounded-2xl">
           {children}
         </main>
       </div>
