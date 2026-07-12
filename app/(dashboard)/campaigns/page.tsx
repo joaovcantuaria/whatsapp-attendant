@@ -39,6 +39,8 @@ import {
   Search,
   Eye,
   Tag,
+  Calendar,
+  BarChart3,
 } from 'lucide-react'
 
 interface Campaign {
@@ -100,6 +102,7 @@ export default function CampaignsPage() {
     description: '',
     template_name: '',
     template_language: 'pt_BR',
+    scheduled_at: '',
   })
   const { toast } = useToast()
 
@@ -211,14 +214,15 @@ export default function CampaignsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : null,
           contact_ids: selectedContacts,
         }),
       })
 
       if (res.ok) {
-        toast({ title: 'Campanha criada com sucesso!' })
+        toast({ title: formData.scheduled_at ? 'Campanha agendada!' : 'Campanha criada com sucesso!' })
         setShowCreateDialog(false)
-        setFormData({ name: '', description: '', template_name: '', template_language: 'pt_BR' })
+        setFormData({ name: '', description: '', template_name: '', template_language: 'pt_BR', scheduled_at: '' })
         setSelectedContacts([])
         fetchCampaigns()
       } else {
@@ -310,10 +314,16 @@ export default function CampaignsPage() {
             <h1 className="text-lg font-semibold text-slate-800">Campanhas</h1>
             <p className="text-xs text-slate-500">Dispare mensagens em massa para seus contatos</p>
           </div>
-          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Nova Campanha
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/campaigns/reports'}>
+              <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              Relatórios
+            </Button>
+            <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Nova Campanha
+            </Button>
+          </div>
         </div>
 
         {/* Campaigns List */}
@@ -361,6 +371,12 @@ export default function CampaignsPage() {
                             {campaign.total_contacts} contatos
                           </span>
                           <span>Template: {campaign.template_name}</span>
+                          {campaign.scheduled_at && campaign.status === 'scheduled' && (
+                            <span className="flex items-center gap-1 text-blue-500">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(campaign.scheduled_at).toLocaleString('pt-BR')}
+                            </span>
+                          )}
                           {campaign.completed_at && (
                             <span>
                               Enviada em {new Date(campaign.completed_at).toLocaleDateString('pt-BR')}
@@ -513,6 +529,23 @@ export default function CampaignsPage() {
                   <p className="text-xs text-slate-700 whitespace-pre-wrap">{selectedTemplate.body}</p>
                 </div>
               )}
+            </div>
+
+            {/* Agendamento */}
+            <div className="space-y-2">
+              <Label className="text-xs flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5" />
+                Agendar envio (opcional)
+              </Label>
+              <Input
+                type="datetime-local"
+                value={formData.scheduled_at}
+                onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
+                className="h-9"
+              />
+              <p className="text-[10px] text-slate-400">
+                Deixe vazio para enviar manualmente. Se agendar, a campanha será criada com status "Agendada".
+              </p>
             </div>
 
             {/* Contatos */}

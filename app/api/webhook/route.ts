@@ -263,8 +263,44 @@ async function processStatusUpdate(
   const mappedStatus = statusMap[messageStatus]
   if (!mappedStatus) return
 
+  // Atualizar na tabela de mensagens
   await supabase
     .from('messages')
     .update({ status: mappedStatus })
     .eq('whatsapp_message_id', id)
+
+  // Atualizar nas mensagens de campanha (se existir)
+  if (mappedStatus === 'delivered' || mappedStatus === 'read' || mappedStatus === 'failed') {
+    const { data: campaignMsg } = await supabase
+      .from('campaign_messages')
+      .select('id, campaign_id, status')
+      .eq('whatsapp_message_id', id)
+      .single()
+
+    if (campaignMsg) {
+      await supabase
+        .from('campaign_messages')
+        .update({ status: mappedStatus })
+        .eq('id', campaignMsg.id)
+
+      // Atualizar contadores da campanha
+      const { data: campaignData } = await supabase
+        .from('campaigns')
+        .select('delivered_count, read_count')
+        .eq('id', campaignMsg.campaign_id)
+        .single()
+
+      if (campaignData) {
+        if (mappedStatus === 'delivered') {
+          await supabase.from('campaigns')
+            .update({ delivered_count: (campaignData.delivered_count || 0) + 1 })
+            .eq('id', campaignMsg.campaign_id)
+        } else if (mappedStatus === 'read') {
+          await supabase.from('campaigns')
+            .update({ read_count: (campaignData.read_count || 0) + 1 })
+            .eq('id', campaignMsg.campaign_id)
+        }
+      }
+    }
+  }
 }
