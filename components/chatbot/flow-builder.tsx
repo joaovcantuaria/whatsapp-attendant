@@ -216,7 +216,7 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-white z-10 relative">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack} className="text-xs">
             ← Voltar
