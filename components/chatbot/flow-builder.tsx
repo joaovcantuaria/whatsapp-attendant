@@ -15,6 +15,8 @@ import ReactFlow, {
   Position,
   NodeProps,
   MarkerType,
+  ReactFlowProvider,
+  useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { Button } from '@/components/ui/button'
@@ -143,12 +145,20 @@ interface FlowBuilderProps {
 }
 
 export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSave, onBack }: FlowBuilderProps) {
+  return (
+    <ReactFlowProvider>
+      <FlowBuilderInner flowId={flowId} flowName={flowName} initialNodes={initialNodes} initialEdges={initialEdges} onSave={onSave} onBack={onBack} />
+    </ReactFlowProvider>
+  )
+}
+
+function FlowBuilderInner({ flowId, flowName, initialNodes, initialEdges, onSave, onBack }: FlowBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingNode, setEditingNode] = useState<Node | null>(null)
   const [editForm, setEditForm] = useState<any>({})
-
+  const reactFlowInstance = useReactFlow()
   const nodeTypes = useMemo(() => ({
     message: MessageNode,
     condition: ConditionNode,
@@ -165,20 +175,25 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
     }, eds))
   }, [setEdges])
 
-  const addNode = (type: string) => {
+  const addNode = useCallback((type: string) => {
     const id = `node-${Date.now()}`
+    // Position in center of current viewport
+    const { x, y, zoom } = reactFlowInstance.getViewport()
+    const centerX = (-x + 400) / zoom
+    const centerY = (-y + 300) / zoom + Math.random() * 50
+
     const newNode: Node = {
       id,
       type,
-      position: { x: 250, y: (nodes.length) * 150 + 100 },
+      position: { x: centerX, y: centerY },
       data: type === 'condition'
-        ? { message: '', options: [{ value: '1', label: 'Opção 1' }, { value: '2', label: 'Opção 2' }] }
+        ? { message: 'Escolha uma opção:', options: [{ value: '1', label: 'Opção 1' }, { value: '2', label: 'Opção 2' }] }
         : type === 'action'
-        ? { action_type: 'transfer_agent', message: '' }
-        : { message: '' },
+        ? { action_type: 'transfer_agent', message: 'Transferindo...' }
+        : { message: 'Olá! Como posso ajudar?' },
     }
     setNodes((nds) => [...nds, newNode])
-  }
+  }, [reactFlowInstance, setNodes])
 
   const onNodeDoubleClick = useCallback((_: any, node: Node) => {
     if (node.type === 'start') return
@@ -216,7 +231,7 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
   return (
     <div className="h-full flex flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-white z-50 relative shrink-0" style={{ pointerEvents: 'auto' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-white z-50 shrink-0" onMouseDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack} className="text-xs">
             ← Voltar
@@ -224,21 +239,20 @@ export function FlowBuilder({ flowId, flowName, initialNodes, initialEdges, onSa
           <span className="text-sm font-semibold text-slate-800">{flowName}</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Add node buttons */}
-          <Button variant="outline" size="sm" onClick={() => addNode('message')} className="text-xs">
+          <Button variant="outline" size="sm" onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); addNode('message') }} className="text-xs cursor-pointer">
             <MessageSquare className="h-3 w-3 mr-1.5 text-blue-600" />
             Mensagem
           </Button>
-          <Button variant="outline" size="sm" onClick={() => addNode('condition')} className="text-xs">
+          <Button variant="outline" size="sm" onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); addNode('condition') }} className="text-xs cursor-pointer">
             <GitBranch className="h-3 w-3 mr-1.5 text-amber-600" />
             Se/Então
           </Button>
-          <Button variant="outline" size="sm" onClick={() => addNode('action')} className="text-xs">
+          <Button variant="outline" size="sm" onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); addNode('action') }} className="text-xs cursor-pointer">
             <ArrowRightLeft className="h-3 w-3 mr-1.5 text-green-600" />
             Ação
           </Button>
           <div className="w-px h-6 bg-slate-200 mx-1" />
-          <Button size="sm" onClick={() => onSave(nodes, edges)} className="bg-[#F26522] hover:bg-[#d4561c] text-xs">
+          <Button size="sm" onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); onSave(nodes, edges) }} className="bg-[#F26522] hover:bg-[#d4561c] text-xs cursor-pointer">
             <Save className="h-3 w-3 mr-1.5" />
             Salvar Fluxo
           </Button>
