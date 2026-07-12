@@ -16,10 +16,24 @@ export async function GET(
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  const expectedToken = `${params.companySlug}_${process.env.WEBHOOK_SECRET}`
+  if (mode === 'subscribe') {
+    // Buscar token da empresa no banco
+    const supabase = createServiceRoleClient()
+    const { data: company } = await supabase
+      .from('companies')
+      .select('webhook_verify_token')
+      .eq('slug', params.companySlug)
+      .single()
 
-  if (mode === 'subscribe' && token === expectedToken) {
-    return new NextResponse(challenge, { status: 200 })
+    if (company && token === company.webhook_verify_token) {
+      return new NextResponse(challenge, { status: 200 })
+    }
+
+    // Fallback: formato antigo (slug_SECRET)
+    const legacyToken = `${params.companySlug}_${process.env.WEBHOOK_SECRET}`
+    if (token === legacyToken) {
+      return new NextResponse(challenge, { status: 200 })
+    }
   }
 
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

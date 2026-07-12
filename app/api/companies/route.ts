@@ -42,6 +42,10 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const webhookUrl = `${appUrl}/api/webhook/${slug}`
 
+    // Gerar token de verificação do webhook
+    const crypto = await import('crypto')
+    const webhookVerifyToken = 'bgw_' + crypto.randomBytes(16).toString('hex')
+
     const { data: company, error } = await serviceClient
       .from('companies')
       .insert({
@@ -53,6 +57,7 @@ export async function POST(request: NextRequest) {
         plan_id: starterPlan?.id || null,
         plan_status: 'trial',
         webhook_url: webhookUrl,
+        webhook_verify_token: webhookVerifyToken,
       })
       .select()
       .single()
