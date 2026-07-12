@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      is_active, api_key, model, system_prompt, greeting_message,
+      is_active, provider, api_key, model, system_prompt, greeting_message,
       transfer_keywords, max_messages_before_transfer,
       active_hours_start, active_hours_end, active_days,
       temperature, max_tokens, context_messages,
@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (is_active !== undefined) updates.is_active = is_active
+    if (provider !== undefined) updates.provider = provider
     if (api_key !== undefined) updates.api_key = api_key
     if (model) updates.model = model
     if (system_prompt) updates.system_prompt = system_prompt
