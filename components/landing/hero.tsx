@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { MessageCircle, Instagram } from 'lucide-react'
 
@@ -22,7 +23,7 @@ export function Hero() {
           transition={{ duration: 0.5 }}
           className="flex flex-col items-center mb-8"
         >
-          <img src="/logo.png" alt="BoraGerir" style={{ height: '160px' }} className="mb-4" />
+          <Image src="/logo.png" alt="BoraGerir" width={400} height={160} style={{ height: '160px', width: 'auto' }} className="mb-4" priority />
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium text-gray-700">Powered by WhatsApp Business API</span>
           </div>
