@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, MessageSquare } from 'lucide-react'
 
 
 export function Navbar() {
@@ -25,10 +25,15 @@ export function Navbar() {
     <header className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 w-[95%] max-w-5xl ${
       scrolled ? 'bg-white/95 shadow-lg' : 'bg-white/80'
     } backdrop-blur-md rounded-2xl border border-gray-100`}>
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between px-6 py-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center">
-          <img src="/icon-topo.png" alt="BoraGerir" style={{ height: '70px' }} />
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-9 h-9 bg-[#F26522] rounded-lg flex items-center justify-center">
+            <MessageSquare className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-gray-900">
+            Bora<span className="text-[#F26522]">Gerir</span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}
