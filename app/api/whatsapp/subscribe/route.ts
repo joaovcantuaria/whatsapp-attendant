@@ -3,9 +3,16 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 
 export const dynamic = 'force-dynamic'
 
-// POST - Subscrever App ao WABA (necessário para acessar templates)
-// GET - Verificar status da subscrição
+// GET e POST - Subscrever App ao WABA (necessário para acessar templates)
+export async function GET(request: NextRequest) {
+  return handleSubscribe(request)
+}
+
 export async function POST(request: NextRequest) {
+  return handleSubscribe(request)
+}
+
+async function handleSubscribe(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
     

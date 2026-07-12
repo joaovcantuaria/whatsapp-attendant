@@ -257,7 +257,6 @@ export async function PUT(request: NextRequest) {
     }
 
     // Buscar TODOS os templates da Meta (com paginação)
-    // Tentar acesso direto primeiro, se falhar tentar via business
     const allTemplates: any[] = []
     let nextUrl: string | null = `https://graph.facebook.com/v22.0/${wabaId}/message_templates?limit=100`
 
@@ -267,46 +266,69 @@ export async function PUT(request: NextRequest) {
     })
     
     if (!quickTest.ok) {
-      // Acesso direto falha - tentar registrar app e tentar de novo
-      discoveryLog.push(`Direct access failed (${quickTest.status}), trying subscribe...`)
-      
-      // Tentar registrar o phone number
-      if (company.whatsapp_phone_number_id) {
-        try {
-          await fetch(
-            `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/register`,
-            { 
-              method: 'POST',
-              headers: { 
-                'Authorization': `Bearer ${company.whatsapp_token}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ messaging_product: 'whatsapp', pin: '000000' })
-            }
-          )
-        } catch {
-          // Ignora
-        }
+      // Acesso direto falha - tentar subscrever app e tentar de novo
+      try {
+        await fetch(
+          `https://graph.facebook.com/v22.0/${wabaId}/subscribed_apps`,
+          { 
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } 
+          }
+        )
+      } catch {
+        // Ignora
       }
 
-      // Tentar de novo após subscribe
-      const retryRes = await fetch(nextUrl, {
+      // Tentar de novo com v25.0 (versão mais recente, pode ter comportamento diferente)
+      const retryUrl = `https://graph.facebook.com/v25.0/${wabaId}/message_templates?limit=100`
+      const retryRes = await fetch(retryUrl, {
         headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
       })
       
       if (!retryRes.ok) {
-        const err = await retryRes.json()
-        return NextResponse.json({ 
-          error: `Não foi possível acessar templates. O App pode não estar vinculado ao WABA. Erro: ${err.error?.message || 'Acesso negado'}. Solução: No Meta Business, vá em Configurações > Apps e vincule o app "BoraGerir Conversas" à conta do WhatsApp.`
-        }, { status: 400 })
+        // Última tentativa: buscar templates listando WABAs do business e usando o ID retornado
+        const meUrl = `https://graph.facebook.com/v25.0/me/whatsapp_business_accounts?fields=id,name,message_template_namespace`
+        const meRes = await fetch(meUrl, {
+          headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+        })
+        
+        if (meRes.ok) {
+          const meData = await meRes.json()
+          const targetWaba = meData.data?.find((w: any) => w.id === wabaId) || meData.data?.[0]
+          
+          if (targetWaba) {
+            // Tentar via o WABA retornado pelo /me endpoint (às vezes tem permissão diferente)
+            const lastTryUrl = `https://graph.facebook.com/v25.0/${targetWaba.id}/message_templates?limit=100`
+            const lastTryRes = await fetch(lastTryUrl, {
+              headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+            })
+            
+            if (lastTryRes.ok) {
+              const lastTryData: { data?: any[]; paging?: { next?: string } } = await lastTryRes.json()
+              if (lastTryData.data && Array.isArray(lastTryData.data)) {
+                allTemplates.push(...lastTryData.data)
+              }
+              nextUrl = lastTryData.paging?.next || null
+            } else {
+              const err = await lastTryRes.json()
+              return NextResponse.json({ 
+                error: `O App precisa estar em modo Live para acessar templates. Vá em developers.facebook.com > App > Configurações e publique o app. Erro: ${err.error?.message || 'Acesso negado ao WABA'}`
+              }, { status: 400 })
+            }
+          }
+        } else {
+          return NextResponse.json({ 
+            error: 'Não foi possível acessar a conta WhatsApp Business. Verifique o token e as permissões.'
+          }, { status: 400 })
+        }
+      } else {
+        // v25.0 funcionou
+        const retryData: { data?: any[]; paging?: { next?: string } } = await retryRes.json()
+        if (retryData.data && Array.isArray(retryData.data)) {
+          allTemplates.push(...retryData.data)
+        }
+        nextUrl = retryData.paging?.next || null
       }
-
-      // Retry funcionou, processar
-      const retryData: { data?: any[]; paging?: { next?: string } } = await retryRes.json()
-      if (retryData.data && Array.isArray(retryData.data)) {
-        allTemplates.push(...retryData.data)
-      }
-      nextUrl = retryData.paging?.next || null
     } else {
       // Acesso direto funcionou
       const firstData: { data?: any[]; paging?: { next?: string } } = await quickTest.json()
