@@ -2,6 +2,7 @@ import { createServiceRoleClient } from '@/lib/supabase-server'
 
 interface AiConfig {
   is_active: boolean
+  provider: string
   api_key: string
   model: string
   system_prompt: string
@@ -15,6 +16,22 @@ interface AiConfig {
   max_tokens: number
   context_messages: number
 }
+
+// Endpoints por provider
+function getProviderEndpoint(provider: string): string {
+  switch (provider) {
+    case 'groq':
+      return 'https://api.groq.com/openai/v1/chat/completions'
+    case 'gemini':
+      return 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+    case 'openai':
+    default:
+      return 'https://api.openai.com/v1/chat/completions'
+  }
+}
+
+// Modelos disponíveis por provider
+export { PROVIDER_MODELS } from '@/lib/ai-providers'
 
 export async function processAiResponse(
   companyId: string,
@@ -92,17 +109,29 @@ export async function processAiResponse(
     content: msg.content || `[${msg.type}]`,
   }))
 
-  // 7. Chamar OpenAI
+  // 7. Chamar IA (multi-provider: Groq, Gemini, OpenAI)
   const startTime = Date.now()
   try {
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const provider = config.provider || 'groq'
+    const endpoint = getProviderEndpoint(provider)
+    const apiKey = config.api_key
+
+    // Gemini usa header diferente
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    if (provider === 'gemini') {
+      headers['x-goog-api-key'] = apiKey
+    } else {
+      headers['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    const aiResponse = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${config.api_key}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
-        model: config.model || 'gpt-4o-mini',
+        model: config.model || 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: config.system_prompt },
           ...contextMessages,
@@ -113,12 +142,12 @@ export async function processAiResponse(
       }),
     })
 
-    if (!openaiResponse.ok) {
-      console.error('OpenAI error:', await openaiResponse.text())
+    if (!aiResponse.ok) {
+      console.error(`${provider} AI error:`, await aiResponse.text())
       return { responded: false, transferred: false }
     }
 
-    const aiData = await openaiResponse.json()
+    const aiData = await aiResponse.json()
     const aiMessage = aiData.choices?.[0]?.message?.content || ''
     const tokensUsed = aiData.usage?.total_tokens || 0
     const responseTime = Date.now() - startTime

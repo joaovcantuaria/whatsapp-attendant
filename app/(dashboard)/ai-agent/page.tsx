@@ -28,6 +28,7 @@ import {
   Clock,
   ArrowRightLeft,
 } from 'lucide-react'
+import { PROVIDER_MODELS } from '@/lib/ai-providers'
 
 interface AiConfig {
   id: string
@@ -134,7 +135,7 @@ export default function AiAgentPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-slate-800">Agente de IA</h1>
-            <p className="text-xs text-slate-500">Atendimento automático inteligente via OpenAI</p>
+            <p className="text-xs text-slate-500">Atendimento automático inteligente — Groq, Gemini ou OpenAI</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -219,28 +220,65 @@ export default function AiAgentPage() {
                   <Zap className="h-4 w-4 text-[#F26522]" />
                   Conexão com IA
                 </h3>
+
+                {/* Provider */}
+                <div className="space-y-2">
+                  <Label className="text-xs">Provedor de IA</Label>
+                  <Select
+                    value={config.provider || 'groq'}
+                    onValueChange={(v) => {
+                      const firstModel = PROVIDER_MODELS[v]?.models[0]?.value || ''
+                      setConfig({ ...config, provider: v, model: firstModel })
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PROVIDER_MODELS).map(([key, val]) => (
+                        <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(config.provider === 'groq' || !config.provider) && (
+                    <p className="text-[10px] text-green-600 bg-green-50 px-2 py-1 rounded">
+                      ✨ Groq é gratuito! Usa modelos Llama e Mixtral de alta qualidade sem custo.
+                    </p>
+                  )}
+                  {config.provider === 'gemini' && (
+                    <p className="text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      ✨ Gemini tem um tier gratuito generoso. Ótimo para começar!
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs">Modelo</Label>
                     <Select value={config.model} onValueChange={(v) => setConfig({ ...config, model: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="gpt-4o-mini">GPT-4o Mini (barato)</SelectItem>
-                        <SelectItem value="gpt-4o">GPT-4o (avançado)</SelectItem>
-                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (rápido)</SelectItem>
+                        {(PROVIDER_MODELS[config.provider || 'groq']?.models || []).map((m) => (
+                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">API Key (OpenAI)</Label>
+                    <Label className="text-xs">
+                      API Key ({config.provider === 'gemini' ? 'Google AI Studio' : config.provider === 'groq' ? 'Groq Console' : 'OpenAI'})
+                    </Label>
                     <Input
                       type="password"
-                      placeholder="sk-..."
+                      placeholder={config.provider === 'groq' ? 'gsk_...' : config.provider === 'gemini' ? 'AIza...' : 'sk-...'}
                       value={config.api_key || ''}
                       onChange={(e) => setConfig({ ...config, api_key: e.target.value })}
                     />
                   </div>
                 </div>
+                <p className="text-[10px] text-slate-400">
+                  {config.provider === 'groq' && 'Crie sua key gratuita em console.groq.com'}
+                  {config.provider === 'gemini' && 'Crie sua key gratuita em aistudio.google.com/apikey'}
+                  {config.provider === 'openai' && 'Crie sua key em platform.openai.com (pago por uso)'}
+                </p>
               </CardContent>
             </Card>
 

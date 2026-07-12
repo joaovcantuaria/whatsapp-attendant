@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS ai_agent_config (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL UNIQUE,
   is_active BOOLEAN DEFAULT false,
-  provider TEXT DEFAULT 'openai', -- openai, anthropic
-  model TEXT DEFAULT 'gpt-4o-mini',
+  provider TEXT DEFAULT 'groq', -- groq, gemini, openai
+  model TEXT DEFAULT 'llama-3.3-70b-versatile',
   api_key TEXT, -- encrypted in production
   system_prompt TEXT DEFAULT 'Você é um assistente de atendimento profissional e prestativo. Responda de forma educada, objetiva e ajude o cliente com suas dúvidas. Se não souber a resposta, diga que vai transferir para um atendente humano.',
   greeting_message TEXT DEFAULT 'Olá! Sou o assistente virtual. Como posso ajudar?',
