@@ -59,14 +59,15 @@ export async function processAiResponse(
     return { responded: false, transferred: false }
   }
 
-  // 3. Verificar se a conversa já tem agente humano atribuído
+  // 3. Verificar se a conversa já tem agente humano atribuído (status open = humano atendendo)
   const { data: conversation } = await supabase
     .from('conversations')
     .select('agent_id, status')
     .eq('id', conversationId)
     .single()
 
-  if (conversation?.agent_id) {
+  // Se status é 'open' e tem agente, humano está atendendo - IA não interfere
+  if (conversation?.status === 'open' && conversation?.agent_id) {
     return { responded: false, transferred: false }
   }
 
@@ -194,11 +195,20 @@ function isWithinActiveHours(config: AiConfig): boolean {
   const now = new Date()
   const day = now.getDay() // 0=dom, 1=seg...6=sab
 
-  if (!config.active_days?.includes(day)) return false
+  if (config.active_days && config.active_days.length > 0 && !config.active_days.includes(day)) return false
+
+  const start = config.active_hours_start || '00:00'
+  const end = config.active_hours_end || '23:59'
+
+  // Se início = fim (ex: 00:00 a 00:00), significa 24h
+  if (start === end) return true
 
   const currentTime = now.toTimeString().slice(0, 5) // HH:MM
-  const start = config.active_hours_start || '08:00'
-  const end = config.active_hours_end || '22:00'
+
+  // Se end < start (ex: 22:00 a 06:00 = período noturno)
+  if (end < start) {
+    return currentTime >= start || currentTime <= end
+  }
 
   return currentTime >= start && currentTime <= end
 }

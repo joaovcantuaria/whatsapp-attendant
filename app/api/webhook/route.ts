@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         // Processar mensagens recebidas
         if (value.messages) {
           for (const message of value.messages) {
-            await processInboundMessage(supabase, message, value.contacts?.[0])
+            await processInboundMessage(supabase, message, value.contacts?.[0], value.metadata?.phone_number_id)
           }
         }
         
@@ -63,10 +63,22 @@ export async function POST(request: NextRequest) {
 async function processInboundMessage(
   supabase: ReturnType<typeof createServiceRoleClient>,
   message: WebhookMessage,
-  contactInfo?: { profile?: { name?: string }; wa_id?: string }
+  contactInfo?: { profile?: { name?: string }; wa_id?: string },
+  phoneNumberId?: string
 ) {
   const phone = message.from
   const contactName = contactInfo?.profile?.name || phone
+
+  // 0. Identificar a empresa pelo phone_number_id
+  let companyId: string | null = null
+  if (phoneNumberId) {
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('whatsapp_phone_number_id', phoneNumberId)
+      .single()
+    companyId = company?.id || null
+  }
 
   // 1. Buscar ou criar contato
   let { data: contact } = await supabase
@@ -78,10 +90,14 @@ async function processInboundMessage(
   if (!contact) {
     const { data: newContact } = await supabase
       .from('contacts')
-      .insert({ phone, name: contactName })
+      .insert({ phone, name: contactName, company_id: companyId })
       .select()
       .single()
     contact = newContact
+  } else if (!contact.company_id && companyId) {
+    // Atualizar company_id se não tinha
+    await supabase.from('contacts').update({ company_id: companyId }).eq('id', contact.id)
+    contact.company_id = companyId
   }
 
   if (!contact) return
@@ -187,6 +203,7 @@ async function processInboundMessage(
   // 4. Salvar mensagem no banco
   await supabase.from('messages').insert({
     conversation_id: conversation.id,
+    company_id: companyId || contact.company_id,
     whatsapp_message_id: message.id,
     direction: 'inbound',
     type: message.type,
@@ -215,25 +232,19 @@ async function processInboundMessage(
   // 7. Processar com Chatbot e/ou Agente IA
   if (content && message.type === 'text') {
     try {
-      // Buscar company_id do contato
-      const { data: contactData } = await supabase
-        .from('contacts')
-        .select('company_id')
-        .eq('id', contact.id)
-        .single()
-
-      if (contactData?.company_id) {
+      const aiCompanyId = companyId || contact.company_id
+      if (aiCompanyId) {
         // Buscar credenciais
         const { data: company } = await supabase
           .from('companies')
           .select('whatsapp_token, whatsapp_phone_number_id')
-          .eq('id', contactData.company_id)
+          .eq('id', aiCompanyId)
           .single()
 
         if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
           // Primeiro: tentar chatbot de fluxo (tem prioridade sobre IA)
           const chatbotResult = await processChatbotMessage(
-            contactData.company_id,
+            aiCompanyId,
             conversation.id,
             phone,
             content,
@@ -244,7 +255,7 @@ async function processInboundMessage(
           // Se chatbot não tratou, tentar Agente IA
           if (!chatbotResult.handled) {
             await processAiResponse(
-              contactData.company_id,
+              aiCompanyId,
               conversation.id,
               phone,
               content,
