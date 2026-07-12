@@ -13,6 +13,7 @@ export function useTemplates() {
     const { data, error } = await supabase
       .from('message_templates')
       .select('*')
+      .neq('status', 'deleted')
       .order('name', { ascending: true })
 
     if (error) {

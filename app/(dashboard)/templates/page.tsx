@@ -118,12 +118,19 @@ export default function TemplatesPage() {
     setIsSyncing(true)
     try {
       const response = await fetch('/api/templates', { method: 'PUT' })
+      const data = await response.json()
+      
       if (response.ok) {
-        toast({ title: 'Templates sincronizados com a Meta' })
+        const msg = data.errors?.length 
+          ? `Sincronizados ${data.count} templates (${data.errors.length} com erros)`
+          : `${data.count} templates sincronizados com sucesso`
+        toast({ title: msg })
         refetch()
+      } else {
+        toast({ title: 'Erro ao sincronizar', description: data.error || 'Erro desconhecido', variant: 'destructive' })
       }
     } catch (error) {
-      toast({ title: 'Erro ao sincronizar', variant: 'destructive' })
+      toast({ title: 'Erro ao sincronizar', description: 'Verifique sua conexão e tente novamente', variant: 'destructive' })
     } finally {
       setIsSyncing(false)
     }

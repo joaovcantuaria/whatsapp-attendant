@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
-import { createTemplate, getTemplates } from '@/lib/meta'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,7 +167,7 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (!member) {
-      return NextResponse.json({ error: 'Sem empresa' }, { status: 400 })
+      return NextResponse.json({ error: 'Sem empresa vinculada' }, { status: 400 })
     }
 
     const { data: company } = await serviceClient
@@ -178,33 +177,27 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (!company?.whatsapp_token) {
-      return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
+      return NextResponse.json({ error: 'WhatsApp não configurado. Vá em Configurações > WhatsApp e conecte sua conta.' }, { status: 400 })
     }
 
-    // Descobrir WABA ID a partir do phone_number_id (mais confiável)
+    // Descobrir WABA ID - tenta a partir do phone_number_id primeiro (mais confiável)
     let wabaId = company.whatsapp_business_account_id
 
-    if (company.whatsapp_phone_number_id) {
+    if (company.whatsapp_phone_number_id && !wabaId) {
       try {
-        const wabaRes = await fetch(
-          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=id,display_phone_number,name_status,verified_name`,
+        const wabaLookup = await fetch(
+          `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}?fields=whatsapp_business_account`,
           { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
         )
-        if (wabaRes.ok) {
-          // Tentar buscar o WABA via outra rota
-          const phoneData = await wabaRes.json()
-          // Buscar WABA ID usando o phone number
-          const wabaLookup = await fetch(
-            `https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/whatsapp_business_account`,
-            { headers: { 'Authorization': `Bearer ${company.whatsapp_token}` } }
-          )
-          if (wabaLookup.ok) {
-            const wabaData = await wabaLookup.json()
-            if (wabaData.id) {
-              wabaId = wabaData.id
-              // Salvar o WABA ID correto no banco pra próxima vez
-              await serviceClient.from('companies').update({ whatsapp_business_account_id: wabaId }).eq('id', member.company_id)
-            }
+        if (wabaLookup.ok) {
+          const wabaData = await wabaLookup.json()
+          if (wabaData.whatsapp_business_account?.id) {
+            wabaId = wabaData.whatsapp_business_account.id
+            // Salvar o WABA ID correto no banco pra próxima vez
+            await serviceClient
+              .from('companies')
+              .update({ whatsapp_business_account_id: wabaId })
+              .eq('id', member.company_id)
           }
         }
       } catch (e) {
@@ -213,50 +206,184 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!wabaId) {
-      return NextResponse.json({ error: 'WABA ID não encontrado. Configure o WhatsApp Business Account ID.' }, { status: 400 })
+      return NextResponse.json({ 
+        error: 'WABA ID não encontrado. Verifique se o WhatsApp Business Account ID está configurado nas configurações.' 
+      }, { status: 400 })
     }
 
-    // Buscar templates da Meta
-    const metaUrl = `https://graph.facebook.com/v22.0/${wabaId}/message_templates`
-    const metaResponse = await fetch(metaUrl, {
-      headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
-    })
+    // Buscar TODOS os templates da Meta (com paginação)
+    const allTemplates: any[] = []
+    let nextUrl: string | null = `https://graph.facebook.com/v22.0/${wabaId}/message_templates?limit=100`
 
-    if (!metaResponse.ok) {
-      const err = await metaResponse.json()
-      return NextResponse.json({ error: `Meta API: ${err.error?.message || 'Erro'}` }, { status: 500 })
+    while (nextUrl) {
+      const metaResponse: Response = await fetch(nextUrl, {
+        headers: { 'Authorization': `Bearer ${company.whatsapp_token}` },
+      })
+
+      if (!metaResponse.ok) {
+        const err = await metaResponse.json()
+        const errorMessage = err.error?.message || 'Erro desconhecido'
+        const errorCode = err.error?.code
+
+        // Mensagens mais claras para erros comuns
+        if (errorCode === 190) {
+          return NextResponse.json({ 
+            error: 'Token de acesso inválido ou expirado. Reconecte o WhatsApp nas configurações.' 
+          }, { status: 401 })
+        }
+        if (errorCode === 100) {
+          return NextResponse.json({ 
+            error: `WABA ID inválido (${wabaId}). Verifique o WhatsApp Business Account ID nas configurações.` 
+          }, { status: 400 })
+        }
+        if (errorCode === 10 || errorCode === 200) {
+          return NextResponse.json({ 
+            error: 'Permissão negada. O token precisa da permissão whatsapp_business_management.' 
+          }, { status: 403 })
+        }
+
+        return NextResponse.json({ error: `Meta API: ${errorMessage}` }, { status: 500 })
+      }
+
+      const metaData: { data?: any[]; paging?: { next?: string } } = await metaResponse.json()
+      
+      if (metaData.data && Array.isArray(metaData.data)) {
+        allTemplates.push(...metaData.data)
+      }
+
+      // Seguir paginação
+      nextUrl = metaData.paging?.next || null
     }
 
-    const metaTemplates = await metaResponse.json()
-    
-    if (metaTemplates.data) {
-      for (const template of metaTemplates.data) {
-        // Extrair motivo de rejeição se existir
-        const rejectedReason = template.quality_score?.reasons?.join(', ') 
-          || template.rejected_reason 
-          || template.status === 'REJECTED' ? (template.quality_score?.reasons?.[0] || 'Verificação da empresa pendente ou conteúdo não aprovado') : null
+    // Processar templates sincronizados
+    let syncedCount = 0
+    const errors: string[] = []
 
-        await serviceClient
+    for (const template of allTemplates) {
+      try {
+        // Extrair componentes
+        const bodyComponent = template.components?.find((c: { type: string }) => c.type === 'BODY')
+        const footerComponent = template.components?.find((c: { type: string }) => c.type === 'FOOTER')
+        const headerComponent = template.components?.find((c: { type: string }) => c.type === 'HEADER')
+        const buttonsComponent = template.components?.find((c: { type: string }) => c.type === 'BUTTONS')
+
+        // Determinar motivo de rejeição
+        let rejectedReason: string | null = null
+        if (template.status === 'REJECTED') {
+          rejectedReason = template.quality_score?.reasons?.join(', ')
+            || template.rejected_reason
+            || 'Conteúdo não aprovado pela Meta. Verifique as políticas de templates.'
+        }
+
+        // Mapear status da Meta para status local
+        const statusMap: Record<string, string> = {
+          'APPROVED': 'approved',
+          'REJECTED': 'rejected',
+          'PENDING': 'pending',
+          'IN_APPEAL': 'pending',
+          'PENDING_DELETION': 'pending',
+          'DELETED': 'deleted',
+          'DISABLED': 'disabled',
+          'PAUSED': 'paused',
+          'LIMIT_EXCEEDED': 'paused',
+        }
+        const localStatus = statusMap[template.status] || template.status?.toLowerCase() || 'pending'
+
+        // Primeiro, tentar encontrar template existente por meta_template_id
+        const { data: existing } = await serviceClient
           .from('message_templates')
-          .upsert({
-            company_id: member.company_id,
-            meta_template_id: template.id,
-            name: template.name,
-            language: template.language,
-            category: template.category?.toLowerCase(),
-            status: template.status?.toLowerCase() === 'approved' ? 'approved' : template.status?.toLowerCase(),
-            body: template.components?.find((c: { type: string }) => c.type === 'BODY')?.text || '',
-            footer: template.components?.find((c: { type: string }) => c.type === 'FOOTER')?.text || null,
-            rejected_reason: template.status === 'REJECTED' ? (rejectedReason || 'Motivo não especificado pela Meta. Verifique se a empresa está verificada.') : null,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'meta_template_id' })
+          .select('id')
+          .eq('company_id', member.company_id)
+          .eq('meta_template_id', template.id)
+          .maybeSingle()
+
+        const templateData = {
+          company_id: member.company_id,
+          meta_template_id: template.id,
+          name: template.name,
+          language: template.language || 'pt_BR',
+          category: template.category?.toLowerCase() || null,
+          status: localStatus,
+          body: bodyComponent?.text || '',
+          footer: footerComponent?.text || null,
+          header_type: headerComponent?.format?.toLowerCase() || null,
+          header_content: headerComponent?.text || headerComponent?.example?.header_handle?.[0] || null,
+          buttons: buttonsComponent?.buttons || null,
+          rejected_reason: rejectedReason,
+          updated_at: new Date().toISOString(),
+        }
+
+        if (existing) {
+          // Atualizar template existente
+          await serviceClient
+            .from('message_templates')
+            .update(templateData)
+            .eq('id', existing.id)
+        } else {
+          // Verificar se existe por nome (pode ter sido criado como draft)
+          const { data: byName } = await serviceClient
+            .from('message_templates')
+            .select('id')
+            .eq('company_id', member.company_id)
+            .eq('name', template.name)
+            .is('meta_template_id', null)
+            .maybeSingle()
+
+          if (byName) {
+            // Atualizar draft existente com dados da Meta
+            await serviceClient
+              .from('message_templates')
+              .update(templateData)
+              .eq('id', byName.id)
+          } else {
+            // Inserir novo
+            await serviceClient
+              .from('message_templates')
+              .insert(templateData)
+          }
+        }
+
+        syncedCount++
+      } catch (err: any) {
+        console.error(`Error syncing template ${template.name}:`, err)
+        errors.push(`${template.name}: ${err.message || 'erro desconhecido'}`)
       }
     }
 
-    return NextResponse.json({ synced: true, count: metaTemplates.data?.length || 0 })
-  } catch (error) {
+    // Marcar templates locais que não existem mais na Meta como deletados
+    if (allTemplates.length > 0) {
+      const metaIds = allTemplates.map((t: any) => t.id).filter(Boolean)
+      
+      // Buscar templates locais que tem meta_template_id mas não estão mais na Meta
+      const { data: localTemplates } = await serviceClient
+        .from('message_templates')
+        .select('id, meta_template_id')
+        .eq('company_id', member.company_id)
+        .not('meta_template_id', 'is', null)
+        .neq('status', 'deleted')
+
+      if (localTemplates) {
+        const toDelete = localTemplates.filter(t => !metaIds.includes(t.meta_template_id))
+        if (toDelete.length > 0) {
+          await serviceClient
+            .from('message_templates')
+            .update({ status: 'deleted', updated_at: new Date().toISOString() })
+            .in('id', toDelete.map(t => t.id))
+        }
+      }
+    }
+
+    return NextResponse.json({ 
+      synced: true, 
+      count: syncedCount,
+      total_from_meta: allTemplates.length,
+      errors: errors.length > 0 ? errors : undefined
+    })
+  } catch (error: any) {
     console.error('Sync templates error:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ 
+      error: `Erro interno: ${error.message || 'Verifique o console para detalhes'}` 
+    }, { status: 500 })
   }
 }
 
