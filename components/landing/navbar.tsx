@@ -25,11 +25,11 @@ export function Navbar() {
     <header className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 w-[95%] max-w-5xl ${
       scrolled ? 'bg-white/95 shadow-lg' : 'bg-white/80'
     } backdrop-blur-md rounded-2xl border border-gray-100`}>
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '36px' }} />
+          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '70px' }} />
         </Link>
 
         {/* Desktop Nav */}

@@ -7,7 +7,7 @@ import { LOGO_BASE64 } from '@/lib/logo-base64'
 
 export function Hero() {
   return (
-    <section className="pt-32 pb-20 lg:pt-40 lg:pb-32 relative overflow-hidden">
+    <section className="pt-48 pb-20 lg:pt-56 lg:pb-32 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-10 w-72 h-72 bg-orange-50 rounded-full blur-3xl opacity-60" />
@@ -23,7 +23,7 @@ export function Hero() {
           className="flex flex-col items-center mb-8"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '50px' }} className="mb-4" />
+          <img src={LOGO_BASE64} alt="BoraGerir" style={{ height: '160px' }} className="mb-4" />
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium text-gray-700">Powered by WhatsApp Business API</span>
           </div>
