@@ -40,6 +40,7 @@ export function ConversationList() {
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [newContactPhone, setNewContactPhone] = useState('')
   const [newContactName, setNewContactName] = useState('')
+  const [newConvMessage, setNewConvMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [contactSearch, setContactSearch] = useState('')
   const { toast } = useToast()
@@ -51,6 +52,7 @@ export function ConversationList() {
     setSelectedTemplate('')
     setNewContactPhone('')
     setNewContactName('')
+    setNewConvMessage('')
     // Fetch contacts and templates
     try {
       const [contactsRes, templatesRes] = await Promise.all([
@@ -105,13 +107,10 @@ export function ConversationList() {
       contactId = contact.id
     }
 
-    if (!selectedTemplate) {
-      toast({ title: 'Selecione um template para iniciar', variant: 'destructive' })
+    if (!selectedTemplate && !newConvMessage) {
+      toast({ title: 'Digite uma mensagem ou selecione um template', variant: 'destructive' })
       return
     }
-
-    const template = templates.find((t: any) => t.name === selectedTemplate)
-    if (!template) return
 
     setIsSending(true)
     try {
@@ -130,27 +129,58 @@ export function ConversationList() {
 
       const conversation = await convRes.json()
 
-      // Enviar template
-      const sendRes = await fetch('/api/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          phone,
-          type: 'template',
-          templateName: template.name,
-          templateLanguage: template.language || 'pt_BR',
-        }),
-      })
+      // Tentar enviar mensagem livre primeiro (se janela aberta)
+      let sent = false
+      if (newConvMessage) {
+        const textRes = await fetch('/api/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            phone,
+            type: 'text',
+            content: newConvMessage,
+          }),
+        })
 
-      if (sendRes.ok) {
-        toast({ title: 'Conversa iniciada!' })
-        setShowNewConversation(false)
-        refetch()
-      } else {
-        const err = await sendRes.json()
-        toast({ title: err.error || 'Erro ao enviar template', variant: 'destructive' })
+        if (textRes.ok) {
+          sent = true
+        }
       }
+
+      // Se mensagem livre falhou (janela fechada) e tem template, enviar template
+      if (!sent && selectedTemplate) {
+        const template = templates.find((t: any) => t.name === selectedTemplate)
+        const sendRes = await fetch('/api/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            phone,
+            type: 'template',
+            templateName: template?.name,
+            templateLanguage: template?.language || 'pt_BR',
+          }),
+        })
+
+        if (sendRes.ok) {
+          sent = true
+        } else {
+          const err = await sendRes.json()
+          toast({ title: err.error || 'Erro ao enviar', variant: 'destructive' })
+          return
+        }
+      }
+
+      // Se não tem template e mensagem livre falhou
+      if (!sent) {
+        toast({ title: 'Janela de 24h fechada. Selecione um template para iniciar.', variant: 'destructive' })
+        return
+      }
+
+      toast({ title: 'Conversa iniciada!' })
+      setShowNewConversation(false)
+      refetch()
     } catch {
       toast({ title: 'Erro ao iniciar conversa', variant: 'destructive' })
     } finally {
@@ -346,7 +376,20 @@ export function ConversationList() {
 
             {/* Template selection */}
             <div className="space-y-2">
-              <Label className="text-xs">Template para iniciar (obrigatório)</Label>
+              <Label className="text-xs">Mensagem inicial</Label>
+              <Input
+                placeholder="Ex: Olá, tudo bem? Gostaria de falar sobre..."
+                value={newConvMessage}
+                onChange={(e) => setNewConvMessage(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <p className="text-[10px] text-slate-400">
+                Se a janela de 24h estiver aberta, envia como mensagem livre. Caso contrário, usa template.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Template (usado se janela fechada)</Label>
               {templates.length === 0 ? (
                 <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
                   Nenhum template aprovado. Crie um na aba Templates.
@@ -364,13 +407,6 @@ export function ConversationList() {
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-              {selectedTemplate && (
-                <div className="bg-green-50 border border-green-100 rounded-lg p-2">
-                  <p className="text-[10px] text-slate-600 whitespace-pre-wrap">
-                    {templates.find((t: any) => t.name === selectedTemplate)?.body}
-                  </p>
-                </div>
               )}
             </div>
 
