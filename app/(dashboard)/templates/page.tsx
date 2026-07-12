@@ -127,7 +127,17 @@ export default function TemplatesPage() {
         toast({ title: msg })
         refetch()
       } else {
-        toast({ title: 'Erro ao sincronizar', description: data.error || 'Erro desconhecido', variant: 'destructive' })
+        // Se for erro de permissão, mostrar mensagem mais detalhada
+        if (response.status === 403) {
+          toast({ 
+            title: 'Permissão insuficiente', 
+            description: 'O token não tem permissão para gerenciar templates. Vá em Configurações > WhatsApp e siga as instruções para gerar um token com a permissão whatsapp_business_management.',
+            variant: 'destructive',
+            duration: 10000,
+          })
+        } else {
+          toast({ title: 'Erro ao sincronizar', description: data.error || 'Erro desconhecido', variant: 'destructive' })
+        }
       }
     } catch (error) {
       toast({ title: 'Erro ao sincronizar', description: 'Verifique sua conexão e tente novamente', variant: 'destructive' })

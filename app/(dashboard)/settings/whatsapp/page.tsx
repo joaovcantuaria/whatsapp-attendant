@@ -54,7 +54,16 @@ export default function WhatsAppSettingsPage() {
 
       const data = await response.json()
       if (response.ok) {
-        toast({ title: 'Conexão bem-sucedida!', description: `Número: ${data.phoneNumber}` })
+        let description = `Número: ${data.phoneNumber}`
+        if (data.warnings?.length) {
+          description += '\n⚠️ ' + data.warnings.join('\n⚠️ ')
+        }
+        toast({ 
+          title: data.warnings?.length ? 'Conectado com avisos' : 'Conexão bem-sucedida!', 
+          description,
+          variant: data.warnings?.length ? 'default' : 'default',
+          duration: data.warnings?.length ? 10000 : 5000,
+        })
         await refetch()
       } else {
         toast({ title: 'Falha na conexão', description: data.error, variant: 'destructive' })
@@ -163,6 +172,21 @@ export default function WhatsAppSettingsPage() {
                 value={credentials.accessToken}
                 onChange={(e) => setCredentials({ ...credentials, accessToken: e.target.value })}
               />
+              <p className="text-xs text-muted-foreground">
+                Token permanente do System User. Deve ter as permissões: <strong>whatsapp_business_messaging</strong> e <strong>whatsapp_business_management</strong> (necessário para templates).
+              </p>
+              <details className="text-xs text-muted-foreground mt-1">
+                <summary className="cursor-pointer text-[#F26522] font-medium">Como gerar o token correto?</summary>
+                <ol className="list-decimal pl-4 mt-2 space-y-1">
+                  <li>Acesse <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener" className="text-[#F26522] underline">business.facebook.com → Configurações → System Users</a></li>
+                  <li>Crie ou selecione um System User (tipo Admin)</li>
+                  <li>Clique em &quot;Gerar token&quot;</li>
+                  <li>Selecione seu App WhatsApp</li>
+                  <li>Marque: <strong>whatsapp_business_messaging</strong> e <strong>whatsapp_business_management</strong></li>
+                  <li>Gere o token e cole aqui</li>
+                </ol>
+                <p className="mt-2 text-amber-600">⚠️ O token temporário do &quot;API Setup&quot; expira em 24h. Use sempre um System User Token permanente.</p>
+              </details>
             </div>
             <div className="space-y-2">
               <Label>Phone Number ID</Label>

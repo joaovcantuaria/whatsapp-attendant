@@ -251,8 +251,8 @@ export async function PUT(request: NextRequest) {
     if (!wabaId) {
       console.error('WABA Discovery failed:', discoveryLog)
       return NextResponse.json({ 
-        error: `Não foi possível encontrar o WABA ID. O token pode não ter a permissão whatsapp_business_management. Phone ID: ${company.whatsapp_phone_number_id || 'não configurado'}. Detalhes: ${discoveryLog.join(' | ')}` 
-      }, { status: 400 })
+        error: 'O token de acesso não possui a permissão "whatsapp_business_management" necessária para sincronizar templates. Vá em Configurações > WhatsApp e reconecte usando um token com essa permissão. Veja as instruções na página de configurações.' 
+      }, { status: 403 })
     }
 
     // Buscar TODOS os templates da Meta (com paginação)
