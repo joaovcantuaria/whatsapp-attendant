@@ -232,6 +232,19 @@ async function processInboundMessage(
   // 7. Processar com Chatbot e/ou Agente IA (async - não bloqueia o webhook)
   if (content && message.type === 'text') {
     const aiCompanyId = companyId || contact.company_id
+
+    // Debug log
+    await supabase.from('ai_agent_logs').insert({
+      company_id: aiCompanyId || '00000000-0000-0000-0000-000000000000',
+      conversation_id: conversation.id,
+      contact_phone: phone,
+      user_message: content,
+      ai_response: `[DEBUG] aiCompanyId=${aiCompanyId}, contactCompanyId=${contact.company_id}, webhookCompanyId=${companyId}`,
+      tokens_used: 0,
+      response_time_ms: 0,
+      transferred: false,
+    })
+
     if (aiCompanyId) {
       // Buscar credenciais
       const { data: company } = await supabase
