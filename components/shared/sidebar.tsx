@@ -65,9 +65,7 @@ const toolsNavItems = [
 const bottomNavItems = [
   { href: '/dashboard/supervisor', icon: Shield, label: 'Supervisor' },
   { href: '/settings/profile', icon: UserCircle, label: 'Meu Perfil' },
-  { href: '/settings/integrations', icon: Code2, label: 'Integrações' },
-  { href: '/settings/whatsapp', icon: Wifi, label: 'WhatsApp' },
-  { href: '/settings/company', icon: Building2, label: 'Empresa' },
+  { href: '/settings', icon: Settings, label: 'Configurações' },
 ]
 
 export function Sidebar() {
