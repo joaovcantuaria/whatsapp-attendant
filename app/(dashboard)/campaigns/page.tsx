@@ -38,6 +38,7 @@ import {
   Megaphone,
   Search,
   Eye,
+  Tag,
 } from 'lucide-react'
 
 interface Campaign {
@@ -76,14 +77,23 @@ interface Template {
   category: string
 }
 
+interface Category {
+  id: string
+  name: string
+  color: string
+}
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
   const [templates, setTemplates] = useState<Template[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [contactCategoryMap, setContactCategoryMap] = useState<Record<string, string[]>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [isSending, setIsSending] = useState<string | null>(null)
   const [contactSearch, setContactSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [formData, setFormData] = useState({
     name: '',
@@ -131,17 +141,49 @@ export default function CampaignsPage() {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories')
+      if (res.ok) {
+        setCategories(await res.json())
+      }
+    } catch {}
+  }
+
+  const fetchCategoryAssignments = async () => {
+    try {
+      const res = await fetch('/api/categories/assignments')
+      if (res.ok) {
+        const data = await res.json()
+        const map: Record<string, string[]> = {}
+        for (const item of data) {
+          if (!map[item.contact_id]) map[item.contact_id] = []
+          map[item.contact_id].push(item.category_id)
+        }
+        setContactCategoryMap(map)
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     fetchCampaigns()
     fetchContacts()
     fetchTemplates()
+    fetchCategories()
+    fetchCategoryAssignments()
   }, [])
 
-  const filteredContacts = contacts.filter(
-    (c) =>
+  const filteredContacts = contacts.filter((c) => {
+    const matchesSearch =
       c.name?.toLowerCase().includes(contactSearch.toLowerCase()) ||
       c.phone.includes(contactSearch)
-  )
+
+    if (categoryFilter === 'all') return matchesSearch
+    if (categoryFilter === 'none') {
+      return matchesSearch && (!contactCategoryMap[c.id] || contactCategoryMap[c.id].length === 0)
+    }
+    return matchesSearch && contactCategoryMap[c.id]?.includes(categoryFilter)
+  })
 
   const toggleContact = (id: string) => {
     setSelectedContacts((prev) =>
@@ -482,14 +524,34 @@ export default function CampaignsPage() {
                 </Button>
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar contato..."
-                  value={contactSearch}
-                  onChange={(e) => setContactSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar contato..."
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <Tag className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="none">Sem categoria</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <ScrollArea className="h-48 border rounded-lg">
