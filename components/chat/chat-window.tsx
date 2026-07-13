@@ -16,7 +16,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import { WindowExpiryBanner } from './window-expiry-banner'
 import { getInitials, formatPhone } from '@/lib/utils'
-import { MoreVertical, UserPlus, XCircle, RotateCcw } from 'lucide-react'
+import { MoreVertical, UserPlus, XCircle, RotateCcw, Target } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,6 +103,45 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     if (response.ok) { setSelectedConversation(await response.json()); toast({ title: 'Conversa reaberta' }) }
   }
 
+  const handleSignalLead = async () => {
+    try {
+      // Buscar pipeline e primeiro stage
+      const pipelineRes = await fetch('/api/crm/pipeline')
+      if (!pipelineRes.ok) {
+        toast({ title: 'Pipeline não configurado', description: 'Configure o CRM primeiro', variant: 'destructive' })
+        return
+      }
+      const pipelineData = await pipelineRes.json()
+      const firstStage = pipelineData.stages?.[0]
+
+      if (!firstStage || !pipelineData.pipeline) {
+        toast({ title: 'Pipeline não configurado', variant: 'destructive' })
+        return
+      }
+
+      // Criar deal no CRM
+      const response = await fetch('/api/crm/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Lead - ${contact?.name || contact?.phone || 'Contato'}`,
+          value: 0,
+          contact_id: contact?.id || null,
+          stage_id: firstStage.id,
+          pipeline_id: pipelineData.pipeline.id,
+        }),
+      })
+
+      if (response.ok) {
+        toast({ title: '🎯 Lead sinalizado!', description: 'Enviado para o pipeline do CRM' })
+      } else {
+        toast({ title: 'Erro ao sinalizar lead', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Erro ao sinalizar lead', variant: 'destructive' })
+    }
+  }
+
   const statusConfig = {
     open: { label: 'Aberta', color: 'bg-green-500' },
     pending: { label: 'Pendente', color: 'bg-yellow-500' },
@@ -137,6 +176,9 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
               <UserPlus className="h-3 w-3 mr-1" /> Assumir
             </Button>
           )}
+          <Button size="sm" variant="outline" onClick={handleSignalLead} className="h-7 text-[11px] px-2.5 text-orange-600 border-orange-200 hover:bg-orange-50">
+            <Target className="h-3 w-3 mr-1" /> Lead
+          </Button>
           {conversation.status !== 'closed' && (
             <Button size="sm" variant="ghost" onClick={handleClose} className="h-7 text-[11px] px-2.5 text-slate-500">
               <XCircle className="h-3 w-3 mr-1" /> Encerrar
@@ -151,6 +193,9 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
             <DropdownMenuContent align="end" className="text-xs">
               <DropdownMenuItem onClick={handleAssign} className="text-xs">
                 <UserPlus className="mr-2 h-3 w-3" /> Assumir
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignalLead} className="text-xs text-orange-600">
+                <Target className="mr-2 h-3 w-3" /> Sinalizar como Lead
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleReopen} className="text-xs">
                 <RotateCcw className="mr-2 h-3 w-3" /> Reabrir
