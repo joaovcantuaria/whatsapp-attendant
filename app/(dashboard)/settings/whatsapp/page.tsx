@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { Wifi, WifiOff, Copy, Loader2, Check } from 'lucide-react'
 import { SettingsBack } from '@/components/shared/settings-back'
+import { WhatsAppQRSection } from '@/components/settings/whatsapp-qr-section'
 
 export default function WhatsAppSettingsPage() {
   const { company, refetch } = useCompany()
@@ -125,6 +126,11 @@ export default function WhatsAppSettingsPage() {
       <div className="max-w-5xl mx-auto space-y-5">
         <SettingsBack />
         <h1 className="text-lg font-semibold text-slate-800">Configurações WhatsApp</h1>
+
+        {/* QR Code Connection */}
+        <WhatsAppQRSection />
+
+        <Separator />
 
         {/* Status */}
         <Card className="border-0 shadow-sm bg-white">
