@@ -26,7 +26,12 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
-import { UserPlus, Circle, Users, Mail, Shield, ShieldCheck } from 'lucide-react'
+import { UserPlus, Circle, Users, Mail, Shield, ShieldCheck, Palette } from 'lucide-react'
+
+const AGENT_COLORS = [
+  '#F26522', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899',
+  '#F59E0B', '#06B6D4', '#EF4444', '#6366F1', '#14B8A6',
+]
 
 export default function AgentsPage() {
   const { agents, isLoading, refetch } = useAgents()
@@ -83,6 +88,25 @@ export default function AgentsPage() {
       }
     } catch {
       toast({ title: 'Erro ao atualizar', variant: 'destructive' })
+    }
+  }
+
+  const handleUpdateColor = async (agentId: string, color: string) => {
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: agentId, color }),
+      })
+
+      if (response.ok) {
+        toast({ title: 'Cor atualizada' })
+        refetch()
+      } else {
+        toast({ title: 'Erro ao atualizar cor', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Erro ao atualizar cor', variant: 'destructive' })
     }
   }
 
@@ -221,6 +245,27 @@ export default function AgentsPage() {
                     </Select>
                   </div>
                 )}
+
+                {/* Color picker */}
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex items-center gap-2">
+                    <Palette className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground">Cor do atendente:</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-2 flex-wrap">
+                    {AGENT_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => handleUpdateColor(agent.id, color)}
+                        className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${
+                          (agent as any).color === color ? 'border-slate-800 scale-110' : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
