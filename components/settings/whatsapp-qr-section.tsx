@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useCompany } from '@/hooks/use-company'
+import { useAuthStore } from '@/store/auth-store'
 import { QrCode, Wifi, WifiOff, Loader2, RefreshCw, Smartphone, Unplug } from 'lucide-react'
 
 interface ConnectionStatus {
@@ -18,7 +19,8 @@ interface ConnectionStatus {
 
 export function WhatsAppQRSection() {
   const { company } = useCompany()
-  const companyId = company?.id || ''
+  const { agent } = useAuthStore()
+  const companyId = company?.id || (agent as any)?.company_id || 'default'
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'disconnected',
     qr: null,
@@ -202,7 +204,7 @@ export function WhatsAppQRSection() {
                 Conecte seu WhatsApp via QR Code para receber mensagens
               </p>
             </div>
-            <Button onClick={handleConnect} disabled={isLoading || !companyId} className="bg-[#F26522] hover:bg-[#d4561c]">
+            <Button onClick={handleConnect} disabled={isLoading} className="bg-[#F26522] hover:bg-[#d4561c]">
               {isLoading ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Iniciando...</>
               ) : (
