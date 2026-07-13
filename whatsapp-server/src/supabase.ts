@@ -21,37 +21,31 @@ interface IncomingMessage {
 export async function saveMessageToSupabase(msg: IncomingMessage) {
   const { instanceId, phone, content, pushName, timestamp, fromMe, messageId } = msg
 
-  // 1. Buscar empresa (primeira disponível ou por instanceId se for UUID)
-  let companyId: string | null = null
+  // 1. Usar instanceId como company_id diretamente
+  let companyId: string = instanceId
   
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceId)
-  
-  if (isUUID) {
-    const { data: company } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('id', instanceId)
-      .single()
-    companyId = company?.id || null
-  }
-  
-  // Fallback: buscar primeira empresa
-  if (!companyId) {
-    const { data: companies, error: compError } = await supabase
+  // Verificar se a empresa existe
+  const { data: company, error: compError } = await supabase
+    .from('companies')
+    .select('id')
+    .eq('id', companyId)
+    .single()
+
+  if (compError || !company) {
+    console.log(`[Supabase] Empresa não encontrada para ID: ${companyId} - Erro: ${compError?.message || 'not found'}`)
+    // Fallback: buscar primeira empresa
+    const { data: firstCompany } = await supabase
       .from('companies')
       .select('id')
       .limit(1)
       .single()
     
-    if (compError) {
-      console.log(`[Supabase] Erro ao buscar empresa: ${compError.message}`)
+    if (!firstCompany) {
+      console.log(`[Supabase] Nenhuma empresa no banco`)
+      return
     }
-    companyId = companies?.id || null
-  }
-
-  if (!companyId) {
-    console.log(`[Supabase] Nenhuma empresa encontrada no banco`)
-    return
+    companyId = firstCompany.id
+    console.log(`[Supabase] Usando empresa fallback: ${companyId}`)
   }
 
   // 2. Buscar ou criar contato

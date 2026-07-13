@@ -18,7 +18,7 @@ interface ConnectionStatus {
 
 export function WhatsAppQRSection() {
   const { company } = useCompany()
-  const companyId = company?.id || 'default'
+  const companyId = company?.id || ''
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'disconnected',
     qr: null,
@@ -202,7 +202,7 @@ export function WhatsAppQRSection() {
                 Conecte seu WhatsApp via QR Code para receber mensagens
               </p>
             </div>
-            <Button onClick={handleConnect} disabled={isLoading} className="bg-[#F26522] hover:bg-[#d4561c]">
+            <Button onClick={handleConnect} disabled={isLoading || !companyId} className="bg-[#F26522] hover:bg-[#d4561c]">
               {isLoading ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Iniciando...</>
               ) : (
