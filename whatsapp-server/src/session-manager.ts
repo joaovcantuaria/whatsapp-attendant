@@ -7,7 +7,6 @@ import { Boom } from '@hapi/boom'
 import path from 'path'
 import fs from 'fs'
 import pino from 'pino'
-import { saveMessageToSupabase, updateContactName } from './supabase'
 
 const logger = pino({ level: 'silent' })
 
@@ -173,6 +172,7 @@ export class SessionManager {
 
         // Salvar no Supabase
         try {
+          const { saveMessageToSupabase, updateContactName } = await import('./supabase')
           await saveMessageToSupabase({
             instanceId,
             phone,
@@ -185,6 +185,7 @@ export class SessionManager {
 
           // Atualizar nome do contato se veio pushName
           if (pushName) {
+            const { updateContactName } = await import('./supabase')
             await updateContactName(instanceId, phone, pushName)
           }
         } catch (error) {
@@ -219,15 +220,18 @@ export class SessionManager {
       await instance.socket.sendMessage(jid, { text: message })
 
       // Salvar mensagem enviada no Supabase
-      await saveMessageToSupabase({
-        instanceId,
-        phone: phone.replace('@s.whatsapp.net', ''),
-        content: message,
-        pushName: '',
-        timestamp: new Date().toISOString(),
-        fromMe: true,
-        messageId: `sent_${Date.now()}`,
-      })
+      try {
+        const { saveMessageToSupabase } = await import('./supabase')
+        await saveMessageToSupabase({
+          instanceId,
+          phone: phone.replace('@s.whatsapp.net', ''),
+          content: message,
+          pushName: '',
+          timestamp: new Date().toISOString(),
+          fromMe: true,
+          messageId: `sent_${Date.now()}`,
+        })
+      } catch {}
 
       return true
     } catch (error) {
