@@ -30,6 +30,11 @@ export function WhatsAppQRSection() {
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
 
+  // Fetch status on mount (check if already connected)
+  useEffect(() => {
+    if (companyId) fetchStatus()
+  }, [companyId])
+
   // Poll for status updates when connecting
   useEffect(() => {
     if (connection.status === 'connecting' || connection.status === 'qr_ready') {
