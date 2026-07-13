@@ -12,6 +12,7 @@ app.use(cors({
   origin: [
     'https://chat.boragerir.com',
     'http://localhost:3000',
+    /\.vercel\.app$/,
   ],
 }))
 app.use(express.json())

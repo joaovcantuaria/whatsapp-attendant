@@ -18,7 +18,7 @@ interface ConnectionStatus {
 
 export function WhatsAppQRSection() {
   const { company } = useCompany()
-  const companyId = company?.id || ''
+  const companyId = company?.id || 'default'
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'disconnected',
     qr: null,
@@ -72,10 +72,11 @@ export function WhatsAppQRSection() {
         // Start polling
         setTimeout(fetchStatus, 2000)
       } else {
-        toast({ title: 'Erro ao iniciar conexão', variant: 'destructive' })
+        const err = await res.json().catch(() => ({}))
+        toast({ title: 'Erro ao iniciar conexão', description: err.error || `Status: ${res.status}`, variant: 'destructive' })
       }
-    } catch {
-      toast({ title: 'Erro ao conectar', variant: 'destructive' })
+    } catch (e: any) {
+      toast({ title: 'Erro ao conectar', description: e.message || 'Servidor indisponível', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
