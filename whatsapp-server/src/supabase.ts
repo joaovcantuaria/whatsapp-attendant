@@ -5,6 +5,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY || ''
 )
 
+// Log de conexão
+console.log(`[Supabase] Conectando em: ${process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 30) + '...' : 'NÃO CONFIGURADO'}`)
+
 interface IncomingMessage {
   instanceId: string
   phone: string
@@ -34,16 +37,20 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
   
   // Fallback: buscar primeira empresa
   if (!companyId) {
-    const { data: companies } = await supabase
+    const { data: companies, error: compError } = await supabase
       .from('companies')
       .select('id')
       .limit(1)
       .single()
+    
+    if (compError) {
+      console.log(`[Supabase] Erro ao buscar empresa: ${compError.message}`)
+    }
     companyId = companies?.id || null
   }
 
   if (!companyId) {
-    console.log(`[Supabase] Nenhuma empresa encontrada`)
+    console.log(`[Supabase] Nenhuma empresa encontrada no banco`)
     return
   }
 
