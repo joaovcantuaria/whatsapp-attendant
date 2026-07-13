@@ -47,18 +47,36 @@ export async function PATCH(request: NextRequest) {
     if (greeting_message !== undefined) updates.greeting_message = greeting_message
     if (color) updates.color = color
 
+    // Tentar update primeiro
     const { data, error } = await serviceClient
       .from('agents')
       .update(updates)
       .eq('id', session.user.id)
       .select()
-      .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Se não encontrou para atualizar, criar
+    if (!data || data.length === 0) {
+      const { data: created, error: createError } = await serviceClient
+        .from('agents')
+        .upsert({
+          id: session.user.id,
+          email: session.user.email,
+          ...updates,
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        return NextResponse.json({ error: createError.message }, { status: 500 })
+      }
+      return NextResponse.json(created)
+    }
+
+    return NextResponse.json(data[0])
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
