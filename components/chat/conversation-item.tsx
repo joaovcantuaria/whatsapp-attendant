@@ -39,7 +39,17 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const agent = (conversation as any).agent
   const protocol = (conversation as any).protocol
   const status = statusConfig[conversation.status] || statusConfig.pending
-  const agentColor = agent ? getAgentColor(agent) : null
+  
+  // Gerar cor do agente: usar agent object se disponível, senão usar agent_id
+  const agent = (conversation as any).agent
+  let agentColor: string | null = null
+  if (agent) {
+    agentColor = getAgentColor(agent)
+  } else if (conversation.agent_id) {
+    // Agent_id existe mas relação não veio (RLS ou join issue)
+    const hash = conversation.agent_id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
+    agentColor = agentColors[hash % agentColors.length]
+  }
 
   return (
     <button
@@ -50,7 +60,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       )}
     >
       {/* Agent color bar (left edge) */}
-      {agentColor && conversation.status === 'open' && (
+      {agentColor && (
         <div
           className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
           style={{ backgroundColor: agentColor }}
@@ -108,14 +118,14 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         {/* Bottom row: badges */}
         <div className="flex items-center gap-1.5 mt-1">
           {/* Agent badge */}
-          {agent && conversation.status === 'open' && (
+          {(agent || conversation.agent_id) && (
             <span
               className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full text-white max-w-[90px] truncate"
               style={{ backgroundColor: agentColor || '#6B7280' }}
-              title={agent.name}
+              title={agent?.name || 'Atendente'}
             >
               <User className="h-2 w-2 shrink-0" />
-              {agent.name?.split(' ')[0] || 'Agente'}
+              {agent?.name?.split(' ')[0] || 'Atendente'}
             </span>
           )}
 
