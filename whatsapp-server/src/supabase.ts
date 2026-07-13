@@ -21,31 +21,47 @@ interface IncomingMessage {
 export async function saveMessageToSupabase(msg: IncomingMessage) {
   const { instanceId, phone, content, pushName, timestamp, fromMe, messageId } = msg
 
-  // 1. Usar instanceId como company_id diretamente
-  let companyId: string = instanceId
+  // 1. Buscar empresa - tentar por instanceId, senão buscar pela mais recente
+  let companyId: string | null = null
   
-  // Verificar se a empresa existe
-  const { data: company, error: compError } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('id', companyId)
-    .single()
-
-  if (compError || !company) {
-    console.log(`[Supabase] Empresa não encontrada para ID: ${companyId} - Erro: ${compError?.message || 'not found'}`)
-    // Fallback: buscar primeira empresa
-    const { data: firstCompany } = await supabase
+  // Tentar buscar por UUID
+  if (instanceId && instanceId !== 'default') {
+    const { data: company } = await supabase
       .from('companies')
       .select('id')
-      .limit(1)
-      .single()
-    
-    if (!firstCompany) {
-      console.log(`[Supabase] Nenhuma empresa no banco`)
-      return
+      .eq('id', instanceId)
+      .maybeSingle()
+    companyId = company?.id || null
+  }
+
+  // Fallback: buscar a empresa mais recente (última criada)
+  if (!companyId) {
+    // Primeiro checar se tem env var definida
+    if (process.env.DEFAULT_COMPANY_ID) {
+      companyId = process.env.DEFAULT_COMPANY_ID
+      console.log(`[Supabase] Usando empresa da env: ${companyId}`)
+    } else {
+      const { data: latestCompany, error: compError } = await supabase
+        .from('companies')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (compError) {
+        console.log(`[Supabase] Erro ao buscar empresa: ${compError.message}`)
+        return
+      }
+      companyId = latestCompany?.id || null
+      if (companyId) {
+        console.log(`[Supabase] Usando empresa mais recente: ${companyId}`)
+      }
     }
-    companyId = firstCompany.id
-    console.log(`[Supabase] Usando empresa fallback: ${companyId}`)
+  }
+
+  if (!companyId) {
+    console.log(`[Supabase] Nenhuma empresa no banco`)
+    return
   }
 
   // 2. Buscar ou criar contato
