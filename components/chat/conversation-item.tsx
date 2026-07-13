@@ -36,7 +36,6 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { selectedConversation, setSelectedConversation } = useConversationStore()
   const isSelected = selectedConversation?.id === conversation.id
   const contact = conversation.contact
-  const agent = (conversation as any).agent
   const protocol = (conversation as any).protocol
   const status = statusConfig[conversation.status] || statusConfig.pending
   
@@ -46,7 +45,6 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   if (agent) {
     agentColor = getAgentColor(agent)
   } else if (conversation.agent_id) {
-    // Agent_id existe mas relação não veio (RLS ou join issue)
     const hash = conversation.agent_id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
     agentColor = agentColors[hash % agentColors.length]
   }
