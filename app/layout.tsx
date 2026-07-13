@@ -5,6 +5,11 @@ import { Toaster } from '@/components/ui/toaster'
 export const metadata: Metadata = {
   title: 'BoraGerir Conversas - Atendimento via WhatsApp',
   description: 'Sistema completo de atendimento via WhatsApp para sua equipe',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
