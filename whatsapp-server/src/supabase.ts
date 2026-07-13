@@ -18,15 +18,32 @@ interface IncomingMessage {
 export async function saveMessageToSupabase(msg: IncomingMessage) {
   const { instanceId, phone, content, pushName, timestamp, fromMe, messageId } = msg
 
-  // 1. Buscar empresa pela instanceId (company_id)
-  const { data: company } = await supabase
-    .from('companies')
-    .select('id')
-    .eq('id', instanceId)
-    .single()
+  // 1. Buscar empresa (primeira disponível ou por instanceId se for UUID)
+  let companyId: string | null = null
+  
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceId)
+  
+  if (isUUID) {
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('id', instanceId)
+      .single()
+    companyId = company?.id || null
+  }
+  
+  // Fallback: buscar primeira empresa
+  if (!companyId) {
+    const { data: companies } = await supabase
+      .from('companies')
+      .select('id')
+      .limit(1)
+      .single()
+    companyId = companies?.id || null
+  }
 
-  if (!company) {
-    console.log(`[Supabase] Empresa não encontrada: ${instanceId}`)
+  if (!companyId) {
+    console.log(`[Supabase] Nenhuma empresa encontrada`)
     return
   }
 
@@ -35,7 +52,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
     .from('contacts')
     .select('id')
     .eq('phone', phone)
-    .eq('company_id', company.id)
+    .eq('company_id', companyId)
     .single()
 
   if (!contact) {
@@ -44,7 +61,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       .insert({
         phone,
         name: pushName || null,
-        company_id: company.id,
+        company_id: companyId,
       })
       .select('id')
       .single()
@@ -58,7 +75,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
     .from('conversations')
     .select('id')
     .eq('contact_id', contact.id)
-    .eq('company_id', company.id)
+    .eq('company_id', companyId)
     .neq('status', 'closed')
     .order('created_at', { ascending: false })
     .limit(1)
@@ -69,7 +86,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       .from('conversations')
       .insert({
         contact_id: contact.id,
-        company_id: company.id,
+        company_id: companyId,
         channel: 'whatsapp',
         status: 'pending',
         last_message: content,
@@ -81,13 +98,22 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
     conversation = newConv
   } else {
     // Atualizar conversa existente
+    const updates: any = {
+      last_message: content,
+      last_message_at: timestamp,
+    }
+    if (!fromMe) {
+      // Incrementar unread
+      const { data: currentConv } = await supabase
+        .from('conversations')
+        .select('unread_count')
+        .eq('id', conversation.id)
+        .single()
+      updates.unread_count = (currentConv?.unread_count || 0) + 1
+    }
     await supabase
       .from('conversations')
-      .update({
-        last_message: content,
-        last_message_at: timestamp,
-        unread_count: fromMe ? 0 : supabase.rpc('increment_unread', { conv_id: conversation.id }),
-      })
+      .update(updates)
       .eq('id', conversation.id)
   }
 
@@ -103,16 +129,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
     created_at: timestamp,
   })
 
-  // 5. Atualizar last_message na conversa
-  if (!fromMe) {
-    await supabase
-      .from('conversations')
-      .update({
-        last_message: content,
-        last_message_at: timestamp,
-      })
-      .eq('id', conversation.id)
-  }
+  console.log(`[Supabase] ✅ Mensagem salva: ${phone} → ${content.substring(0, 30)}`)
 }
 
 export async function updateContactName(instanceId: string, phone: string, name: string) {
