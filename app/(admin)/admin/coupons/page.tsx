@@ -23,7 +23,7 @@ const defaultCoupons: Coupon[] = [
 export default function AdminCoupons() {
   const [coupons, setCoupons] = useState<Coupon[]>(defaultCoupons)
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({ code: '', discount: '', type: 'percent' as const, maxUses: '', expiresAt: '' })
+  const [formData, setFormData] = useState({ code: '', discount: '', type: 'percent' as 'percent' | 'fixed', maxUses: '', expiresAt: '' })
 
   function createCoupon() {
     setCoupons([...coupons, {
