@@ -16,7 +16,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import { WindowExpiryBanner } from './window-expiry-banner'
 import { getInitials, formatPhone } from '@/lib/utils'
-import { MoreVertical, UserPlus, XCircle, RotateCcw, Target } from 'lucide-react'
+import { MoreVertical, UserPlus, XCircle, RotateCcw, Target, Clock } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,29 +152,35 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="h-14 border-b flex items-center justify-between px-4 bg-white">
-        <div className="flex items-center gap-3">
+      <div className="h-12 border-b flex items-center justify-between px-4 bg-white">
+        <div className="flex items-center gap-2.5">
           <Avatar className="h-8 w-8">
             <AvatarImage src={contact?.profile_picture || ''} />
-            <AvatarFallback className="text-xs bg-slate-100 text-slate-600">
+            <AvatarFallback className="text-[10px] bg-[#F26522]/10 text-[#F26522] font-semibold">
               {contact?.name ? getInitials(contact.name) : '?'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <p className="text-sm font-medium text-slate-800">{contact?.name || 'Desconhecido'}</p>
               <div className={`w-1.5 h-1.5 rounded-full ${status.color}`} />
-              <span className="text-[10px] text-slate-500">{status.label}</span>
+              <span className="text-[10px] text-slate-400">{status.label}</span>
             </div>
-            <p className="text-[11px] text-slate-400">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
+            <p className="text-[10px] text-slate-400">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Pending: show assign + wait */}
           {(conversation.status === 'pending' || !conversation.agent_id) && (
-            <Button size="sm" onClick={handleAssign} className="h-7 text-[11px] px-2.5">
-              <UserPlus className="h-3 w-3 mr-1" /> Assumir
-            </Button>
+            <>
+              <Button size="sm" onClick={handleAssign} className="h-7 text-[10px] px-2.5 bg-[#F26522] hover:bg-[#d4561c]">
+                <UserPlus className="h-3 w-3 mr-1" /> Atribuir
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2.5 text-slate-500">
+                <Clock className="h-3 w-3 mr-1" /> Espera
+              </Button>
+            </>
           )}
           <Button size="sm" variant="outline" onClick={handleSignalLead} className="h-7 text-[11px] px-2.5 text-orange-600 border-orange-200 hover:bg-orange-50">
             <Target className="h-3 w-3 mr-1" /> Lead
