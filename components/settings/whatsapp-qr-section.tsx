@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
+import { useCompany } from '@/hooks/use-company'
 import { QrCode, Wifi, WifiOff, Loader2, RefreshCw, Smartphone, Unplug } from 'lucide-react'
 
 interface ConnectionStatus {
@@ -16,6 +17,8 @@ interface ConnectionStatus {
 }
 
 export function WhatsAppQRSection() {
+  const { company } = useCompany()
+  const companyId = company?.id || ''
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'disconnected',
     qr: null,
@@ -39,7 +42,9 @@ export function WhatsAppQRSection() {
 
   async function fetchStatus() {
     try {
-      const res = await fetch('/api/whatsapp-qr')
+      const res = await fetch(`${process.env.NEXT_PUBLIC_WPP_SERVER_URL || 'https://whatsapp-attendant-production.up.railway.app'}/api/instance/status/${companyId}`, {
+        headers: { 'x-api-key': process.env.NEXT_PUBLIC_WPP_API_KEY || '' },
+      })
       if (res.ok) {
         const data = await res.json()
         setConnection(data)
@@ -53,10 +58,13 @@ export function WhatsAppQRSection() {
   async function handleConnect() {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/whatsapp-qr', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_WPP_SERVER_URL || 'https://whatsapp-attendant-production.up.railway.app'}/api/instance/connect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'connect' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_WPP_API_KEY || '',
+        },
+        body: JSON.stringify({ instanceId: companyId }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -75,10 +83,13 @@ export function WhatsAppQRSection() {
 
   async function handleDisconnect() {
     try {
-      const res = await fetch('/api/whatsapp-qr', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_WPP_SERVER_URL || 'https://whatsapp-attendant-production.up.railway.app'}/api/instance/disconnect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'disconnect' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.NEXT_PUBLIC_WPP_API_KEY || '',
+        },
+        body: JSON.stringify({ instanceId: companyId }),
       })
       if (res.ok) {
         setConnection({ status: 'disconnected', qr: null, phone: null, name: null, lastUpdated: Date.now() })
