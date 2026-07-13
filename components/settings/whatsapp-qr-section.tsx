@@ -20,7 +20,7 @@ interface ConnectionStatus {
 export function WhatsAppQRSection() {
   const { company } = useCompany()
   const { agent } = useAuthStore()
-  const companyId = company?.id || (agent as any)?.company_id || 'default'
+  const [companyId, setCompanyId] = useState<string>('default')
   const [connection, setConnection] = useState<ConnectionStatus>({
     status: 'disconnected',
     qr: null,
@@ -31,6 +31,21 @@ export function WhatsAppQRSection() {
   const [isLoading, setIsLoading] = useState(false)
   const pollRef = useRef<NodeJS.Timeout | null>(null)
   const { toast } = useToast()
+
+  // Buscar company_id real
+  useEffect(() => {
+    if (company?.id) {
+      setCompanyId(company.id)
+    } else if (agent?.id) {
+      // Buscar via API
+      fetch('/api/agents/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data.company_id) setCompanyId(data.company_id)
+        })
+        .catch(() => {})
+    }
+  }, [company, agent])
 
   // Fetch status on mount (check if already connected)
   useEffect(() => {
