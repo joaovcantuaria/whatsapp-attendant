@@ -14,6 +14,7 @@ export function useConversations(filter: ConversationStatus | 'all' = 'all') {
       .from('conversations')
       .select('*, contact:contacts(*), agent:agents(*)')
       .order('last_message_at', { ascending: false, nullsFirst: false })
+      .limit(50)
 
     if (filter !== 'all') {
       query = query.eq('status', filter)

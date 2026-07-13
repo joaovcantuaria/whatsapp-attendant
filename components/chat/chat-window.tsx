@@ -31,7 +31,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ conversation }: ChatWindowProps) {
-  const { messages, isLoading } = useMessages(conversation.id)
+  const { messages, isLoading, addOptimisticMessage } = useMessages(conversation.id)
   const windowStatus = useWindowExpiry(conversation.last_message_at)
   const { agent } = useAuthStore()
   const { setSelectedConversation } = useConversationStore()
@@ -235,7 +235,7 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Message Input */}
-      <MessageInput conversation={conversation} windowStatus={windowStatus} />
+      <MessageInput conversation={conversation} windowStatus={windowStatus} onOptimisticSend={addOptimisticMessage} />
     </div>
   )
 }

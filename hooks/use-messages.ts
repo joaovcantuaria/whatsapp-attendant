@@ -9,6 +9,20 @@ export function useMessages(conversationId: string | null) {
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
+  // Optimistic: adicionar mensagem localmente antes do servidor confirmar
+  const addOptimisticMessage = useCallback((message: Partial<Message>) => {
+    const optimistic: Message = {
+      id: `temp-${Date.now()}`,
+      conversation_id: conversationId || '',
+      content: message.content || '',
+      sender_type: 'agent',
+      message_type: 'text',
+      created_at: new Date().toISOString(),
+      ...message,
+    } as Message
+    setMessages((prev) => [...prev, optimistic])
+  }, [conversationId])
+
   const fetchMessages = useCallback(async () => {
     if (!conversationId) {
       setMessages([])
@@ -73,5 +87,5 @@ export function useMessages(conversationId: string | null) {
     }
   }, [conversationId, fetchMessages, supabase])
 
-  return { messages, isLoading, refetch: fetchMessages }
+  return { messages, isLoading, refetch: fetchMessages, addOptimisticMessage }
 }

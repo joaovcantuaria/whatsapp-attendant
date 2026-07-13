@@ -28,9 +28,10 @@ import {
 interface MessageInputProps {
   conversation: Conversation
   windowStatus: WindowStatus
+  onOptimisticSend?: (message: Partial<any>) => void
 }
 
-export function MessageInput({ conversation, windowStatus }: MessageInputProps) {
+export function MessageInput({ conversation, windowStatus, onOptimisticSend }: MessageInputProps) {
   const [text, setText] = useState('')
   const [showQuickReplies, setShowQuickReplies] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
@@ -44,19 +45,30 @@ export function MessageInput({ conversation, windowStatus }: MessageInputProps) 
   const handleSend = async () => {
     if (!text.trim() || !phone) return
 
+    const messageText = text.trim()
+    setText('') // Limpa input imediatamente
+
+    // Optimistic: mostra na tela antes do servidor responder
+    if (onOptimisticSend) {
+      onOptimisticSend({
+        content: messageText,
+        sender_type: 'agent',
+        message_type: 'text',
+      })
+    }
+
+    // Envia pro servidor em background
     const result = await sendMessage({
       conversationId: conversation.id,
       phone,
       type: 'text',
-      content: text.trim(),
+      content: messageText,
     })
 
-    if (result) {
-      setText('')
-    } else {
+    if (!result) {
       toast({
         title: 'Erro ao enviar',
-        description: 'Não foi possível enviar a mensagem',
+        description: 'Mensagem pode não ter sido entregue',
         variant: 'destructive',
       })
     }
@@ -207,7 +219,7 @@ export function MessageInput({ conversation, windowStatus }: MessageInputProps) 
         {/* Send Button */}
         <Button
           onClick={handleSend}
-          disabled={!text.trim() || isLoading}
+          disabled={!text.trim()}
           size="icon"
           className="shrink-0"
         >
