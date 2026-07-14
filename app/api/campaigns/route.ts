@@ -262,16 +262,15 @@ export async function PATCH(request: NextRequest) {
 
           // Header de mídia - OBRIGATÓRIO se template tem header dinâmico
           if (hasMediaHeader) {
-            // Usar URL salva na campanha, ou do template se for válida
+            // Usar URL salva na campanha, ou do template se for válida, ou fallback pra logo pública
             const headerUrl = savedHeaderMediaUrl ||
-              (templateData?.header_content?.startsWith('http') ? templateData.header_content : null)
+              (templateData?.header_content?.startsWith('http') ? templateData.header_content : null) ||
+              'https://chat.boragerir.com/logo.png'
 
-            if (headerUrl) {
-              const mediaType = templateData!.header_type!.toLowerCase()
-              const mediaParam: any = { type: mediaType }
-              mediaParam[mediaType] = { link: headerUrl }
-              components.push({ type: 'header', parameters: [mediaParam] })
-            }
+            const mediaType = templateData!.header_type!.toLowerCase()
+            const mediaParam: any = { type: mediaType }
+            mediaParam[mediaType] = { link: headerUrl }
+            components.push({ type: 'header', parameters: [mediaParam] })
           }
 
           // Body com variáveis resolvidas por contato
