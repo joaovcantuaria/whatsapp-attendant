@@ -11,6 +11,7 @@ import {
   Palette,
   Shield,
   ChevronRight,
+  Instagram,
 } from 'lucide-react'
 
 const settingsItems = [
@@ -34,6 +35,13 @@ const settingsItems = [
     title: 'WhatsApp',
     description: 'Token, Phone Number ID e configuração da API Meta',
     color: 'bg-green-50 text-green-600',
+  },
+  {
+    href: '/settings/integrations/instagram',
+    icon: Instagram,
+    title: 'Instagram Direct',
+    description: 'Receba e responda mensagens do Direct no painel',
+    color: 'bg-pink-50 text-pink-600',
   },
   {
     href: '/settings/integrations',
