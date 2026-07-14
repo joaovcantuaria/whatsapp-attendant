@@ -194,6 +194,24 @@ export async function PATCH(request: NextRequest) {
         varsMapping = campaign.template_components.vars_mapping
       }
 
+      // Buscar template para verificar se tem variáveis obrigatórias
+      const { data: templateData } = await serviceClient
+        .from('message_templates')
+        .select('body')
+        .eq('company_id', companyId)
+        .eq('name', campaign.template_name)
+        .single()
+
+      const templateBodyVars = templateData?.body?.match(/\{\{\d+\}\}/g)
+      const hasRequiredVars = templateBodyVars && templateBodyVars.length > 0
+
+      // Se o template exige variáveis mas não temos mapeamento, erro
+      if (hasRequiredVars && !varsMapping) {
+        return NextResponse.json({
+          error: `Template "${campaign.template_name}" tem ${templateBodyVars.length} variável(is) que precisam ser mapeadas. Recrie a campanha mapeando as variáveis.`,
+        }, { status: 400 })
+      }
+
       // Marcar como em execução
       await serviceClient
         .from('campaigns')
@@ -238,18 +256,14 @@ export async function PATCH(request: NextRequest) {
           }
 
           // Montar components com variáveis resolvidas por contato
-          if (varsMapping) {
+          if (varsMapping && hasRequiredVars) {
             const bodyParams: any[] = []
-            const sortedKeys = Object.keys(varsMapping)
-              .filter(k => !k.endsWith('_custom'))
-              .sort((a, b) => {
-                const numA = parseInt(a.replace(/[{}]/g, ''))
-                const numB = parseInt(b.replace(/[{}]/g, ''))
-                return numA - numB
-              })
+            // Garantir que temos exatamente o número de parâmetros que o template espera
+            const expectedCount = templateBodyVars!.length
 
-            for (const key of sortedKeys) {
-              const mapping = varsMapping[key]
+            for (let i = 1; i <= expectedCount; i++) {
+              const key = `{{${i}}}`
+              const mapping = varsMapping[key] || ''
               let value = ''
 
               if (mapping === '{{contact_name}}') {
@@ -257,19 +271,18 @@ export async function PATCH(request: NextRequest) {
               } else if (mapping === '{{contact_phone}}') {
                 value = contact.phone
               } else if (mapping === '__custom__') {
-                value = varsMapping[`${key}_custom`] || ''
+                value = varsMapping[`${key}_custom`] || '-'
+              } else if (mapping) {
+                value = mapping
               } else {
-                value = mapping || ''
+                // Fallback: usar nome para {{1}}, traço para o resto
+                value = i === 1 ? (contact.name || phone) : '-'
               }
 
-              if (value) {
-                bodyParams.push({ type: 'text', text: value })
-              }
+              bodyParams.push({ type: 'text', text: value })
             }
 
-            if (bodyParams.length > 0) {
-              templatePayload.components = [{ type: 'body', parameters: bodyParams }]
-            }
+            templatePayload.components = [{ type: 'body', parameters: bodyParams }]
           }
 
           const messageBody = {
