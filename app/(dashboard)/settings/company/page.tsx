@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCompany } from '@/hooks/use-company'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,14 +15,33 @@ export default function CompanySettingsPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: company?.name || '',
-    email: company?.email || '',
-    phone: company?.phone || '',
-    document: company?.document || '',
+    name: '',
+    email: '',
+    phone: '',
+    document: '',
   })
 
+  // Sincronizar formData quando company carrega
+  useEffect(() => {
+    if (company) {
+      setFormData({
+        name: company.name || '',
+        email: company.email || '',
+        phone: company.phone || '',
+        document: company.document || '',
+      })
+    }
+  }, [company])
+
   const handleSave = async () => {
-    if (!company) return
+    if (!company) {
+      toast({ title: 'Empresa ainda não carregada. Aguarde.', variant: 'destructive' })
+      return
+    }
+    if (!formData.name || !formData.email) {
+      toast({ title: 'Nome e email são obrigatórios', variant: 'destructive' })
+      return
+    }
     setIsLoading(true)
 
     try {
@@ -36,10 +55,11 @@ export default function CompanySettingsPage() {
         toast({ title: 'Dados atualizados com sucesso' })
         await refetch()
       } else {
-        toast({ title: 'Erro ao salvar', variant: 'destructive' })
+        const data = await response.json()
+        toast({ title: data.error || 'Erro ao salvar', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Erro', variant: 'destructive' })
+      toast({ title: 'Erro de conexão', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
