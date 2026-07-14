@@ -104,11 +104,14 @@ export async function POST(request: NextRequest) {
     // Montar components
     const components: any[] = []
 
-    // Header de imagem
-    // Para templates com imagem estática (sample fixo), NÃO enviar o componente header.
-    // A Meta usa automaticamente a imagem do sample cadastrado no template.
-    // Comentado: só descomentar se a Meta exigir explicitamente.
-    // if (templateInfo?.header_type?.toLowerCase() === 'image') { ... }
+    // Header de imagem - OBRIGATÓRIO para templates com imagem
+    if (templateInfo?.header_type?.toLowerCase() === 'image') {
+      const headerImageUrl = 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
+      components.push({
+        type: 'header',
+        parameters: [{ type: 'image', image: { link: headerImageUrl } }],
+      })
+    }
 
     // Body: {{1}}=nome, {{2}}=serviço, {{3}}=data, {{4}}=horário, {{5}}=empresa
     components.push({
