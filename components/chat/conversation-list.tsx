@@ -427,6 +427,13 @@ export function ConversationList() {
                 const vars = tpl?.body?.match(/\{\{(\d+)\}\}/g) || []
                 const uniqueVars = Array.from(new Set(vars)) as string[]
                 if (!tpl) return null
+
+                // Auto-preencher {{1}} com nome do contato se disponível
+                const selectedContact = contacts.find((c: any) => c.id === selectedContactId)
+                if (uniqueVars.includes('{{1}}') && selectedContact?.name && !templateVars['{{1}}']) {
+                  setTimeout(() => setTemplateVars(prev => ({ ...prev, '{{1}}': prev['{{1}}'] || selectedContact.name })), 0)
+                }
+
                 return (
                   <div className="space-y-2 mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <p className="text-[10px] text-slate-500 font-medium uppercase">Preview do template:</p>
@@ -437,13 +444,17 @@ export function ConversationList() {
                       <>
                         <p className="text-[10px] text-slate-500 font-medium uppercase pt-2">Preencha as variáveis:</p>
                         {uniqueVars.map((v: string) => (
-                          <Input
-                            key={v}
-                            placeholder={`Valor para ${v}`}
-                            value={templateVars[v] || ''}
-                            onChange={(e) => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
-                            className="h-8 text-xs"
-                          />
+                          <div key={v} className="space-y-0.5">
+                            <label className="text-[10px] text-slate-400">
+                              {v === '{{1}}' ? `${v} — Nome do contato` : v}
+                            </label>
+                            <Input
+                              placeholder={`Valor para ${v}`}
+                              value={templateVars[v] || ''}
+                              onChange={(e) => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
+                              className="h-8 text-xs"
+                            />
+                          </div>
                         ))}
                       </>
                     )}
