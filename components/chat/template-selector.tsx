@@ -36,17 +36,8 @@ export function TemplateSelector({ conversation, onClose }: TemplateSelectorProp
   const handleSend = async () => {
     if (!selected || !conversation.contact?.phone) return
 
-    const components: Record<string, unknown>[] = []
-    
-    if (Object.keys(variables).length > 0) {
-      components.push({
-        type: 'body',
-        parameters: Object.values(variables).map((value) => ({
-          type: 'text',
-          text: value,
-        })),
-      })
-    }
+    const { buildTemplateComponents } = await import('@/lib/template-utils')
+    const components = buildTemplateComponents(selected, variables)
 
     const result = await sendMessage({
       conversationId: conversation.id,

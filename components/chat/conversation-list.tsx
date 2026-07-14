@@ -153,44 +153,9 @@ export function ConversationList() {
       if (!sent && selectedTemplate) {
         const template = templates.find((t: any) => t.name === selectedTemplate)
         
-        // Montar components com variáveis preenchidas
-        const components: any[] = []
-        
-        // Header (imagem/vídeo) se o template tiver
-        if (template?.header_type === 'image' && template?.header_content) {
-          components.push({
-            type: 'header',
-            parameters: [{ type: 'image', image: { link: template.header_content } }],
-          })
-        } else if (template?.header_type === 'video' && template?.header_content) {
-          components.push({
-            type: 'header',
-            parameters: [{ type: 'video', video: { link: template.header_content } }],
-          })
-        }
-
-        // Body parameters
-        const varValues = Object.values(templateVars).filter(v => v.trim())
-        if (varValues.length > 0) {
-          components.push({
-            type: 'body',
-            parameters: varValues.map((value) => ({ type: 'text', text: value })),
-          })
-        }
-
-        // Buttons (URL dinâmica se houver)
-        if (template?.buttons && Array.isArray(template.buttons)) {
-          template.buttons.forEach((btn: any, index: number) => {
-            if (btn.type === 'URL' && btn.url?.includes('{{')) {
-              components.push({
-                type: 'button',
-                sub_type: 'url',
-                index: index.toString(),
-                parameters: [{ type: 'text', text: 'link' }],
-              })
-            }
-          })
-        }
+        // Usar utilitário para montar components completos
+        const { buildTemplateComponents } = await import('@/lib/template-utils')
+        const components = buildTemplateComponents(template, templateVars)
 
         const sendRes = await fetch('/api/send-message', {
           method: 'POST',
