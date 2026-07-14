@@ -32,6 +32,7 @@ import { buildTemplateComponents } from '@/lib/template-utils'
 
 export function ConversationList() {
   const { filter, setFilter, searchQuery, setSearchQuery, agentFilter } = useConversationStore()
+  const { setSelectedConversation } = useConversationStore()
   const { conversations, isLoading, refetch } = useConversations(filter)
   const [showNewConversation, setShowNewConversation] = useState(false)
   const [newConvMode, setNewConvMode] = useState<'select' | 'create'>('select')
@@ -183,6 +184,7 @@ export function ConversationList() {
 
       toast({ title: 'Conversa iniciada!' })
       setShowNewConversation(false)
+      setSelectedConversation(conversation)
       refetch()
     } catch {
       toast({ title: 'Erro ao iniciar conversa', variant: 'destructive' })
