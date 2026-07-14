@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,19 +13,30 @@ export async function GET(request: NextRequest) {
     }
 
     const status = request.nextUrl.searchParams.get('status')
-    const search = request.nextUrl.searchParams.get('search')
 
-    let query = supabase
+    // Get user's company_id
+    const serviceClient = createServiceRoleClient()
+    const { data: agentData } = await serviceClient
+      .from('agents')
+      .select('company_id')
+      .eq('id', session.user.id)
+      .single()
+
+    const companyId = agentData?.company_id
+
+    // Use service role to bypass RLS on agent join (get agent.color)
+    let query = serviceClient
       .from('conversations')
-      .select('*, contact:contacts(*), agent:agents(*)')
+      .select('*, contact:contacts(*), agent:agents(id, name, color, is_online)')
       .order('last_message_at', { ascending: false, nullsFirst: false })
+      .limit(50)
+
+    if (companyId) {
+      query = query.eq('company_id', companyId)
+    }
 
     if (status && status !== 'all') {
       query = query.eq('status', status)
-    }
-
-    if (search) {
-      query = query.or(`contact.name.ilike.%${search}%,contact.phone.ilike.%${search}%`)
     }
 
     const { data, error } = await query
@@ -109,11 +120,21 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { error: updateError } = await supabase
       .from('conversations')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    // Fetch with service role to bypass RLS on agents join
+    const serviceClient = createServiceRoleClient()
+    const { data, error } = await serviceClient
+      .from('conversations')
       .select('*, contact:contacts(*), agent:agents(*)')
+      .eq('id', id)
       .single()
 
     if (error) {

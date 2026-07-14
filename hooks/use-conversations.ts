@@ -10,26 +10,21 @@ export function useConversations(filter: ConversationStatus | 'all' = 'all') {
   const supabase = createClient()
 
   const fetchConversations = useCallback(async () => {
-    let query = supabase
-      .from('conversations')
-      .select('*, contact:contacts(*), agent:agents(*)')
-      .order('last_message_at', { ascending: false, nullsFirst: false })
-      .limit(50)
+    try {
+      const params = new URLSearchParams()
+      if (filter !== 'all') params.set('status', filter)
 
-    if (filter !== 'all') {
-      query = query.eq('status', filter)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
+      const res = await fetch(`/api/conversations?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setConversations(data || [])
+      }
+    } catch (error) {
       console.error('Error fetching conversations:', error)
-      return
+    } finally {
+      setIsLoading(false)
     }
-
-    setConversations(data || [])
-    setIsLoading(false)
-  }, [filter, supabase])
+  }, [filter])
 
   useEffect(() => {
     fetchConversations()
