@@ -35,13 +35,25 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       case 'image':
         return (
           <div className="space-y-1">
-            {message.media_url && (
+            {message.media_url ? (
               <img
                 src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
                 alt="Imagem"
                 className="rounded-md max-w-[280px] max-h-[300px] object-cover cursor-pointer"
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  target.parentElement?.insertAdjacentHTML(
+                    'afterbegin',
+                    '<div class="flex items-center gap-2 p-3 rounded bg-black/5 text-xs text-muted-foreground"><span>📷 Imagem indisponível</span></div>'
+                  )
+                }}
               />
+            ) : (
+              <div className="flex items-center gap-2 p-3 rounded bg-black/5">
+                <span className="text-xs text-muted-foreground">📷 Imagem</span>
+              </div>
             )}
             {message.content && (
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -52,23 +64,35 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       case 'audio':
         return (
           <div className="flex items-center gap-2">
-            <audio
-              controls
-              className="max-w-[250px] h-8"
-              src={message.media_url ? `/api/media?mediaUrl=${encodeURIComponent(message.media_url)}` : undefined}
-            />
+            {message.media_url ? (
+              <audio
+                controls
+                className="max-w-[250px] h-8"
+                src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
+              >
+                Seu navegador não suporta áudio.
+              </audio>
+            ) : (
+              <div className="flex items-center gap-2 p-2 rounded bg-black/5">
+                <span className="text-xs text-muted-foreground">🎵 Áudio indisponível</span>
+              </div>
+            )}
           </div>
         )
 
       case 'video':
         return (
           <div className="space-y-1">
-            {message.media_url && (
+            {message.media_url ? (
               <video
                 controls
                 className="rounded-md max-w-[280px] max-h-[300px]"
                 src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
               />
+            ) : (
+              <div className="flex items-center gap-2 p-3 rounded bg-black/5">
+                <span className="text-xs text-muted-foreground">🎬 Vídeo indisponível</span>
+              </div>
             )}
             {message.content && (
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>

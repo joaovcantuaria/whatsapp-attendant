@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
     }
 
-    const WHATSAPP_API_URL = 'https://graph.facebook.com/v19.0'
+    const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
     const headers = {
       'Authorization': `Bearer ${company.whatsapp_token}`,
       'Content-Type': 'application/json',
@@ -99,8 +99,13 @@ export async function POST(request: NextRequest) {
     )
 
     if (!metaResponse.ok) {
-      const error = await metaResponse.json()
-      return NextResponse.json({ error: `Meta API: ${error.error?.message || 'Erro desconhecido'}` }, { status: 500 })
+      const errorData = await metaResponse.json()
+      const errorCode = errorData.error?.code || '?'
+      const errorMsg = errorData.error?.message || 'Erro desconhecido'
+      const errorDetails = errorData.error?.error_data?.details || ''
+      return NextResponse.json({
+        error: `Meta API [${errorCode}]: ${errorMsg}${errorDetails ? ` - ${errorDetails}` : ''}`,
+      }, { status: 500 })
     }
 
     const metaData = await metaResponse.json()

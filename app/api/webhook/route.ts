@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
-import { getMediaUrl, markMessageAsRead } from '@/lib/meta'
+import { markMessageAsRead } from '@/lib/meta'
 import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
@@ -165,55 +165,26 @@ async function processInboundMessage(
     case 'image':
       content = message.image?.caption || null
       mediaMimeType = message.image?.mime_type || null
-      if (message.image?.id) {
-        try {
-          mediaUrl = await getMediaUrl(message.image.id)
-        } catch (e) {
-          console.error('Error getting media URL:', e)
-        }
-      }
+      // Salvar o media_id da Meta (não a URL temporária que expira)
+      mediaUrl = message.image?.id ? `meta_media:${message.image.id}` : null
       break
     case 'audio':
       mediaMimeType = message.audio?.mime_type || null
-      if (message.audio?.id) {
-        try {
-          mediaUrl = await getMediaUrl(message.audio.id)
-        } catch (e) {
-          console.error('Error getting media URL:', e)
-        }
-      }
+      mediaUrl = message.audio?.id ? `meta_media:${message.audio.id}` : null
       break
     case 'video':
       content = message.video?.caption || null
       mediaMimeType = message.video?.mime_type || null
-      if (message.video?.id) {
-        try {
-          mediaUrl = await getMediaUrl(message.video.id)
-        } catch (e) {
-          console.error('Error getting media URL:', e)
-        }
-      }
+      mediaUrl = message.video?.id ? `meta_media:${message.video.id}` : null
       break
     case 'document':
       mediaMimeType = message.document?.mime_type || null
       mediaFilename = message.document?.filename || null
-      if (message.document?.id) {
-        try {
-          mediaUrl = await getMediaUrl(message.document.id)
-        } catch (e) {
-          console.error('Error getting media URL:', e)
-        }
-      }
+      mediaUrl = message.document?.id ? `meta_media:${message.document.id}` : null
       break
     case 'sticker':
       mediaMimeType = message.sticker?.mime_type || null
-      if (message.sticker?.id) {
-        try {
-          mediaUrl = await getMediaUrl(message.sticker.id)
-        } catch (e) {
-          console.error('Error getting media URL:', e)
-        }
-      }
+      mediaUrl = message.sticker?.id ? `meta_media:${message.sticker.id}` : null
       break
     case 'location':
       content = JSON.stringify({

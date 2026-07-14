@@ -41,6 +41,7 @@ import {
   Tag,
   Calendar,
   BarChart3,
+  AlertCircle,
 } from 'lucide-react'
 
 interface Campaign {
@@ -77,6 +78,10 @@ interface Template {
   language: string
   status: string
   category: string
+  header_type?: string | null
+  header_content?: string | null
+  buttons?: any[] | null
+  footer?: string | null
 }
 
 interface Category {
@@ -97,6 +102,8 @@ export default function CampaignsPage() {
   const [contactSearch, setContactSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
+  const [errorMessages, setErrorMessages] = useState<any[]>([])
+  const [showErrorsDialog, setShowErrorsDialog] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -104,6 +111,8 @@ export default function CampaignsPage() {
     template_language: 'pt_BR',
     scheduled_at: '',
   })
+  const [headerMediaUrl, setHeaderMediaUrl] = useState('')
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   const fetchCampaigns = async () => {
@@ -208,12 +217,33 @@ export default function CampaignsPage() {
       return
     }
 
+    // Validar URL de mídia se o template exige
+    const template = templates.find((t) => t.name === formData.template_name)
+    const needsMedia = template?.header_type &&
+      ['image', 'video', 'document'].includes(template.header_type.toLowerCase())
+
+    if (needsMedia && !headerMediaUrl) {
+      toast({
+        title: 'URL da mídia obrigatória',
+        description: `O template selecionado requer uma URL de ${template.header_type} no header.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Montar template_components com mídia e variáveis
+    const { buildTemplateComponents } = await import('@/lib/template-utils')
+    const components = template
+      ? buildTemplateComponents(template as any, templateVars, needsMedia ? headerMediaUrl : undefined)
+      : []
+
     try {
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          template_components: components.length > 0 ? components : null,
           scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : null,
           contact_ids: selectedContacts,
         }),
@@ -223,6 +253,8 @@ export default function CampaignsPage() {
         toast({ title: formData.scheduled_at ? 'Campanha agendada!' : 'Campanha criada com sucesso!' })
         setShowCreateDialog(false)
         setFormData({ name: '', description: '', template_name: '', template_language: 'pt_BR', scheduled_at: '' })
+        setHeaderMediaUrl('')
+        setTemplateVars({})
         setSelectedContacts([])
         fetchCampaigns()
       } else {
@@ -252,7 +284,7 @@ export default function CampaignsPage() {
         })
         fetchCampaigns()
       } else {
-        toast({ title: data.error || 'Erro ao enviar', variant: 'destructive' })
+        toast({ title: data.error || 'Erro ao enviar', variant: 'destructive', duration: 8000 })
       }
     } catch {
       toast({ title: 'Erro ao enviar campanha', variant: 'destructive' })
@@ -292,6 +324,19 @@ export default function CampaignsPage() {
       }
     } catch {
       toast({ title: 'Erro ao cancelar', variant: 'destructive' })
+    }
+  }
+
+  const viewErrors = async (campaignId: string) => {
+    try {
+      const res = await fetch(`/api/campaigns/messages?campaignId=${campaignId}&status=failed`)
+      if (res.ok) {
+        const data = await res.json()
+        setErrorMessages(data)
+        setShowErrorsDialog(true)
+      }
+    } catch {
+      toast({ title: 'Erro ao buscar detalhes', variant: 'destructive' })
     }
   }
 
@@ -400,10 +445,14 @@ export default function CampaignsPage() {
                               <span className="text-slate-600">{campaign.read_count} lidas</span>
                             </div>
                             {campaign.failed_count > 0 && (
-                              <div className="flex items-center gap-1 text-xs">
+                              <button
+                                onClick={() => viewErrors(campaign.id)}
+                                className="flex items-center gap-1 text-xs hover:underline"
+                              >
                                 <div className="w-2 h-2 rounded-full bg-red-500" />
                                 <span className="text-red-600">{campaign.failed_count} falharam</span>
-                              </div>
+                                <AlertCircle className="h-3 w-3 text-red-400" />
+                              </button>
                             )}
                           </div>
                         )}
@@ -504,6 +553,8 @@ export default function CampaignsPage() {
                       template_name: v,
                       template_language: t?.language || 'pt_BR',
                     })
+                    setHeaderMediaUrl('')
+                    setTemplateVars({})
                   }}
                 >
                   <SelectTrigger>
@@ -525,10 +576,60 @@ export default function CampaignsPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <Eye className="h-3 w-3 text-green-600" />
                     <span className="text-[10px] font-medium text-green-700">Preview do template</span>
+                    {selectedTemplate.header_type && ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
+                      <Badge variant="outline" className="text-[9px]">
+                        Header: {selectedTemplate.header_type.toUpperCase()}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-slate-700 whitespace-pre-wrap">{selectedTemplate.body}</p>
                 </div>
               )}
+
+              {/* URL de Mídia do Header */}
+              {selectedTemplate?.header_type && ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
+                <div className="space-y-2 mt-2">
+                  <Label className="text-xs font-medium text-orange-700">
+                    ⚠️ URL da mídia do header ({selectedTemplate.header_type})
+                  </Label>
+                  <Input
+                    placeholder={`https://exemplo.com/${selectedTemplate.header_type === 'image' ? 'imagem.jpg' : selectedTemplate.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
+                    value={headerMediaUrl}
+                    onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Obrigatório: URL pública acessível para {selectedTemplate.header_type === 'image' ? 'a imagem' : selectedTemplate.header_type === 'video' ? 'o vídeo' : 'o documento'} que será exibido no topo do template.
+                  </p>
+                </div>
+              )}
+
+              {/* Variáveis do Template */}
+              {selectedTemplate && (() => {
+                const bodyVars = selectedTemplate.body?.match(/\{\{(\d+)\}\}/g)
+                if (!bodyVars || bodyVars.length === 0) return null
+                const uniqueVars = Array.from(new Set(bodyVars)) as string[]
+                return (
+                  <div className="space-y-2 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                    <p className="text-[10px] font-medium text-blue-700">
+                      📝 Este template tem variáveis que precisam ser preenchidas:
+                    </p>
+                    {uniqueVars.map((v) => (
+                      <div key={v} className="space-y-1">
+                        <Label className="text-[10px] text-slate-500">{v}</Label>
+                        <Input
+                          placeholder={`Valor para ${v} (ex: nome, data, etc.)`}
+                          value={templateVars[v] || ''}
+                          onChange={(e) => setTemplateVars((prev) => ({ ...prev, [v]: e.target.value }))}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-slate-400">
+                      Estes valores serão usados para todos os contatos. Use {{'{'}}{'{'}1{'}'}{'{'}'}{'}'} = nome se quiser personalizar.
+                    </p>
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Agendamento */}
@@ -639,6 +740,40 @@ export default function CampaignsPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Errors Dialog */}
+      <Dialog open={showErrorsDialog} onOpenChange={setShowErrorsDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-red-500" />
+              Erros de Envio
+            </DialogTitle>
+            <DialogDescription>
+              Detalhes dos envios que falharam nesta campanha
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 max-h-[60vh]">
+            {errorMessages.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-6">Nenhum erro encontrado</p>
+            ) : (
+              <div className="space-y-2 pr-2">
+                {errorMessages.map((msg: any, i: number) => (
+                  <div key={msg.id || i} className="p-3 bg-red-50 border border-red-100 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-slate-700">{msg.phone}</span>
+                      <Badge variant="destructive" className="text-[9px]">Falhou</Badge>
+                    </div>
+                    <p className="text-[11px] text-red-700 break-all">
+                      {msg.error_message || 'Sem detalhes do erro'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

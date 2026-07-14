@@ -147,6 +147,26 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Campanha não pode ser enviada neste status' }, { status: 400 })
       }
 
+      // Verificar se o template existe e está aprovado
+      const { data: templateCheck } = await serviceClient
+        .from('message_templates')
+        .select('id, name, status, header_type')
+        .eq('company_id', companyId)
+        .eq('name', campaign.template_name)
+        .single()
+
+      if (!templateCheck) {
+        return NextResponse.json({
+          error: `Template "${campaign.template_name}" não encontrado. Sincronize os templates com a Meta.`,
+        }, { status: 400 })
+      }
+
+      if (templateCheck.status !== 'approved') {
+        return NextResponse.json({
+          error: `Template "${campaign.template_name}" não está aprovado (status: ${templateCheck.status}). Apenas templates aprovados pela Meta podem ser enviados.`,
+        }, { status: 400 })
+      }
+
       // Buscar credenciais da empresa
       const { data: company } = await serviceClient
         .from('companies')
@@ -168,6 +188,44 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Nenhum contato encontrado' }, { status: 400 })
       }
 
+      // Montar components se não foram salvos na campanha
+      let templateComponents = campaign.template_components || null
+
+      // Se não tem components salvos, tentar buscar do template e montar
+      if (!templateComponents) {
+        const { data: template } = await serviceClient
+          .from('message_templates')
+          .select('header_type, header_content, body, buttons')
+          .eq('company_id', companyId)
+          .eq('name', campaign.template_name)
+          .single()
+
+        if (template) {
+          // Montar components básicos (body vars serão vazios para campanhas sem vars)
+          const components: any[] = []
+
+          // Header de mídia - precisa de URL válida
+          if (template.header_type && ['image', 'video', 'document'].includes(template.header_type.toLowerCase())) {
+            const headerContent = template.header_content
+            const isValidUrl = headerContent?.startsWith('http://') || headerContent?.startsWith('https://')
+            if (isValidUrl) {
+              const mediaType = template.header_type.toLowerCase()
+              components.push({
+                type: 'header',
+                parameters: [{
+                  type: mediaType,
+                  [mediaType]: { link: headerContent },
+                }],
+              })
+            }
+          }
+
+          if (components.length > 0) {
+            templateComponents = components
+          }
+        }
+      }
+
       // Marcar como em execução
       await serviceClient
         .from('campaigns')
@@ -180,7 +238,7 @@ export async function PATCH(request: NextRequest) {
         .eq('id', id)
 
       // Enviar para cada contato
-      const WHATSAPP_API_URL = 'https://graph.facebook.com/v19.0'
+      const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
       const headers = {
         'Authorization': `Bearer ${company.whatsapp_token}`,
         'Content-Type': 'application/json',
@@ -191,16 +249,37 @@ export async function PATCH(request: NextRequest) {
 
       for (const contact of contacts) {
         try {
+          // Normalizar telefone para formato E.164 (só dígitos)
+          const phone = contact.phone.replace(/\D/g, '')
+          if (!phone || phone.length < 10) {
+            await serviceClient.from('campaign_messages').insert({
+              campaign_id: id,
+              contact_id: contact.id,
+              phone: contact.phone,
+              status: 'failed',
+              error_message: `Telefone inválido: "${contact.phone}" (${phone.length} dígitos)`,
+            })
+            failedCount++
+            continue
+          }
+
+          // Montar payload do template
+          const templatePayload: any = {
+            name: campaign.template_name,
+            language: { code: campaign.template_language || 'pt_BR' },
+          }
+
+          // Apenas incluir components se existirem (templates sem variáveis/mídia não precisam)
+          if (templateComponents && Array.isArray(templateComponents) && templateComponents.length > 0) {
+            templatePayload.components = templateComponents
+          }
+
           const messageBody = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
-            to: contact.phone,
+            to: phone,
             type: 'template',
-            template: {
-              name: campaign.template_name,
-              language: { code: campaign.template_language },
-              components: campaign.template_components || undefined,
-            },
+            template: templatePayload,
           }
 
           const metaResponse = await fetch(
@@ -224,25 +303,30 @@ export async function PATCH(request: NextRequest) {
 
             sentCount++
           } else {
+            // Log detalhado do erro
+            const errorDetail = metaData?.error
+              ? `[${metaData.error.code || '?'}] ${metaData.error.message || 'Sem detalhes'} | Template: ${campaign.template_name} | Phone: ${contact.phone}`
+              : 'Erro desconhecido'
+
             await serviceClient.from('campaign_messages').insert({
               campaign_id: id,
               contact_id: contact.id,
               phone: contact.phone,
               status: 'failed',
-              error_message: metaData?.error?.message || 'Erro desconhecido',
+              error_message: errorDetail,
             })
             failedCount++
           }
 
           // Delay entre envios (para evitar rate limit da Meta)
           await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (err) {
+        } catch (err: any) {
           await serviceClient.from('campaign_messages').insert({
             campaign_id: id,
             contact_id: contact.id,
             phone: contact.phone,
             status: 'failed',
-            error_message: 'Erro de conexão',
+            error_message: `Erro de conexão: ${err?.message || 'desconhecido'}`,
           })
           failedCount++
         }

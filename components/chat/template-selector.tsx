@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
+import { ImageIcon, Video, FileText } from 'lucide-react'
 
 interface TemplateSelectorProps {
   conversation: Conversation
@@ -29,15 +30,34 @@ export function TemplateSelector({ conversation, onClose }: TemplateSelectorProp
   const { toast } = useToast()
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [variables, setVariables] = useState<Record<string, string>>({})
+  const [headerMediaUrl, setHeaderMediaUrl] = useState('')
 
   const approvedTemplates = templates.filter((t) => t.status === 'approved')
   const selected = approvedTemplates.find((t) => t.id === selectedTemplate)
 
+  // Verifica se o header é de mídia (precisa de URL)
+  const needsHeaderMedia = selected?.header_type &&
+    ['image', 'video', 'document'].includes(selected.header_type.toLowerCase())
+
   const handleSend = async () => {
     if (!selected || !conversation.contact?.phone) return
 
+    // Validar URL de mídia se necessário
+    if (needsHeaderMedia && !headerMediaUrl) {
+      toast({
+        title: 'URL da mídia obrigatória',
+        description: `Este template requer uma URL de ${selected.header_type === 'image' ? 'imagem' : selected.header_type === 'video' ? 'vídeo' : 'documento'} no header.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     const { buildTemplateComponents } = await import('@/lib/template-utils')
-    const components = buildTemplateComponents(selected, variables)
+    const components = buildTemplateComponents(
+      selected,
+      variables,
+      needsHeaderMedia ? headerMediaUrl : undefined
+    )
 
     const result = await sendMessage({
       conversationId: conversation.id,
@@ -67,6 +87,24 @@ export function TemplateSelector({ conversation, onClose }: TemplateSelectorProp
     return Array.from(new Set(matches))
   }
 
+  const getMediaIcon = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'image': return <ImageIcon className="h-4 w-4" />
+      case 'video': return <Video className="h-4 w-4" />
+      case 'document': return <FileText className="h-4 w-4" />
+      default: return null
+    }
+  }
+
+  const getMediaLabel = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'image': return 'URL da Imagem'
+      case 'video': return 'URL do Vídeo'
+      case 'document': return 'URL do Documento'
+      default: return 'URL da Mídia'
+    }
+  }
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -90,11 +128,23 @@ export function TemplateSelector({ conversation, onClose }: TemplateSelectorProp
                 {approvedTemplates.map((template) => (
                   <button
                     key={template.id}
-                    onClick={() => setSelectedTemplate(template.id)}
+                    onClick={() => {
+                      setSelectedTemplate(template.id)
+                      setHeaderMediaUrl('')
+                      setVariables({})
+                    }}
                     className="w-full p-3 border rounded-lg text-left hover:bg-accent transition-colors"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-sm">{template.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{template.name}</span>
+                        {template.header_type && ['image', 'video', 'document'].includes(template.header_type.toLowerCase()) && (
+                          <Badge variant="outline" className="text-[9px] gap-1">
+                            {getMediaIcon(template.header_type)}
+                            {template.header_type}
+                          </Badge>
+                        )}
+                      </div>
                       <Badge variant="secondary" className="text-[10px]">
                         {template.language}
                       </Badge>
@@ -112,11 +162,34 @@ export function TemplateSelector({ conversation, onClose }: TemplateSelectorProp
             {/* Preview */}
             <div className="p-3 bg-whatsapp-light rounded-lg">
               <p className="text-sm font-medium mb-1">{selected.name}</p>
+              {selected.header_type && (
+                <p className="text-[10px] text-muted-foreground mb-1">
+                  Header: {selected.header_type.toUpperCase()}
+                </p>
+              )}
               <p className="text-sm whitespace-pre-wrap">{selected.body}</p>
               {selected.footer && (
                 <p className="text-xs text-muted-foreground mt-2">{selected.footer}</p>
               )}
             </div>
+
+            {/* Header Media URL */}
+            {needsHeaderMedia && (
+              <div className="space-y-1">
+                <Label className="text-sm flex items-center gap-2">
+                  {getMediaIcon(selected.header_type!)}
+                  {getMediaLabel(selected.header_type!)}
+                </Label>
+                <Input
+                  placeholder={`https://exemplo.com/${selected.header_type === 'image' ? 'imagem.jpg' : selected.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
+                  value={headerMediaUrl}
+                  onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Insira uma URL pública acessível para o {selected.header_type === 'image' ? 'a imagem' : selected.header_type === 'video' ? 'o vídeo' : 'o documento'} do header
+                </p>
+              </div>
+            )}
 
             {/* Variables */}
             {extractVariables(selected.body).map((variable) => (

@@ -43,10 +43,16 @@ export function buildTemplateComponents(
   if (template.header_type) {
     const headerType = template.header_type.toLowerCase()
 
+    // Verifica se o header_content é uma URL válida (e não um header_handle da Meta)
+    const isValidUrl = (url?: string | null): boolean => {
+      if (!url) return false
+      return url.startsWith('http://') || url.startsWith('https://')
+    }
+
     switch (headerType) {
       case 'image':
-        // Header com imagem - usar URL salva ou fornecida
-        const imageUrl = headerMediaUrl || template.header_content
+        // Header com imagem - usar URL fornecida ou, como fallback, a URL salva (se válida)
+        const imageUrl = headerMediaUrl || (isValidUrl(template.header_content) ? template.header_content : null)
         if (imageUrl) {
           components.push({
             type: 'header',
@@ -56,7 +62,7 @@ export function buildTemplateComponents(
         break
 
       case 'video':
-        const videoUrl = headerMediaUrl || template.header_content
+        const videoUrl = headerMediaUrl || (isValidUrl(template.header_content) ? template.header_content : null)
         if (videoUrl) {
           components.push({
             type: 'header',
@@ -66,7 +72,7 @@ export function buildTemplateComponents(
         break
 
       case 'document':
-        const docUrl = headerMediaUrl || template.header_content
+        const docUrl = headerMediaUrl || (isValidUrl(template.header_content) ? template.header_content : null)
         if (docUrl) {
           components.push({
             type: 'header',

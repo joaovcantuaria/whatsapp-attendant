@@ -41,6 +41,7 @@ export function ConversationList() {
   const [selectedContactId, setSelectedContactId] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [templateVars, setTemplateVars] = useState<Record<string, string>>({})
+  const [templateHeaderMediaUrl, setTemplateHeaderMediaUrl] = useState('')
   const [newContactPhone, setNewContactPhone] = useState('')
   const [newContactName, setNewContactName] = useState('')
   const [newConvMessage, setNewConvMessage] = useState('')
@@ -53,6 +54,7 @@ export function ConversationList() {
     setNewConvMode('select')
     setSelectedContactId('')
     setSelectedTemplate('')
+    setTemplateHeaderMediaUrl('')
     setNewContactPhone('')
     setNewContactName('')
     setNewConvMessage('')
@@ -137,7 +139,13 @@ export function ConversationList() {
       // Se tem template selecionado, PRIORIZAR o template
       if (selectedTemplate) {
         const template = templates.find((t: any) => t.name === selectedTemplate)
-        const components = buildTemplateComponents(template, templateVars)
+        const needsMedia = template?.header_type &&
+          ['image', 'video', 'document'].includes(template.header_type.toLowerCase())
+        const components = buildTemplateComponents(
+          template,
+          templateVars,
+          needsMedia ? templateHeaderMediaUrl : undefined
+        )
 
         const sendRes = await fetch('/api/send-message', {
           method: 'POST',
@@ -400,7 +408,7 @@ export function ConversationList() {
                   Nenhum template aprovado. Crie um na aba Templates.
                 </p>
               ) : (
-                <Select value={selectedTemplate} onValueChange={(v) => { setSelectedTemplate(v); setTemplateVars({}) }}>
+                <Select value={selectedTemplate} onValueChange={(v) => { setSelectedTemplate(v); setTemplateVars({}); setTemplateHeaderMediaUrl('') }}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
@@ -426,12 +434,31 @@ export function ConversationList() {
                   setTimeout(() => setTemplateVars(prev => ({ ...prev, '{{1}}': prev['{{1}}'] || selectedContact.name })), 0)
                 }
 
+                const needsMedia = tpl.header_type &&
+                  ['image', 'video', 'document'].includes(tpl.header_type.toLowerCase())
+
                 return (
                   <div className="space-y-2 mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
                     <p className="text-[10px] text-slate-500 font-medium uppercase">Preview do template:</p>
+                    {tpl.header_type && (
+                      <p className="text-[10px] text-slate-400">Header: {tpl.header_type.toUpperCase()}</p>
+                    )}
                     <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed bg-white p-2 rounded border border-slate-100">
                       {tpl.body}
                     </p>
+                    {needsMedia && (
+                      <div className="space-y-1 pt-1">
+                        <label className="text-[10px] text-orange-600 font-medium">
+                          ⚠️ URL da mídia ({tpl.header_type}) — obrigatória
+                        </label>
+                        <Input
+                          placeholder={`https://exemplo.com/${tpl.header_type === 'image' ? 'imagem.jpg' : tpl.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
+                          value={templateHeaderMediaUrl}
+                          onChange={(e) => setTemplateHeaderMediaUrl(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    )}
                     {uniqueVars.length > 0 && (
                       <>
                         <p className="text-[10px] text-slate-500 font-medium uppercase pt-2">Preencha as variáveis:</p>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
-import { getMediaUrl, markMessageAsRead } from '@/lib/meta'
 import { checkConversationLimit, incrementUsage, isCompanyActive } from '@/lib/plan-limits'
 import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
@@ -75,7 +74,7 @@ export async function POST(
 
         if (value.messages) {
           for (const message of value.messages) {
-            await processInboundMessage(supabase, message, value.contacts?.[0], company.id, company.whatsapp_token!)
+            await processInboundMessage(supabase, message, value.contacts?.[0], company.id, company.whatsapp_token!, company.whatsapp_phone_number_id!)
           }
         }
 
@@ -99,7 +98,8 @@ async function processInboundMessage(
   message: WebhookMessage,
   contactInfo: { profile?: { name?: string }; wa_id?: string } | undefined,
   companyId: string,
-  whatsappToken: string
+  whatsappToken: string,
+  phoneNumberId: string
 ) {
   const phone = message.from
   const contactName = contactInfo?.profile?.name || phone
@@ -172,35 +172,26 @@ async function processInboundMessage(
     case 'image':
       content = message.image?.caption || null
       mediaMimeType = message.image?.mime_type || null
-      if (message.image?.id) {
-        try { mediaUrl = await getMediaUrlWithToken(message.image.id, whatsappToken) } catch {}
-      }
+      // Salvar o media_id da Meta (não a URL temporária que expira)
+      mediaUrl = message.image?.id ? `meta_media:${message.image.id}` : null
       break
     case 'audio':
       mediaMimeType = message.audio?.mime_type || null
-      if (message.audio?.id) {
-        try { mediaUrl = await getMediaUrlWithToken(message.audio.id, whatsappToken) } catch {}
-      }
+      mediaUrl = message.audio?.id ? `meta_media:${message.audio.id}` : null
       break
     case 'video':
       content = message.video?.caption || null
       mediaMimeType = message.video?.mime_type || null
-      if (message.video?.id) {
-        try { mediaUrl = await getMediaUrlWithToken(message.video.id, whatsappToken) } catch {}
-      }
+      mediaUrl = message.video?.id ? `meta_media:${message.video.id}` : null
       break
     case 'document':
       mediaMimeType = message.document?.mime_type || null
       mediaFilename = message.document?.filename || null
-      if (message.document?.id) {
-        try { mediaUrl = await getMediaUrlWithToken(message.document.id, whatsappToken) } catch {}
-      }
+      mediaUrl = message.document?.id ? `meta_media:${message.document.id}` : null
       break
     case 'sticker':
       mediaMimeType = message.sticker?.mime_type || null
-      if (message.sticker?.id) {
-        try { mediaUrl = await getMediaUrlWithToken(message.sticker.id, whatsappToken) } catch {}
-      }
+      mediaUrl = message.sticker?.id ? `meta_media:${message.sticker.id}` : null
       break
     case 'location':
       content = JSON.stringify({
@@ -242,42 +233,32 @@ async function processInboundMessage(
   await incrementUsage(companyId, 'message_received')
 
   // Marcar como lida na Meta
-  await markMessageAsReadWithToken(message.id, whatsappToken)
+  await markMessageAsReadWithToken(message.id, whatsappToken, phoneNumberId)
 
   // Processar com Chatbot e/ou Agente IA
   if (content && message.type === 'text') {
     try {
-      // Buscar phone_number_id da empresa
-      const { data: companyData } = await supabase
-        .from('companies')
-        .select('whatsapp_phone_number_id')
-        .eq('id', companyId)
-        .single()
+      // Verificar se tem chatbot ativo
+      const { data: activeFlows } = await supabase
+        .from('chatbot_flows')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('is_active', true)
+        .limit(1)
 
-      const phoneNumberId = companyData?.whatsapp_phone_number_id
-      if (phoneNumberId) {
-        // Verificar se tem chatbot ativo
-        const { data: activeFlows } = await supabase
-          .from('chatbot_flows')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('is_active', true)
-          .limit(1)
-
-        let chatbotHandled = false
-        if (activeFlows && activeFlows.length > 0) {
-          try {
-            const result = await processChatbotMessage(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
-            chatbotHandled = result.handled
-          } catch (e) {
-            console.error('Chatbot error:', e)
-          }
+      let chatbotHandled = false
+      if (activeFlows && activeFlows.length > 0) {
+        try {
+          const result = await processChatbotMessage(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
+          chatbotHandled = result.handled
+        } catch (e) {
+          console.error('Chatbot error:', e)
         }
+      }
 
-        // Se chatbot não tratou, tentar Agente IA
-        if (!chatbotHandled) {
-          await processAiResponse(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
-        }
+      // Se chatbot não tratou, tentar Agente IA
+      if (!chatbotHandled) {
+        await processAiResponse(companyId, conversation.id, phone, content, phoneNumberId, whatsappToken)
       }
     } catch (e) {
       console.error('AI/Chatbot processing error:', e)
@@ -308,16 +289,22 @@ async function processStatusUpdate(
 }
 
 // Funções auxiliares com token específico da empresa
-async function getMediaUrlWithToken(mediaId: string, token: string): Promise<string> {
-  const response = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
-  })
-  if (!response.ok) throw new Error('Failed to get media URL')
-  const data = await response.json()
-  return data.url
-}
-
-async function markMessageAsReadWithToken(messageId: string, token: string): Promise<void> {
-  // Precisamos do phone_number_id, mas não temos aqui diretamente
-  // A marcação como lida será feita pelo agente ao abrir a conversa
+async function markMessageAsReadWithToken(messageId: string, whatsappToken: string, phoneNumberId?: string): Promise<void> {
+  if (!phoneNumberId) return
+  try {
+    await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${whatsappToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: messageId,
+      }),
+    })
+  } catch {
+    // Não é crítico - ignorar erro silenciosamente
+  }
 }
