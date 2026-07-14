@@ -263,7 +263,7 @@ export async function PATCH(request: NextRequest) {
           // Header de mídia - OBRIGATÓRIO para templates com imagem
           if (hasMediaHeader) {
             const mediaType = templateData!.header_type!.toLowerCase()
-            // Usar URL salva na campanha, ou URL padrão do Supabase Storage
+            // Prioridade: URL salva na campanha > URL válida no template > URL padrão dos templates de agendamento
             const headerUrl = savedHeaderMediaUrl ||
               (templateData?.header_content?.startsWith('http') ? templateData.header_content : null) ||
               'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
