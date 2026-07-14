@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     // Se temos um media ID, resolver via Graph API para obter URL de download
     if (resolvedMediaId) {
-      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${resolvedMediaId}`, {
+      const metaRes = await fetch(`https://graph.facebook.com/v22.0/${resolvedMediaId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       })
       if (metaRes.ok) {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         // Tentar com token do env como fallback
         const envToken = process.env.WHATSAPP_ACCESS_TOKEN
         if (envToken && envToken !== token) {
-          const retryRes = await fetch(`https://graph.facebook.com/v19.0/${resolvedMediaId}`, {
+          const retryRes = await fetch(`https://graph.facebook.com/v22.0/${resolvedMediaId}`, {
             headers: { 'Authorization': `Bearer ${envToken}` },
           })
           if (retryRes.ok) {

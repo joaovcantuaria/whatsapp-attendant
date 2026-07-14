@@ -158,8 +158,29 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )
 
+      case 'button':
+        return (
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground italic">Resposta de botão:</p>
+            <p className="text-sm font-medium">{message.content}</p>
+          </div>
+        )
+
+      case 'interactive':
+        return (
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground italic">Resposta interativa:</p>
+            <p className="text-sm font-medium">{message.content}</p>
+          </div>
+        )
+
+      case 'reaction':
+        return (
+          <div className="text-2xl">{message.content}</div>
+        )
+
       default:
-        return <p className="text-sm text-muted-foreground italic">[Tipo não suportado]</p>
+        return <p className="text-sm text-muted-foreground italic">[{message.type}]</p>
     }
   }
 

@@ -240,7 +240,7 @@ async function executeAction(
 
 async function sendWhatsAppText(phoneNumberId: string, token: string, to: string, text: string) {
   try {
-    await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+    await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({

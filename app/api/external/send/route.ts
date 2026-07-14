@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Campo "phone" é obrigatório' }, { status: 400 })
     }
 
-    const WHATSAPP_API_URL = 'https://graph.facebook.com/v19.0'
+    const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
     const headers = {
       'Authorization': `Bearer ${company.whatsapp_token}`,
       'Content-Type': 'application/json',

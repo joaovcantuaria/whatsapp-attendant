@@ -220,7 +220,7 @@ function isWithinActiveHours(config: AiConfig): boolean {
 
 async function sendWhatsAppMessage(phoneNumberId: string, token: string, to: string, text: string) {
   try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+    const res = await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

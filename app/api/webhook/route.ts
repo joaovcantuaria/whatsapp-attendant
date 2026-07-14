@@ -194,6 +194,22 @@ async function processInboundMessage(
         address: message.location?.address,
       })
       break
+    case 'button':
+      // Resposta de botão quick_reply de um template
+      content = message.button?.text || message.button?.payload || null
+      break
+    case 'interactive':
+      // Resposta de lista ou botão interativo
+      if (message.interactive?.button_reply) {
+        content = message.interactive.button_reply.title
+      } else if (message.interactive?.list_reply) {
+        content = message.interactive.list_reply.title
+      }
+      break
+    case 'reaction':
+      // Reação a uma mensagem - salvar mas não atualizar last_message
+      content = message.reaction?.emoji || null
+      break
   }
 
   // 4. Salvar mensagem no banco
@@ -226,7 +242,7 @@ async function processInboundMessage(
   await markMessageAsRead(message.id)
 
   // 7. Processar com Chatbot e/ou Agente IA (async - não bloqueia o webhook)
-  if (content && message.type === 'text') {
+  if (content && ['text', 'button', 'interactive'].includes(message.type)) {
     const aiCompanyId = companyId || contact.company_id
 
     // Debug log

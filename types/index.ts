@@ -1,4 +1,4 @@
-export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'template'
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'template' | 'button' | 'interactive' | 'reaction'
 export type MessageDirection = 'inbound' | 'outbound'
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'failed'
 export type ConversationStatus = 'pending' | 'open' | 'closed'
@@ -207,6 +207,9 @@ export interface WebhookMessage {
   document?: { id: string; mime_type: string; filename: string }
   sticker?: { id: string; mime_type: string }
   location?: { latitude: number; longitude: number; name?: string; address?: string }
+  button?: { text: string; payload: string }
+  interactive?: { type: string; button_reply?: { id: string; title: string }; list_reply?: { id: string; title: string; description?: string } }
+  reaction?: { message_id: string; emoji: string }
 }
 
 export interface WebhookStatus {

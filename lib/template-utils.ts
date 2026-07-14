@@ -142,13 +142,7 @@ export function buildTemplateComponents(
           break
 
         case 'QUICK_REPLY':
-          // Quick reply - payload opcional
-          components.push({
-            type: 'button',
-            sub_type: 'quick_reply',
-            index: index.toString(),
-            parameters: [{ type: 'payload', payload: btn.payload || `btn_${index}` }],
-          })
+          // Quick reply não precisa de parâmetros no envio de template
           break
 
         case 'FLOW':

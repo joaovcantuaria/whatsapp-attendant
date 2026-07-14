@@ -106,13 +106,13 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
     
     switch (type) {
       case 'image':
-        input.accept = 'image/*'
+        input.accept = 'image/jpeg,image/png,image/webp'
         break
       case 'document':
-        input.accept = '.pdf,.doc,.docx,.xls,.xlsx'
+        input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
         break
       case 'audio':
-        input.accept = 'audio/*'
+        input.accept = 'audio/ogg,audio/mp3,audio/mpeg,audio/amr,audio/aac'
         break
     }
 
@@ -120,12 +120,52 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) return
 
-      // Para simplificar, usamos URL.createObjectURL localmente
-      // Em produção, faria upload para Supabase Storage e usaria a URL pública
-      toast({
-        title: 'Upload',
-        description: 'Para enviar mídias, configure o Supabase Storage para upload de arquivos.',
-      })
+      // Validar tamanho (Meta permite até 16MB para documentos, 5MB para imagens)
+      const maxSize = type === 'document' ? 16 * 1024 * 1024 : 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        toast({
+          title: 'Arquivo muito grande',
+          description: `Tamanho máximo: ${type === 'document' ? '16MB' : '5MB'}`,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({ title: 'Enviando...', description: file.name })
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('conversationId', conversation.id)
+      formData.append('phone', phone)
+      formData.append('type', type)
+      if (text.trim()) {
+        formData.append('caption', text.trim())
+        setText('')
+      }
+
+      try {
+        const res = await fetch('/api/upload-media', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (res.ok) {
+          toast({ title: 'Mídia enviada!' })
+        } else {
+          const data = await res.json()
+          toast({
+            title: 'Erro ao enviar mídia',
+            description: data.error || 'Tente novamente',
+            variant: 'destructive',
+          })
+        }
+      } catch {
+        toast({
+          title: 'Erro de conexão',
+          description: 'Não foi possível enviar a mídia',
+          variant: 'destructive',
+        })
+      }
     }
 
     input.click()

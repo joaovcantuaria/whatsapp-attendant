@@ -201,6 +201,22 @@ async function processInboundMessage(
         address: message.location?.address,
       })
       break
+    case 'button':
+      // Resposta de botão quick_reply de um template
+      content = message.button?.text || message.button?.payload || null
+      break
+    case 'interactive':
+      // Resposta de lista ou botão interativo
+      if (message.interactive?.button_reply) {
+        content = message.interactive.button_reply.title
+      } else if (message.interactive?.list_reply) {
+        content = message.interactive.list_reply.title
+      }
+      break
+    case 'reaction':
+      // Reação a uma mensagem - salvar mas não atualizar last_message
+      content = message.reaction?.emoji || null
+      break
   }
 
   // Salvar mensagem
@@ -236,7 +252,7 @@ async function processInboundMessage(
   await markMessageAsReadWithToken(message.id, whatsappToken, phoneNumberId)
 
   // Processar com Chatbot e/ou Agente IA
-  if (content && message.type === 'text') {
+  if (content && ['text', 'button', 'interactive'].includes(message.type)) {
     try {
       // Verificar se tem chatbot ativo
       const { data: activeFlows } = await supabase
