@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, template_name, template_language, template_components, scheduled_at, contact_ids } = body
+    const { name, description, template_name, template_language, template_vars_mapping, scheduled_at, contact_ids } = body
 
     if (!name || !template_name || !contact_ids || contact_ids.length === 0) {
       return NextResponse.json({ error: 'Nome, template e contatos são obrigatórios' }, { status: 400 })
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         description: description || null,
         template_name,
         template_language: template_language || 'pt_BR',
-        template_components: template_components || null,
+        template_components: template_vars_mapping ? { vars_mapping: template_vars_mapping } : null,
         status: scheduled_at ? 'scheduled' : 'draft',
         scheduled_at: scheduled_at || null,
         total_contacts: contact_ids.length,
@@ -188,42 +188,10 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Nenhum contato encontrado' }, { status: 400 })
       }
 
-      // Montar components se não foram salvos na campanha
-      let templateComponents = campaign.template_components || null
-
-      // Se não tem components salvos, tentar buscar do template e montar
-      if (!templateComponents) {
-        const { data: template } = await serviceClient
-          .from('message_templates')
-          .select('header_type, header_content, body, buttons')
-          .eq('company_id', companyId)
-          .eq('name', campaign.template_name)
-          .single()
-
-        if (template) {
-          // Montar components básicos (body vars serão vazios para campanhas sem vars)
-          const components: any[] = []
-
-          // Header de mídia - precisa de URL válida
-          if (template.header_type && ['image', 'video', 'document'].includes(template.header_type.toLowerCase())) {
-            const headerContent = template.header_content
-            const isValidUrl = headerContent?.startsWith('http://') || headerContent?.startsWith('https://')
-            if (isValidUrl) {
-              const mediaType = template.header_type.toLowerCase()
-              components.push({
-                type: 'header',
-                parameters: [{
-                  type: mediaType,
-                  [mediaType]: { link: headerContent },
-                }],
-              })
-            }
-          }
-
-          if (components.length > 0) {
-            templateComponents = components
-          }
-        }
+      // Montar components - resolver por contato se tem vars_mapping
+      let varsMapping: Record<string, string> | null = null
+      if (campaign.template_components?.vars_mapping) {
+        varsMapping = campaign.template_components.vars_mapping
       }
 
       // Marcar como em execução
@@ -269,9 +237,39 @@ export async function PATCH(request: NextRequest) {
             language: { code: campaign.template_language || 'pt_BR' },
           }
 
-          // Apenas incluir components se existirem (templates sem variáveis/mídia não precisam)
-          if (templateComponents && Array.isArray(templateComponents) && templateComponents.length > 0) {
-            templatePayload.components = templateComponents
+          // Montar components com variáveis resolvidas por contato
+          if (varsMapping) {
+            const bodyParams: any[] = []
+            const sortedKeys = Object.keys(varsMapping)
+              .filter(k => !k.endsWith('_custom'))
+              .sort((a, b) => {
+                const numA = parseInt(a.replace(/[{}]/g, ''))
+                const numB = parseInt(b.replace(/[{}]/g, ''))
+                return numA - numB
+              })
+
+            for (const key of sortedKeys) {
+              const mapping = varsMapping[key]
+              let value = ''
+
+              if (mapping === '{{contact_name}}') {
+                value = contact.name || phone
+              } else if (mapping === '{{contact_phone}}') {
+                value = contact.phone
+              } else if (mapping === '__custom__') {
+                value = varsMapping[`${key}_custom`] || ''
+              } else {
+                value = mapping || ''
+              }
+
+              if (value) {
+                bodyParams.push({ type: 'text', text: value })
+              }
+            }
+
+            if (bodyParams.length > 0) {
+              templatePayload.components = [{ type: 'body', parameters: bodyParams }]
+            }
           }
 
           const messageBody = {

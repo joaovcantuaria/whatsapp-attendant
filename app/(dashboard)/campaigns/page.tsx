@@ -217,33 +217,13 @@ export default function CampaignsPage() {
       return
     }
 
-    // Validar URL de mídia se o template exige
-    const template = templates.find((t) => t.name === formData.template_name)
-    const needsMedia = template?.header_type &&
-      ['image', 'video', 'document'].includes(template.header_type.toLowerCase())
-
-    if (needsMedia && !headerMediaUrl) {
-      toast({
-        title: 'URL da mídia obrigatória',
-        description: `O template selecionado requer uma URL de ${template.header_type} no header.`,
-        variant: 'destructive',
-      })
-      return
-    }
-
-    // Montar template_components com mídia e variáveis
-    const { buildTemplateComponents } = await import('@/lib/template-utils')
-    const components = template
-      ? buildTemplateComponents(template as any, templateVars, needsMedia ? headerMediaUrl : undefined)
-      : []
-
     try {
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          template_components: components.length > 0 ? components : null,
+          template_vars_mapping: templateVars,
           scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : null,
           contact_ids: selectedContacts,
         }),
@@ -578,7 +558,7 @@ export default function CampaignsPage() {
                     <span className="text-[10px] font-medium text-green-700">Preview do template</span>
                     {selectedTemplate.header_type && ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
                       <Badge variant="outline" className="text-[9px]">
-                        Header: {selectedTemplate.header_type.toUpperCase()}
+                        Header: {selectedTemplate.header_type.toUpperCase()} (fixo)
                       </Badge>
                     )}
                   </div>
@@ -586,46 +566,44 @@ export default function CampaignsPage() {
                 </div>
               )}
 
-              {/* URL de Mídia do Header */}
-              {selectedTemplate?.header_type && ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
-                <div className="space-y-2 mt-2">
-                  <Label className="text-xs font-medium text-orange-700">
-                    ⚠️ URL da mídia do header ({selectedTemplate.header_type})
-                  </Label>
-                  <Input
-                    placeholder={`https://exemplo.com/${selectedTemplate.header_type === 'image' ? 'imagem.jpg' : selectedTemplate.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
-                    value={headerMediaUrl}
-                    onChange={(e) => setHeaderMediaUrl(e.target.value)}
-                  />
-                  <p className="text-[10px] text-slate-500">
-                    Obrigatório: URL pública acessível para {selectedTemplate.header_type === 'image' ? 'a imagem' : selectedTemplate.header_type === 'video' ? 'o vídeo' : 'o documento'} que será exibido no topo do template.
-                  </p>
-                </div>
-              )}
-
-              {/* Variáveis do Template */}
+              {/* Variáveis do Template - Mapeamento inteligente */}
               {selectedTemplate && (() => {
                 const bodyVars = selectedTemplate.body?.match(/\{\{(\d+)\}\}/g)
                 if (!bodyVars || bodyVars.length === 0) return null
                 const uniqueVars = Array.from(new Set(bodyVars)) as string[]
                 return (
-                  <div className="space-y-2 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <div className="space-y-3 mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg">
                     <p className="text-[10px] font-medium text-blue-700">
-                      📝 Este template tem variáveis que precisam ser preenchidas:
+                      📝 Mapeamento de variáveis (para cada contato):
                     </p>
                     {uniqueVars.map((v) => (
                       <div key={v} className="space-y-1">
-                        <Label className="text-[10px] text-slate-500">{v}</Label>
-                        <Input
-                          placeholder={`Valor para ${v} (ex: nome, data, etc.)`}
+                        <Label className="text-[10px] text-slate-600 font-medium">{v}</Label>
+                        <Select
                           value={templateVars[v] || ''}
-                          onChange={(e) => setTemplateVars((prev) => ({ ...prev, [v]: e.target.value }))}
-                          className="h-8 text-xs"
-                        />
+                          onValueChange={(val) => setTemplateVars((prev) => ({ ...prev, [v]: val }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Selecione o que usar..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="{{contact_name}}">Nome do contato</SelectItem>
+                            <SelectItem value="{{contact_phone}}">Telefone do contato</SelectItem>
+                            <SelectItem value="__custom__">Valor fixo (igual pra todos)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {templateVars[v] === '__custom__' && (
+                          <Input
+                            placeholder="Digite o valor fixo..."
+                            value={templateVars[`${v}_custom`] || ''}
+                            onChange={(e) => setTemplateVars((prev) => ({ ...prev, [`${v}_custom`]: e.target.value }))}
+                            className="h-8 text-xs mt-1"
+                          />
+                        )}
                       </div>
                     ))}
                     <p className="text-[10px] text-slate-400">
-                      Estes valores serão usados para todos os contatos da campanha.
+                      O sistema substituirá automaticamente com os dados de cada contato.
                     </p>
                   </div>
                 )
