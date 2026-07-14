@@ -38,6 +38,7 @@ export function ConversationList() {
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedContactId, setSelectedContactId] = useState('')
   const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({})
   const [newContactPhone, setNewContactPhone] = useState('')
   const [newContactName, setNewContactName] = useState('')
   const [newConvMessage, setNewConvMessage] = useState('')
@@ -151,6 +152,17 @@ export function ConversationList() {
       // Se mensagem livre falhou (janela fechada) e tem template, enviar template
       if (!sent && selectedTemplate) {
         const template = templates.find((t: any) => t.name === selectedTemplate)
+        
+        // Montar components com variáveis preenchidas
+        const components: any[] = []
+        const varValues = Object.values(templateVars).filter(v => v.trim())
+        if (varValues.length > 0) {
+          components.push({
+            type: 'body',
+            parameters: varValues.map((value) => ({ type: 'text', text: value })),
+          })
+        }
+
         const sendRes = await fetch('/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -160,6 +172,7 @@ export function ConversationList() {
             type: 'template',
             templateName: template?.name,
             templateLanguage: template?.language || 'pt_BR',
+            templateComponents: components.length > 0 ? components : undefined,
           }),
         })
 
@@ -395,7 +408,7 @@ export function ConversationList() {
                   Nenhum template aprovado. Crie um na aba Templates.
                 </p>
               ) : (
-                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <Select value={selectedTemplate} onValueChange={(v) => { setSelectedTemplate(v); setTemplateVars({}) }}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder="Selecione um template" />
                   </SelectTrigger>
@@ -408,6 +421,27 @@ export function ConversationList() {
                   </SelectContent>
                 </Select>
               )}
+              {/* Variáveis do template */}
+              {selectedTemplate && (() => {
+                const tpl = templates.find((t: any) => t.name === selectedTemplate)
+                const vars = tpl?.body?.match(/\{\{(\d+)\}\}/g) || []
+                const uniqueVars = Array.from(new Set(vars)) as string[]
+                if (uniqueVars.length === 0) return null
+                return (
+                  <div className="space-y-2 mt-2 p-2 bg-slate-50 rounded-lg">
+                    <p className="text-[10px] text-slate-500 font-medium">Preencha as variáveis:</p>
+                    {uniqueVars.map((v: string) => (
+                      <Input
+                        key={v}
+                        placeholder={`Valor para ${v}`}
+                        value={templateVars[v] || ''}
+                        onChange={(e) => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
+                        className="h-8 text-xs"
+                      />
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
 
             <Button
