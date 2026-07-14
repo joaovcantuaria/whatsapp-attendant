@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
     // Header de imagem (fixo - logo BoraGerir)
     // A Meta exige enviar o componente header mesmo para imagens estáticas
     if (templateInfo?.header_type?.toLowerCase() === 'image') {
-      // URL pública da logo - servida pelo Next.js em /logo.png
-      const headerImageUrl = 'https://chat.boragerir.com/logo.png'
+      // URL da imagem dos templates de agendamento (hospedada no Supabase Storage)
+      const headerImageUrl = 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
       components.push({
         type: 'header',
         parameters: [{ type: 'image', image: { link: headerImageUrl } }],

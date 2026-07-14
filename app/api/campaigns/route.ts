@@ -262,10 +262,10 @@ export async function PATCH(request: NextRequest) {
 
           // Header de mídia - OBRIGATÓRIO se template tem header dinâmico
           if (hasMediaHeader) {
-            // Usar URL salva na campanha, ou do template se for válida, ou fallback pra logo pública
+            // Usar URL salva na campanha, ou do template se for válida, ou fallback pra imagem do Supabase
             const headerUrl = savedHeaderMediaUrl ||
               (templateData?.header_content?.startsWith('http') ? templateData.header_content : null) ||
-              'https://chat.boragerir.com/logo.png'
+              'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
 
             const mediaType = templateData!.header_type!.toLowerCase()
             const mediaParam: any = { type: mediaType }
