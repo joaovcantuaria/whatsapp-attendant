@@ -625,7 +625,7 @@ export default function CampaignsPage() {
                       </div>
                     ))}
                     <p className="text-[10px] text-slate-400">
-                      Estes valores serão usados para todos os contatos. Use {{'{'}}{'{'}1{'}'}{'{'}'}{'}'} = nome se quiser personalizar.
+                      Estes valores serão usados para todos os contatos da campanha.
                     </p>
                   </div>
                 )
