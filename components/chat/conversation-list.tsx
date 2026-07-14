@@ -28,6 +28,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { Search, MessageCircle, Plus, Send } from 'lucide-react'
 import { ConversationStatus } from '@/types'
+import { buildTemplateComponents } from '@/lib/template-utils'
 
 export function ConversationList() {
   const { filter, setFilter, searchQuery, setSearchQuery, agentFilter } = useConversationStore()
@@ -130,31 +131,11 @@ export function ConversationList() {
 
       const conversation = await convRes.json()
 
-      // Tentar enviar mensagem livre primeiro (se janela aberta)
       let sent = false
-      if (newConvMessage) {
-        const textRes = await fetch('/api/send-message', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: conversation.id,
-            phone,
-            type: 'text',
-            content: newConvMessage,
-          }),
-        })
 
-        if (textRes.ok) {
-          sent = true
-        }
-      }
-
-      // Se mensagem livre falhou (janela fechada) e tem template, enviar template
-      if (!sent && selectedTemplate) {
+      // Se tem template selecionado, PRIORIZAR o template
+      if (selectedTemplate) {
         const template = templates.find((t: any) => t.name === selectedTemplate)
-        
-        // Usar utilitário para montar components completos
-        const { buildTemplateComponents } = await import('@/lib/template-utils')
         const components = buildTemplateComponents(template, templateVars)
 
         const sendRes = await fetch('/api/send-message', {
@@ -174,15 +155,30 @@ export function ConversationList() {
           sent = true
         } else {
           const err = await sendRes.json()
-          toast({ title: err.error || 'Erro ao enviar', variant: 'destructive' })
+          toast({ title: err.error || 'Erro ao enviar template', variant: 'destructive' })
           return
         }
       }
+      // Se não tem template, tentar mensagem livre
+      else if (newConvMessage) {
+        const textRes = await fetch('/api/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            phone,
+            type: 'text',
+            content: newConvMessage,
+          }),
+        })
 
-      // Se não tem template e mensagem livre falhou
-      if (!sent) {
-        toast({ title: 'Janela de 24h fechada. Selecione um template para iniciar.', variant: 'destructive' })
-        return
+        if (textRes.ok) {
+          sent = true
+        } else {
+          // Mensagem livre falhou (janela fechada), avisar que precisa de template
+          toast({ title: 'Janela de 24h fechada. Selecione um template para enviar.', variant: 'destructive' })
+          return
+        }
       }
 
       toast({ title: 'Conversa iniciada!' })
