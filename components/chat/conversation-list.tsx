@@ -426,19 +426,27 @@ export function ConversationList() {
                 const tpl = templates.find((t: any) => t.name === selectedTemplate)
                 const vars = tpl?.body?.match(/\{\{(\d+)\}\}/g) || []
                 const uniqueVars = Array.from(new Set(vars)) as string[]
-                if (uniqueVars.length === 0) return null
+                if (!tpl) return null
                 return (
-                  <div className="space-y-2 mt-2 p-2 bg-slate-50 rounded-lg">
-                    <p className="text-[10px] text-slate-500 font-medium">Preencha as variáveis:</p>
-                    {uniqueVars.map((v: string) => (
-                      <Input
-                        key={v}
-                        placeholder={`Valor para ${v}`}
-                        value={templateVars[v] || ''}
-                        onChange={(e) => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
-                        className="h-8 text-xs"
-                      />
-                    ))}
+                  <div className="space-y-2 mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-[10px] text-slate-500 font-medium uppercase">Preview do template:</p>
+                    <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed bg-white p-2 rounded border border-slate-100">
+                      {tpl.body}
+                    </p>
+                    {uniqueVars.length > 0 && (
+                      <>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase pt-2">Preencha as variáveis:</p>
+                        {uniqueVars.map((v: string) => (
+                          <Input
+                            key={v}
+                            placeholder={`Valor para ${v}`}
+                            value={templateVars[v] || ''}
+                            onChange={(e) => setTemplateVars(prev => ({ ...prev, [v]: e.target.value }))}
+                            className="h-8 text-xs"
+                          />
+                        ))}
+                      </>
+                    )}
                   </div>
                 )
               })()}
