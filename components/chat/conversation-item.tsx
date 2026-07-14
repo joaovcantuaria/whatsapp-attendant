@@ -4,7 +4,7 @@ import { Conversation } from '@/types'
 import { useConversationStore } from '@/store/conversation-store'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn, formatRelativeTime, getInitials, truncateText } from '@/lib/utils'
-import { Clock, CheckCheck, AlertCircle, User } from 'lucide-react'
+import { Clock, CheckCheck, AlertCircle, User, Instagram } from 'lucide-react'
 
 interface ConversationItemProps {
   conversation: Conversation
@@ -132,6 +132,14 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
             <span className="inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
               <Clock className="h-2 w-2" />
               Aguardando
+            </span>
+          )}
+
+          {/* Channel icon */}
+          {conversation.channel === 'instagram' && (
+            <span className="inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700">
+              <Instagram className="h-2.5 w-2.5 mr-0.5" />
+              IG
             </span>
           )}
 
