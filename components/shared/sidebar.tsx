@@ -36,6 +36,7 @@ import {
   BarChart3,
   Bell,
   Code2,
+  Upload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -57,6 +58,7 @@ const toolsNavItems = [
   { href: '/campaigns', icon: Megaphone, label: 'Campanhas' },
   { href: '/chatbots', icon: Bot, label: 'Robôs' },
   { href: '/templates', icon: FileText, label: 'Templates' },
+  { href: '/uploads', icon: Upload, label: 'Uploads' },
   { href: '/agents', icon: UserCog, label: 'Agentes' },
   { href: '/ai-agent', icon: Brain, label: 'Agente IA' },
   { href: '/team-chat', icon: MessagesSquare, label: 'Chat Interno' },
