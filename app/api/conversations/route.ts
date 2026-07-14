@@ -68,29 +68,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'contact_id obrigatório' }, { status: 400 })
     }
 
-    // Verificar se já existe conversa aberta com esse contato
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('contact_id', contact_id)
-      .in('status', ['pending', 'open'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (existing) {
-      return NextResponse.json(existing)
-    }
-
-    // Criar nova conversa - buscar company_id do agente
     const serviceClient = createServiceRoleClient()
+
+    // Buscar company_id do agente
     const { data: agentData } = await serviceClient
       .from('agents')
       .select('company_id')
       .eq('id', session.user.id)
       .single()
 
-    const { data, error } = await supabase
+    // Verificar se já existe conversa aberta com esse contato
+    const { data: existing } = await serviceClient
+      .from('conversations')
+      .select('*, contact:contacts(*), agent:agents(id, name, color)')
+      .eq('contact_id', contact_id)
+      .eq('company_id', agentData?.company_id)
+      .in('status', ['pending', 'open'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json(existing)
+    }
+
+    // Criar nova conversa
+    const { data, error } = await serviceClient
       .from('conversations')
       .insert({
         contact_id,
