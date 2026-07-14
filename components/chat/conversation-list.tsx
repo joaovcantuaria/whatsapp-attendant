@@ -152,11 +152,11 @@ export function ConversationList() {
           }),
         })
 
+        const sendData = await sendRes.json()
         if (sendRes.ok) {
           sent = true
         } else {
-          const err = await sendRes.json()
-          toast({ title: err.error || 'Erro ao enviar template', variant: 'destructive' })
+          toast({ title: sendData.error || 'Erro ao enviar template', variant: 'destructive' })
           return
         }
       }

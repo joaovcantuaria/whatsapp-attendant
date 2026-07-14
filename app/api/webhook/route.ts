@@ -5,6 +5,29 @@ import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 
+/**
+ * Normaliza números brasileiros para garantir o 9º dígito em celulares.
+ * Formato: 55 + DDD(2) + 9 + número(8) = 13 dígitos
+ * Se receber 12 dígitos (sem o 9), adiciona o 9.
+ */
+function normalizeBrazilianPhone(phone: string): string {
+  // Remove tudo que não é dígito
+  const digits = phone.replace(/\D/g, '')
+  
+  // Se começa com 55 (Brasil) e tem 12 dígitos (falta o 9)
+  if (digits.startsWith('55') && digits.length === 12) {
+    const ddd = digits.substring(2, 4)
+    const number = digits.substring(4)
+    // Celulares brasileiros: DDD + 9 + 8 dígitos
+    // Não adicionar 9 para DDDs especiais (fixos, etc.)
+    if (number.length === 8) {
+      return `55${ddd}9${number}`
+    }
+  }
+  
+  return digits
+}
+
 // GET - Validação do webhook pela Meta
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -66,7 +89,9 @@ async function processInboundMessage(
   contactInfo?: { profile?: { name?: string }; wa_id?: string },
   phoneNumberId?: string
 ) {
-  const phone = message.from
+  const rawPhone = message.from
+  // Normalizar números brasileiros: garantir 9º dígito em celulares
+  const phone = normalizeBrazilianPhone(rawPhone)
   const contactName = contactInfo?.profile?.name || phone
 
   // 0. Identificar a empresa pelo phone_number_id
