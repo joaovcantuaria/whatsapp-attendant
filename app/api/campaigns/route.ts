@@ -260,16 +260,14 @@ export async function PATCH(request: NextRequest) {
           // Montar components com variáveis resolvidas por contato
           const components: any[] = []
 
-          // Header de mídia - OBRIGATÓRIO se template tem header dinâmico
-          if (hasMediaHeader) {
-            // Usar URL salva na campanha, ou do template se for válida, ou fallback pra imagem do Supabase
-            const headerUrl = savedHeaderMediaUrl ||
-              (templateData?.header_content?.startsWith('http') ? templateData.header_content : null) ||
-              'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
-
+          // Header de mídia
+          // Para templates com imagem estática (sample fixo), NÃO enviar o componente header.
+          // A Meta usa automaticamente a imagem do sample cadastrado no template.
+          // Só enviar header se tiver URL explícita salva na campanha pelo usuário.
+          if (hasMediaHeader && savedHeaderMediaUrl) {
             const mediaType = templateData!.header_type!.toLowerCase()
             const mediaParam: any = { type: mediaType }
-            mediaParam[mediaType] = { link: headerUrl }
+            mediaParam[mediaType] = { link: savedHeaderMediaUrl }
             components.push({ type: 'header', parameters: [mediaParam] })
           }
 

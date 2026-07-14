@@ -56,13 +56,16 @@ export async function POST(request: NextRequest) {
     // Montar payload
     const components: any[] = []
 
-    // Header
-    if (templateData?.header_type?.toLowerCase() === 'image') {
+    // Header - NÃO enviar para imagens estáticas (sample fixo)
+    // A Meta usa a imagem do sample automaticamente
+    // Só enviar se body.send_header === true (para teste)
+    if (templateData?.header_type?.toLowerCase() === 'image' && body.send_header) {
+      const imageUrl = body.header_image_url || 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
       components.push({
         type: 'header',
         parameters: [{
           type: 'image',
-          image: { link: 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png' },
+          image: { link: imageUrl },
         }],
       })
     }
