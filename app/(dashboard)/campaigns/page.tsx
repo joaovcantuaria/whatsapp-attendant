@@ -224,6 +224,7 @@ export default function CampaignsPage() {
         body: JSON.stringify({
           ...formData,
           template_vars_mapping: templateVars,
+          header_media_url: headerMediaUrl || null,
           scheduled_at: formData.scheduled_at ? new Date(formData.scheduled_at).toISOString() : null,
           contact_ids: selectedContacts,
         }),
@@ -558,11 +559,31 @@ export default function CampaignsPage() {
                     <span className="text-[10px] font-medium text-green-700">Preview do template</span>
                     {selectedTemplate.header_type && ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
                       <Badge variant="outline" className="text-[9px]">
-                        Header: {selectedTemplate.header_type.toUpperCase()} (fixo)
+                        Header: {selectedTemplate.header_type.toUpperCase()}
                       </Badge>
                     )}
                   </div>
                   <p className="text-xs text-slate-700 whitespace-pre-wrap">{selectedTemplate.body}</p>
+                </div>
+              )}
+
+              {/* URL de Mídia do Header - só se não tem URL válida salva */}
+              {selectedTemplate?.header_type &&
+                ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) &&
+                !(selectedTemplate.header_content?.startsWith('http://') || selectedTemplate.header_content?.startsWith('https://')) && (
+                <div className="space-y-2 mt-2 p-3 bg-orange-50 border border-orange-100 rounded-lg">
+                  <Label className="text-[10px] font-medium text-orange-700">
+                    URL da {selectedTemplate.header_type === 'image' ? 'imagem' : selectedTemplate.header_type === 'video' ? 'vídeo' : 'documento'} do header
+                  </Label>
+                  <Input
+                    placeholder={`https://exemplo.com/${selectedTemplate.header_type === 'image' ? 'imagem.jpg' : selectedTemplate.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
+                    value={headerMediaUrl}
+                    onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Este template usa {selectedTemplate.header_type} no header. Informe uma URL pública.
+                  </p>
                 </div>
               )}
 

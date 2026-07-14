@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, template_name, template_language, template_vars_mapping, scheduled_at, contact_ids } = body
+    const { name, description, template_name, template_language, template_vars_mapping, header_media_url, scheduled_at, contact_ids } = body
 
     if (!name || !template_name || !contact_ids || contact_ids.length === 0) {
       return NextResponse.json({ error: 'Nome, template e contatos são obrigatórios' }, { status: 400 })
@@ -78,7 +78,10 @@ export async function POST(request: NextRequest) {
         description: description || null,
         template_name,
         template_language: template_language || 'pt_BR',
-        template_components: template_vars_mapping ? { vars_mapping: template_vars_mapping } : null,
+        template_components: {
+          vars_mapping: template_vars_mapping || null,
+          header_media_url: header_media_url || null,
+        },
         status: scheduled_at ? 'scheduled' : 'draft',
         scheduled_at: scheduled_at || null,
         total_contacts: contact_ids.length,
@@ -193,24 +196,23 @@ export async function PATCH(request: NextRequest) {
       if (campaign.template_components?.vars_mapping) {
         varsMapping = campaign.template_components.vars_mapping
       }
+      const savedHeaderMediaUrl: string | null = campaign.template_components?.header_media_url || null
 
       // Buscar template para verificar se tem variáveis obrigatórias
       const { data: templateData } = await serviceClient
         .from('message_templates')
-        .select('body')
+        .select('body, header_type, header_content')
         .eq('company_id', companyId)
         .eq('name', campaign.template_name)
         .single()
 
       const templateBodyVars = templateData?.body?.match(/\{\{\d+\}\}/g)
       const hasRequiredVars = templateBodyVars && templateBodyVars.length > 0
+      const hasMediaHeader = templateData?.header_type &&
+        ['image', 'video', 'document'].includes(templateData.header_type.toLowerCase())
 
-      // Se o template exige variáveis mas não temos mapeamento, erro
-      if (hasRequiredVars && !varsMapping) {
-        return NextResponse.json({
-          error: `Template "${campaign.template_name}" tem ${templateBodyVars.length} variável(is) que precisam ser mapeadas. Recrie a campanha mapeando as variáveis.`,
-        }, { status: 400 })
-      }
+      // Se o template exige variáveis mas não temos mapeamento, usar fallback automático
+      // (nome do contato para {{1}}, traço para o resto)
 
       // Marcar como em execução
       await serviceClient
@@ -256,14 +258,30 @@ export async function PATCH(request: NextRequest) {
           }
 
           // Montar components com variáveis resolvidas por contato
-          if (varsMapping && hasRequiredVars) {
+          const components: any[] = []
+
+          // Header de mídia - OBRIGATÓRIO se template tem header dinâmico
+          if (hasMediaHeader) {
+            // Usar URL salva na campanha, ou do template se for válida
+            const headerUrl = savedHeaderMediaUrl ||
+              (templateData?.header_content?.startsWith('http') ? templateData.header_content : null)
+
+            if (headerUrl) {
+              const mediaType = templateData!.header_type!.toLowerCase()
+              const mediaParam: any = { type: mediaType }
+              mediaParam[mediaType] = { link: headerUrl }
+              components.push({ type: 'header', parameters: [mediaParam] })
+            }
+          }
+
+          // Body com variáveis resolvidas por contato
+          if (hasRequiredVars) {
             const bodyParams: any[] = []
-            // Garantir que temos exatamente o número de parâmetros que o template espera
             const expectedCount = templateBodyVars!.length
 
             for (let i = 1; i <= expectedCount; i++) {
               const key = `{{${i}}}`
-              const mapping = varsMapping[key] || ''
+              const mapping = varsMapping ? varsMapping[key] || '' : ''
               let value = ''
 
               if (mapping === '{{contact_name}}') {
@@ -271,18 +289,22 @@ export async function PATCH(request: NextRequest) {
               } else if (mapping === '{{contact_phone}}') {
                 value = contact.phone
               } else if (mapping === '__custom__') {
-                value = varsMapping[`${key}_custom`] || '-'
+                value = (varsMapping ? varsMapping[`${key}_custom`] : '') || '-'
               } else if (mapping) {
                 value = mapping
               } else {
-                // Fallback: usar nome para {{1}}, traço para o resto
+                // Fallback automático: nome para {{1}}, traço para o resto
                 value = i === 1 ? (contact.name || phone) : '-'
               }
 
               bodyParams.push({ type: 'text', text: value })
             }
 
-            templatePayload.components = [{ type: 'body', parameters: bodyParams }]
+            components.push({ type: 'body', parameters: bodyParams })
+          }
+
+          if (components.length > 0) {
+            templatePayload.components = components
           }
 
           const messageBody = {
