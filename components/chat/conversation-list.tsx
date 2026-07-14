@@ -303,7 +303,7 @@ export function ConversationList() {
 
       {/* New Conversation Dialog */}
       <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Conversa</DialogTitle>
             <DialogDescription>Inicie uma conversa enviando um template aprovado</DialogDescription>
