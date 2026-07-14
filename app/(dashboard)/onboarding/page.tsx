@@ -103,8 +103,8 @@ export default function OnboardingPage() {
     router.push('/conversations')
   }
 
-  const webhookUrl = company?.webhook_url || `${process.env.NEXT_PUBLIC_APP_URL || 'https://seuapp.vercel.app'}/api/webhook/${company?.slug || 'sua-empresa'}`
-  const verifyToken = `${company?.slug || 'sua-empresa'}_${process.env.NEXT_PUBLIC_WEBHOOK_SECRET || 'SEU_WEBHOOK_SECRET'}`
+  const webhookUrl = company?.webhook_url || `https://chat.boragerir.com/api/webhook/${company?.slug || 'sua-empresa'}`
+  const verifyToken = (company as any)?.webhook_verify_token || `${company?.slug || ''}_webhook`
 
   return (
     <div className="min-h-screen p-6 max-w-3xl mx-auto">
