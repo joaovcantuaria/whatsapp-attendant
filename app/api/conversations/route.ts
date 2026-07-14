@@ -82,7 +82,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(existing)
     }
 
-    // Criar nova conversa
+    // Criar nova conversa - buscar company_id do agente
+    const serviceClient = createServiceRoleClient()
+    const { data: agentData } = await serviceClient
+      .from('agents')
+      .select('company_id')
+      .eq('id', session.user.id)
+      .single()
+
     const { data, error } = await supabase
       .from('conversations')
       .insert({
@@ -90,6 +97,7 @@ export async function POST(request: NextRequest) {
         status: 'open',
         channel: channel || 'whatsapp',
         agent_id: session.user.id,
+        company_id: agentData?.company_id,
       })
       .select('*, contact:contacts(*), agent:agents(*)')
       .single()

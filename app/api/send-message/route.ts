@@ -78,10 +78,14 @@ export async function POST(request: NextRequest) {
         if (!templateName || !templateLanguage) {
           return NextResponse.json({ error: 'Template name e language obrigatórios' }, { status: 400 })
         }
+        const templatePayload: any = { name: templateName, language: { code: templateLanguage } }
+        if (templateComponents && Array.isArray(templateComponents) && templateComponents.length > 0) {
+          templatePayload.components = templateComponents
+        }
         messageBody = {
           ...messageBody,
           type: 'template',
-          template: { name: templateName, language: { code: templateLanguage }, components: templateComponents },
+          template: templatePayload,
         }
         break
       default:
