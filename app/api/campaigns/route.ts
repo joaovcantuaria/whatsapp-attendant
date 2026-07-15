@@ -260,18 +260,8 @@ export async function PATCH(request: NextRequest) {
           // Montar components com variáveis resolvidas por contato
           const components: any[] = []
 
-          // Header de mídia - OBRIGATÓRIO para templates com imagem
-          if (hasMediaHeader) {
-            const mediaType = templateData!.header_type!.toLowerCase()
-            // Prioridade: URL salva na campanha > URL válida no template > URL padrão dos templates de agendamento
-            const headerUrl = savedHeaderMediaUrl ||
-              (templateData?.header_content?.startsWith('http') ? templateData.header_content : null) ||
-              'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
-
-            const mediaParam: any = { type: mediaType }
-            mediaParam[mediaType] = { link: headerUrl }
-            components.push({ type: 'header', parameters: [mediaParam] })
-          }
+          // NÃO enviar header de imagem - a Meta usa o sample automaticamente
+          // (confirmado: envio por conversa funciona sem header)
 
           // Body com variáveis resolvidas por contato
           if (hasRequiredVars) {
@@ -314,6 +304,11 @@ export async function PATCH(request: NextRequest) {
             template: templatePayload,
           }
 
+          // Log do primeiro envio para debug
+          if (sentCount === 0 && failedCount === 0) {
+            console.log('[Campaign Debug] Payload:', JSON.stringify(messageBody, null, 2))
+          }
+
           const metaResponse = await fetch(
             `${WHATSAPP_API_URL}/${company.whatsapp_phone_number_id}/messages`,
             { method: 'POST', headers, body: JSON.stringify(messageBody) }
@@ -331,6 +326,8 @@ export async function PATCH(request: NextRequest) {
               whatsapp_message_id: waMessageId,
               status: 'sent',
               sent_at: new Date().toISOString(),
+              // Salvar payload para debug
+              error_message: sentCount === 0 ? `[DEBUG] payload: ${JSON.stringify(templatePayload)}` : null,
             })
 
             sentCount++
