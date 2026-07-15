@@ -14,26 +14,28 @@ export async function GET(request: NextRequest) {
 
     const status = request.nextUrl.searchParams.get('status')
 
-    // Get user's company_id
+    // Get user's company_id via company_members (relação correta)
     const serviceClient = createServiceRoleClient()
-    const { data: agentData } = await serviceClient
-      .from('agents')
+    const { data: memberData } = await serviceClient
+      .from('company_members')
       .select('company_id')
-      .eq('id', session.user.id)
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
       .single()
 
-    const companyId = agentData?.company_id
+    const companyId = memberData?.company_id
+
+    if (!companyId) {
+      return NextResponse.json([]) // Sem empresa = sem conversas
+    }
 
     // Use service role to bypass RLS on agent join (get agent.color)
     let query = serviceClient
       .from('conversations')
       .select('*, contact:contacts(*), agent:agents(id, name, color, is_online)')
+      .eq('company_id', companyId)
       .order('last_message_at', { ascending: false, nullsFirst: false })
       .limit(50)
-
-    if (companyId) {
-      query = query.eq('company_id', companyId)
-    }
 
     if (status && status !== 'all') {
       query = query.eq('status', status)
@@ -70,19 +72,24 @@ export async function POST(request: NextRequest) {
 
     const serviceClient = createServiceRoleClient()
 
-    // Buscar company_id do agente
-    const { data: agentData } = await serviceClient
-      .from('agents')
+    // Buscar company_id via company_members
+    const { data: memberData } = await serviceClient
+      .from('company_members')
       .select('company_id')
-      .eq('id', session.user.id)
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
       .single()
+
+    if (!memberData?.company_id) {
+      return NextResponse.json({ error: 'Sem empresa vinculada' }, { status: 400 })
+    }
 
     // Verificar se já existe conversa aberta com esse contato
     const { data: existing } = await serviceClient
       .from('conversations')
       .select('*, contact:contacts(*), agent:agents(id, name, color)')
       .eq('contact_id', contact_id)
-      .eq('company_id', agentData?.company_id)
+      .eq('company_id', memberData.company_id)
       .in('status', ['pending', 'open'])
       .order('created_at', { ascending: false })
       .limit(1)
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
         status: 'open',
         channel: channel || 'whatsapp',
         agent_id: session.user.id,
-        company_id: agentData?.company_id,
+        company_id: memberData.company_id,
       })
       .select('*, contact:contacts(*), agent:agents(*)')
       .single()
