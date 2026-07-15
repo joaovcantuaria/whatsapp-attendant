@@ -191,28 +191,26 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Nenhum contato encontrado' }, { status: 400 })
       }
 
-      // Montar components - resolver por contato se tem vars_mapping
+      // Montar components - usar buildTemplateComponents (mesma função que funciona na conversa)
       let varsMapping: Record<string, string> | null = null
       if (campaign.template_components?.vars_mapping) {
         varsMapping = campaign.template_components.vars_mapping
       }
       const savedHeaderMediaUrl: string | null = campaign.template_components?.header_media_url || null
 
-      // Buscar template para verificar se tem variáveis obrigatórias
+      // Buscar template COMPLETO para usar com buildTemplateComponents
       const { data: templateData } = await serviceClient
         .from('message_templates')
-        .select('body, header_type, header_content')
+        .select('name, language, body, header_type, header_content, buttons, footer')
         .eq('company_id', companyId)
         .eq('name', campaign.template_name)
         .single()
 
       const templateBodyVars = templateData?.body?.match(/\{\{\d+\}\}/g)
       const hasRequiredVars = templateBodyVars && templateBodyVars.length > 0
-      const hasMediaHeader = templateData?.header_type &&
-        ['image', 'video', 'document'].includes(templateData.header_type.toLowerCase())
 
-      // Se o template exige variáveis mas não temos mapeamento, usar fallback automático
-      // (nome do contato para {{1}}, traço para o resto)
+      // Import buildTemplateComponents
+      const { buildTemplateComponents } = await import('@/lib/template-utils')
 
       // Marcar como em execução
       await serviceClient
@@ -251,45 +249,47 @@ export async function PATCH(request: NextRequest) {
             continue
           }
 
+          // Resolver variáveis para este contato
+          const resolvedVars: Record<string, string> = {}
+          if (hasRequiredVars) {
+            const expectedCount = templateBodyVars!.length
+            for (let i = 1; i <= expectedCount; i++) {
+              const key = `{{${i}}}`
+              const mapping = varsMapping ? varsMapping[key] || '' : ''
+
+              if (mapping === '{{contact_name}}') {
+                resolvedVars[key] = contact.name || phone
+              } else if (mapping === '{{contact_phone}}') {
+                resolvedVars[key] = contact.phone
+              } else if (mapping === '__custom__') {
+                resolvedVars[key] = (varsMapping ? varsMapping[`${key}_custom`] : '') || '-'
+              } else if (mapping) {
+                resolvedVars[key] = mapping
+              } else {
+                resolvedVars[key] = i === 1 ? (contact.name || phone) : '-'
+              }
+            }
+          }
+
+          // Usar buildTemplateComponents (mesma função que funciona na conversa)
+          const components = buildTemplateComponents(
+            {
+              name: templateData?.name || campaign.template_name,
+              language: templateData?.language || campaign.template_language || 'pt_BR',
+              header_type: templateData?.header_type || null,
+              header_content: templateData?.header_content || null,
+              body: templateData?.body || '',
+              footer: templateData?.footer || null,
+              buttons: templateData?.buttons || null,
+            },
+            resolvedVars,
+            savedHeaderMediaUrl || undefined
+          )
+
           // Montar payload do template
           const templatePayload: any = {
             name: campaign.template_name,
             language: { code: campaign.template_language || 'pt_BR' },
-          }
-
-          // Montar components com variáveis resolvidas por contato
-          const components: any[] = []
-
-          // NÃO enviar header de imagem - a Meta usa o sample automaticamente
-          // (confirmado: envio por conversa funciona sem header)
-
-          // Body com variáveis resolvidas por contato
-          if (hasRequiredVars) {
-            const bodyParams: any[] = []
-            const expectedCount = templateBodyVars!.length
-
-            for (let i = 1; i <= expectedCount; i++) {
-              const key = `{{${i}}}`
-              const mapping = varsMapping ? varsMapping[key] || '' : ''
-              let value = ''
-
-              if (mapping === '{{contact_name}}') {
-                value = contact.name || phone
-              } else if (mapping === '{{contact_phone}}') {
-                value = contact.phone
-              } else if (mapping === '__custom__') {
-                value = (varsMapping ? varsMapping[`${key}_custom`] : '') || '-'
-              } else if (mapping) {
-                value = mapping
-              } else {
-                // Fallback automático: nome para {{1}}, traço para o resto
-                value = i === 1 ? (contact.name || phone) : '-'
-              }
-
-              bodyParams.push({ type: 'text', text: value })
-            }
-
-            components.push({ type: 'body', parameters: bodyParams })
           }
 
           if (components.length > 0) {
