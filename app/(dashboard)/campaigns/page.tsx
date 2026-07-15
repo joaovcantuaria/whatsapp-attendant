@@ -217,6 +217,22 @@ export default function CampaignsPage() {
       return
     }
 
+    // Validar URL de mídia se o template precisa
+    const template = templates.find((t) => t.name === formData.template_name)
+    const needsMediaUrl = template?.header_type &&
+      ['image', 'video', 'document'].includes(template.header_type.toLowerCase()) &&
+      !(template.header_content?.startsWith('http://') || template.header_content?.startsWith('https://'))
+
+    if (needsMediaUrl && !headerMediaUrl) {
+      toast({
+        title: 'URL da imagem obrigatória',
+        description: 'Este template tem imagem no header. Suba a imagem na aba Uploads e cole a URL aqui.',
+        variant: 'destructive',
+        duration: 6000,
+      })
+      return
+    }
+
     try {
       const res = await fetch('/api/campaigns', {
         method: 'POST',
@@ -567,22 +583,22 @@ export default function CampaignsPage() {
                 </div>
               )}
 
-              {/* URL de Mídia do Header - só se não tem URL válida salva */}
+              {/* URL de Mídia do Header - OBRIGATÓRIO se template tem mídia */}
               {selectedTemplate?.header_type &&
                 ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) &&
                 !(selectedTemplate.header_content?.startsWith('http://') || selectedTemplate.header_content?.startsWith('https://')) && (
-                <div className="space-y-2 mt-2 p-3 bg-orange-50 border border-orange-100 rounded-lg">
-                  <Label className="text-[10px] font-medium text-orange-700">
-                    URL da {selectedTemplate.header_type === 'image' ? 'imagem' : selectedTemplate.header_type === 'video' ? 'vídeo' : 'documento'} do header
+                <div className="space-y-2 mt-2 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
+                  <Label className="text-xs font-bold text-red-700">
+                    ⚠️ URL da {selectedTemplate.header_type === 'image' ? 'imagem' : selectedTemplate.header_type === 'video' ? 'vídeo' : 'documento'} (OBRIGATÓRIO)
                   </Label>
                   <Input
-                    placeholder={`https://exemplo.com/${selectedTemplate.header_type === 'image' ? 'imagem.jpg' : selectedTemplate.header_type === 'video' ? 'video.mp4' : 'arquivo.pdf'}`}
+                    placeholder={`Cole aqui a URL da imagem (copie da aba Uploads)`}
                     value={headerMediaUrl}
                     onChange={(e) => setHeaderMediaUrl(e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-9 text-xs border-red-300 focus:border-red-500"
                   />
-                  <p className="text-[10px] text-slate-500">
-                    Este template usa {selectedTemplate.header_type} no header. Informe uma URL pública.
+                  <p className="text-[10px] text-red-600 font-medium">
+                    Vá na aba Uploads, suba a imagem e copie a URL gerada. Sem isso a mensagem não será entregue.
                   </p>
                 </div>
               )}
