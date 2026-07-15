@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rotas públicas que não requerem autenticação
-const publicRoutes = ['/login', '/register', '/pricing', '/invite', '/privacidade']
+const publicRoutes = ['/login', '/register', '/pricing', '/invite', '/privacidade', '/set-password', '/auth/callback']
 const publicPrefixes = ['/api/webhook', '/api/external']
 
 export async function middleware(request: NextRequest) {

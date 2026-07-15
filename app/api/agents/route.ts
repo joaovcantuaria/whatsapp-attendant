@@ -95,8 +95,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, name, role = 'agent' } = body
 
-    // Criar usuário via invite
-    const { data: authUser, error: authError } = await serviceClient.auth.admin.inviteUserByEmail(email)
+    // Criar usuário via invite com redirect para definir senha
+    const { data: authUser, error: authError } = await serviceClient.auth.admin.inviteUserByEmail(email, {
+      redirectTo: 'https://chat.boragerir.com/register',
+      data: { name, invited: true },
+    })
 
     if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 500 })
