@@ -153,13 +153,15 @@ export async function PATCH(request: NextRequest) {
 
     const serviceClient = createServiceRoleClient()
 
-    const { data: currentAgent } = await serviceClient
-      .from('agents')
+    // Verificar permissão via company_members (owner ou admin podem editar)
+    const { data: currentMember } = await serviceClient
+      .from('company_members')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('user_id', session.user.id)
+      .eq('is_active', true)
       .single()
 
-    if (currentAgent?.role !== 'admin') {
+    if (!currentMember || !['owner', 'admin'].includes(currentMember.role)) {
       return NextResponse.json({ error: 'Apenas admins podem editar agentes' }, { status: 403 })
     }
 
