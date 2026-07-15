@@ -272,6 +272,20 @@ export async function PATCH(request: NextRequest) {
           }
 
           // Usar buildTemplateComponents (mesma função que funciona na conversa)
+          // Se o template tem header de mídia e não tem URL fornecida, usar fallback
+          const DEFAULT_HEADER_IMAGE = 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
+          
+          let headerMediaUrl = savedHeaderMediaUrl || undefined
+          if (!headerMediaUrl && templateData?.header_type &&
+              ['image', 'video', 'document'].includes(templateData.header_type.toLowerCase())) {
+            // Tentar usar header_content se for URL válida, senão usar fallback
+            if (templateData.header_content?.startsWith('http')) {
+              headerMediaUrl = templateData.header_content
+            } else {
+              headerMediaUrl = DEFAULT_HEADER_IMAGE
+            }
+          }
+
           const components = buildTemplateComponents(
             {
               name: templateData?.name || campaign.template_name,
@@ -283,7 +297,7 @@ export async function PATCH(request: NextRequest) {
               buttons: templateData?.buttons || null,
             },
             resolvedVars,
-            savedHeaderMediaUrl || undefined
+            headerMediaUrl
           )
 
           // Montar payload do template
