@@ -220,8 +220,7 @@ export default function CampaignsPage() {
     // Validar URL de mídia se o template precisa
     const template = templates.find((t) => t.name === formData.template_name)
     const needsMediaUrl = template?.header_type &&
-      ['image', 'video', 'document'].includes(template.header_type.toLowerCase()) &&
-      !(template.header_content?.startsWith('http://') || template.header_content?.startsWith('https://'))
+      ['image', 'video', 'document'].includes(template.header_type.toLowerCase())
 
     if (needsMediaUrl && !headerMediaUrl) {
       toast({
@@ -585,8 +584,7 @@ export default function CampaignsPage() {
 
               {/* URL de Mídia do Header - OBRIGATÓRIO se template tem mídia */}
               {selectedTemplate?.header_type &&
-                ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) &&
-                !(selectedTemplate.header_content?.startsWith('http://') || selectedTemplate.header_content?.startsWith('https://')) && (
+                ['image', 'video', 'document'].includes(selectedTemplate.header_type.toLowerCase()) && (
                 <div className="space-y-2 mt-2 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
                   <Label className="text-xs font-bold text-red-700">
                     ⚠️ URL da {selectedTemplate.header_type === 'image' ? 'imagem' : selectedTemplate.header_type === 'video' ? 'vídeo' : 'documento'} (OBRIGATÓRIO)
