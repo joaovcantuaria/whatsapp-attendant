@@ -30,7 +30,7 @@ export default function WhatsAppSettingsPage() {
   const [awayEnabled, setAwayEnabled] = useState(company?.away_message_enabled || false)
   const [awayMessage, setAwayMessage] = useState(company?.away_message || '')
 
-  const webhookUrl = company?.webhook_url || `https://chat.boragerir.com/api/webhook/${company?.slug || ''}`
+  const webhookUrl = `https://chat.boragerir.com/api/webhook/${company?.slug || ''}`
   const verifyToken = (company as any)?.webhook_verify_token || 'Token não gerado — rode a migration'
 
   const handleTestConnection = async () => {

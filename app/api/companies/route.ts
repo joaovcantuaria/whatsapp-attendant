@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Criar empresa
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const appUrl = 'https://chat.boragerir.com'
     const webhookUrl = `${appUrl}/api/webhook/${slug}`
 
     // Gerar token de verificação do webhook
