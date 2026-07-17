@@ -105,12 +105,12 @@ router.post('/instance/restart', async (req, res) => {
 // Enviar mensagem de texto
 router.post('/message/send-text', async (req, res) => {
   try {
-    const { instanceId, phone, message } = req.body
+    const { instanceId, phone, message, skipSave } = req.body
     if (!instanceId || !phone || !message) {
       return res.status(400).json({ error: 'instanceId, phone e message obrigatórios' })
     }
 
-    const sent = await sessions.sendText(instanceId, phone, message)
+    const sent = await sessions.sendText(instanceId, phone, message, skipSave || false)
     if (sent) {
       res.json({ success: true })
     } else {

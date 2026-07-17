@@ -90,6 +90,7 @@ export class SessionManager {
       browser: ['BoraGerir', 'Chrome', '120.0.0'],
       connectTimeoutMs: 60000,
       qrTimeout: 60000,
+      shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || false,
     })
 
     instance.socket = socket
@@ -153,8 +154,49 @@ export class SessionManager {
       for (const msg of msgs) {
         if (msg.key.fromMe) continue
 
-        const phone = msg.key.remoteJid?.replace('@s.whatsapp.net', '') || ''
-        if (!phone || phone.includes('@g.us')) continue // Ignorar grupos
+        const remoteJid = msg.key.remoteJid || ''
+        
+        // Ignorar grupos e newsletters
+        if (remoteJid.includes('@g.us') || remoteJid.includes('@newsletter')) continue
+
+        // Extrair número de telefone do JID
+        // Formato normal: 5511999999999@s.whatsapp.net
+        // Formato LID (multi-device): 197801061421087@lid  
+        let phone = ''
+        if (remoteJid.endsWith('@s.whatsapp.net')) {
+          phone = remoteJid.replace('@s.whatsapp.net', '')
+        } else if (remoteJid.endsWith('@lid') || remoteJid.includes(':')) {
+          // LID format - tentar mapear para o número real usando signalRepository
+          console.log(`[${instanceId}] ⚠️ Mensagem com LID JID: ${remoteJid}`)
+          
+          try {
+            // Usar o mapeamento LID → PN (Phone Number) do Baileys
+            const phoneJid = await (socket as any).signalRepository?.lidMapping?.getPNForLID(remoteJid)
+            if (phoneJid) {
+              // phoneJid vem como "5511999999999:0@s.whatsapp.net" ou "5511999999999@s.whatsapp.net"
+              phone = phoneJid.split(':')[0].replace('@s.whatsapp.net', '')
+              console.log(`[${instanceId}] ✅ LID mapeado para número real: ${phone}`)
+            }
+          } catch (lidError) {
+            console.log(`[${instanceId}] ⚠️ Erro ao mapear LID: ${lidError}`)
+          }
+
+          // Fallback: tentar extrair do formato numero:device@s.whatsapp.net
+          if (!phone) {
+            const colonSplit = remoteJid.split(':')
+            if (colonSplit[0] && /^\d{10,15}$/.test(colonSplit[0])) {
+              phone = colonSplit[0]
+            } else {
+              // Último recurso: usar o LID como identificador (não ideal mas mantém o contato rastreável)
+              phone = remoteJid.replace('@lid', '').replace(/@.*$/, '')
+              console.log(`[${instanceId}] ⚠️ Usando LID como phone (sem mapeamento): ${phone}`)
+            }
+          }
+        } else {
+          phone = remoteJid.replace(/@.*$/, '')
+        }
+
+        if (!phone) continue
 
         const content =
           msg.message?.conversation ||
@@ -211,7 +253,7 @@ export class SessionManager {
     }
   }
 
-  async sendText(instanceId: string, phone: string, message: string): Promise<boolean> {
+  async sendText(instanceId: string, phone: string, message: string, skipSave: boolean = false): Promise<boolean> {
     const instance = this.instances.get(instanceId)
     if (!instance?.socket || instance.status !== 'connected') return false
 
@@ -219,19 +261,21 @@ export class SessionManager {
       const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`
       await instance.socket.sendMessage(jid, { text: message })
 
-      // Salvar mensagem enviada no Supabase
-      try {
-        const { saveMessageToSupabase } = await import('./supabase')
-        await saveMessageToSupabase({
-          instanceId,
-          phone: phone.replace('@s.whatsapp.net', ''),
-          content: message,
-          pushName: '',
-          timestamp: new Date().toISOString(),
-          fromMe: true,
-          messageId: `sent_${Date.now()}`,
-        })
-      } catch {}
+      // Salvar mensagem enviada no Supabase (pular se já será salvo pelo caller)
+      if (!skipSave) {
+        try {
+          const { saveMessageToSupabase } = await import('./supabase')
+          await saveMessageToSupabase({
+            instanceId,
+            phone: phone.replace('@s.whatsapp.net', ''),
+            content: message,
+            pushName: '',
+            timestamp: new Date().toISOString(),
+            fromMe: true,
+            messageId: `sent_${Date.now()}`,
+          })
+        } catch {}
+      }
 
       return true
     } catch (error) {
