@@ -125,13 +125,15 @@ function ActionNode({ data, selected }: NodeProps) {
 
 function StartNode({ data, selected }: NodeProps) {
   return (
-    <div className={`bg-white rounded-xl shadow-md border-2 min-w-[180px] ${selected ? 'border-[#F26522]' : 'border-green-400'}`}>
+    <div className={`bg-white rounded-xl shadow-md border-2 min-w-[220px] ${selected ? 'border-[#F26522]' : 'border-green-400'}`}>
       <div className="px-3 py-2 bg-green-100 rounded-t-xl border-b flex items-center gap-2">
         <Play className="h-3.5 w-3.5 text-green-700" />
         <span className="text-[11px] font-semibold text-green-700">Início</span>
       </div>
       <div className="p-3">
-        <p className="text-[10px] text-slate-500">Quando ativado por palavra-chave</p>
+        <p className="text-xs text-slate-700 whitespace-pre-wrap line-clamp-4">
+          {data.message || 'Duplo-clique para editar a mensagem inicial...'}
+        </p>
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-green-500 !w-3 !h-3" />
     </div>
@@ -199,7 +201,6 @@ function FlowBuilderInner({ flowId, flowName, initialNodes, initialEdges, onSave
   }, [reactFlowInstance, setNodes])
 
   const onNodeDoubleClick = useCallback((_: any, node: Node) => {
-    if (node.type === 'start') return
     setEditingNode(node)
     setEditForm({ ...node.data })
     setShowEditDialog(true)
@@ -291,21 +292,21 @@ function FlowBuilderInner({ flowId, flowName, initialNodes, initialEdges, onSave
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm">
-              Editar {editingNode?.type === 'message' ? 'Mensagem' : editingNode?.type === 'condition' ? 'Condição' : 'Ação'}
+              Editar {editingNode?.type === 'start' ? 'Início' : editingNode?.type === 'message' ? 'Mensagem' : editingNode?.type === 'condition' ? 'Condição' : 'Ação'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Message field (for message and condition nodes) */}
-            {(editingNode?.type === 'message' || editingNode?.type === 'condition') && (
+            {/* Message field (for message, condition and start nodes) */}
+            {(editingNode?.type === 'message' || editingNode?.type === 'condition' || editingNode?.type === 'start') && (
               <div className="space-y-2">
                 <Label className="text-xs">
-                  {editingNode?.type === 'condition' ? 'Pergunta para o cliente' : 'Mensagem que o robô envia'}
+                  {editingNode?.type === 'start' ? 'Mensagem inicial (enviada ao ativar o robô)' : editingNode?.type === 'condition' ? 'Pergunta para o cliente' : 'Mensagem que o robô envia'}
                 </Label>
                 <Textarea
                   rows={4}
                   value={editForm.message || ''}
                   onChange={(e) => setEditForm({ ...editForm, message: e.target.value })}
-                  placeholder="Digite a mensagem..."
+                  placeholder={editingNode?.type === 'start' ? 'Ex: Olá! 👋 Bem-vindo ao nosso atendimento. Como posso ajudar?' : 'Digite a mensagem...'}
                   className="text-sm"
                 />
               </div>
