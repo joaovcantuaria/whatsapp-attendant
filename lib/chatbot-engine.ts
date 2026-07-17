@@ -235,19 +235,113 @@ async function executeAction(
         .update({ status: 'closed', updated_at: new Date().toISOString() })
         .eq('id', conversationId)
       break
+
+    case 'collect_data':
+      // Salvar no action_data que estamos coletando - o próximo input será salvo no campo indicado
+      // Isso é tratado no continueFlow quando detecta o estado de coleta
+      break
+
+    case 'webhook':
+      if (node.action_data?.webhook_url) {
+        try {
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('phone', contactPhone)
+            .single()
+
+          await fetch(node.action_data.webhook_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'chatbot.action',
+              company_id: companyId,
+              conversation_id: conversationId,
+              contact: contact || { phone: contactPhone },
+              timestamp: new Date().toISOString(),
+            }),
+          })
+        } catch (e) {
+          console.error('Webhook action error:', e)
+        }
+      }
+      break
+
+    case 'send_media':
+      // Enviar mídia via API ou Baileys
+      if (node.action_data?.media_url) {
+        try {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('whatsapp_token, whatsapp_phone_number_id')
+            .eq('id', companyId)
+            .single()
+
+          if (company?.whatsapp_token && company?.whatsapp_phone_number_id) {
+            // Via Meta API
+            const mediaType = node.action_data.media_type || 'image'
+            const body: any = {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: contactPhone,
+              type: mediaType,
+            }
+            body[mediaType] = { link: node.action_data.media_url }
+            await fetch(`https://graph.facebook.com/v22.0/${company.whatsapp_phone_number_id}/messages`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${company.whatsapp_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            })
+          } else {
+            // Via Baileys
+            const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
+            const API_KEY = 'boragerir-whatsapp-server-2026'
+            await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
+              method: 'POST',
+              headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                instanceId: companyId,
+                phone: contactPhone,
+                mediaUrl: node.action_data.media_url,
+                type: node.action_data.media_type || 'image',
+              }),
+            })
+          }
+        } catch (e) {
+          console.error('Send media action error:', e)
+        }
+      }
+      break
   }
 }
 
 async function sendWhatsAppText(phoneNumberId: string, token: string, to: string, text: string) {
   try {
-    await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp', recipient_type: 'individual', to,
-        type: 'text', text: { body: text },
-      }),
-    })
+    if (token && phoneNumberId) {
+      // Via Meta Cloud API
+      await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp', recipient_type: 'individual', to,
+          type: 'text', text: { body: text },
+        }),
+      })
+    } else {
+      // Via Baileys (QR Code)
+      const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
+      const API_KEY = 'boragerir-whatsapp-server-2026'
+      await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-text`, {
+        method: 'POST',
+        headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceId: phoneNumberId || 'default', // phoneNumberId é usado como instanceId no Baileys
+          phone: to,
+          message: text,
+          skipSave: true,
+        }),
+      })
+    }
   } catch (e) {
     console.error('Chatbot send error:', e)
   }

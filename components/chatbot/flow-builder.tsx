@@ -101,6 +101,9 @@ function ActionNode({ data, selected }: NodeProps) {
     add_tag: '🏷️ Adicionar Tag',
     close: '✅ Encerrar Conversa',
     delay: '⏱️ Esperar',
+    send_media: '📎 Enviar Mídia',
+    collect_data: '📋 Coletar Dados',
+    webhook: '🔗 Webhook (API externa)',
   }
   return (
     <div className={`bg-white rounded-xl shadow-md border-2 min-w-[200px] ${selected ? 'border-[#F26522]' : 'border-gray-200'}`}>
@@ -363,6 +366,9 @@ function FlowBuilderInner({ flowId, flowName, initialNodes, initialEdges, onSave
                       <SelectItem value="add_tag">🏷️ Adicionar Tag ao Contato</SelectItem>
                       <SelectItem value="delay">⏱️ Esperar X segundos</SelectItem>
                       <SelectItem value="close">✅ Encerrar Conversa</SelectItem>
+                      <SelectItem value="send_media">📎 Enviar Mídia (imagem/doc)</SelectItem>
+                      <SelectItem value="collect_data">📋 Coletar Dados do Contato</SelectItem>
+                      <SelectItem value="webhook">🔗 Webhook (API externa)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -376,6 +382,43 @@ function FlowBuilderInner({ flowId, flowName, initialNodes, initialEdges, onSave
                   <div className="space-y-2">
                     <Label className="text-xs">Nome da tag</Label>
                     <Input value={editForm.tag || ''} onChange={(e) => setEditForm({ ...editForm, tag: e.target.value })} placeholder="Ex: lead_qualificado" />
+                  </div>
+                )}
+                {editForm.action_type === 'send_media' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">URL da mídia</Label>
+                    <Input value={editForm.media_url || ''} onChange={(e) => setEditForm({ ...editForm, media_url: e.target.value })} placeholder="https://exemplo.com/imagem.jpg" />
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={editForm.media_type || 'image'} onValueChange={(v) => setEditForm({ ...editForm, media_type: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="image">Imagem</SelectItem>
+                        <SelectItem value="document">Documento</SelectItem>
+                        <SelectItem value="video">Vídeo</SelectItem>
+                        <SelectItem value="audio">Áudio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {editForm.action_type === 'collect_data' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Campo para salvar no contato</Label>
+                    <Select value={editForm.collect_field || 'name'} onValueChange={(v) => setEditForm({ ...editForm, collect_field: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Nome</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="notes">Observações</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-slate-400">A próxima mensagem do contato será salva neste campo</p>
+                  </div>
+                )}
+                {editForm.action_type === 'webhook' && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">URL do Webhook (POST)</Label>
+                    <Input value={editForm.webhook_url || ''} onChange={(e) => setEditForm({ ...editForm, webhook_url: e.target.value })} placeholder="https://seu-n8n.com/webhook/..." />
+                    <p className="text-[10px] text-slate-400">Envia um POST com dados do contato e conversa. Compatível com n8n, Zapier, Make.</p>
                   </div>
                 )}
                 <div className="space-y-2">
