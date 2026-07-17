@@ -3,11 +3,12 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
-const WHATSAPP_SERVER_URL = process.env.WHATSAPP_SERVER_URL || 'http://169.58.36.33:3001'
-const WHATSAPP_SERVER_API_KEY = process.env.WHATSAPP_SERVER_API_KEY || 'boragerir-whatsapp-server-2026'
+const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
+const API_KEY = 'boragerir-whatsapp-server-2026'
 
-// Proxy para o WhatsApp Server na VPS
-async function proxyRequest(request: NextRequest, { params }: { params: { path: string[] } }) {
+// Proxy para o servidor WhatsApp na VPS
+// Resolve o problema de mixed content (HTTPS frontend → HTTP VPS)
+async function proxyRequest(request: NextRequest, method: string) {
   try {
     // Verificar autenticação
     const supabase = createServerSupabaseClient()
@@ -16,36 +17,42 @@ async function proxyRequest(request: NextRequest, { params }: { params: { path: 
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const path = params.path.join('/')
-    const targetUrl = `${WHATSAPP_SERVER_URL}/api/${path}`
+    // Extrair path após /api/whatsapp-server/
+    const url = new URL(request.url)
+    const path = url.pathname.replace('/api/whatsapp-server', '')
 
-    const headers: Record<string, string> = {
-      'x-api-key': WHATSAPP_SERVER_API_KEY,
+    const targetUrl = `${WHATSAPP_SERVER_URL}/api${path}`
+
+    const options: RequestInit = {
+      method,
+      headers: {
+        'x-api-key': API_KEY,
+        'Content-Type': 'application/json',
+      },
     }
 
-    let body: string | undefined
-    if (request.method !== 'GET') {
-      headers['Content-Type'] = 'application/json'
-      body = await request.text()
+    if (method !== 'GET' && method !== 'HEAD') {
+      try {
+        const body = await request.json()
+        options.body = JSON.stringify(body)
+      } catch {
+        // No body
+      }
     }
 
-    const response = await fetch(targetUrl, {
-      method: request.method,
-      headers,
-      body,
-    })
-
+    const response = await fetch(targetUrl, options)
     const data = await response.json()
+
     return NextResponse.json(data, { status: response.status })
-  } catch (error) {
-    return NextResponse.json({ error: 'Servidor não acessível' }, { status: 502 })
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Servidor não acessível', details: error.message }, { status: 502 })
   }
 }
 
-export async function GET(request: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(request, context)
+export async function GET(request: NextRequest) {
+  return proxyRequest(request, 'GET')
 }
 
-export async function POST(request: NextRequest, context: { params: { path: string[] } }) {
-  return proxyRequest(request, context)
+export async function POST(request: NextRequest) {
+  return proxyRequest(request, 'POST')
 }
