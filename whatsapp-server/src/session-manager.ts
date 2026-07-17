@@ -150,6 +150,9 @@ export class SessionManager {
 
         // Start heartbeat to confirm server is alive
         this.startHeartbeat(instanceId)
+
+        // Sincronizar grupos ao conectar
+        this.syncGroups(instanceId, socket)
       }
     })
 
@@ -413,6 +416,107 @@ export class SessionManager {
         console.log(`[${instanceId}] ⚠️ Heartbeat failed: ${err}`)
       }
     }, 60000)
+  }
+
+  private async syncGroups(instanceId: string, socket: WASocket) {
+    try {
+      console.log(`[${instanceId}] 🔄 Sincronizando grupos...`)
+      const groups = await socket.groupFetchAllParticipating()
+      
+      if (!groups || Object.keys(groups).length === 0) {
+        console.log(`[${instanceId}] Nenhum grupo encontrado`)
+        return
+      }
+
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_KEY || '',
+        { auth: { persistSession: false } }
+      )
+
+      // Buscar company_id
+      let companyId: string | null = null
+      if (instanceId && instanceId !== 'default') {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('id', instanceId)
+          .maybeSingle()
+        companyId = company?.id || null
+      }
+      if (!companyId && process.env.DEFAULT_COMPANY_ID) {
+        companyId = process.env.DEFAULT_COMPANY_ID
+      }
+      if (!companyId) {
+        const { data: latestCompany } = await supabase
+          .from('companies')
+          .select('id')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        companyId = latestCompany?.id || null
+      }
+      if (!companyId) return
+
+      let syncCount = 0
+      for (const [jid, group] of Object.entries(groups)) {
+        const groupPhone = jid.replace('@g.us', '')
+        const groupName = group.subject || 'Grupo sem nome'
+
+        // Buscar ou criar contato para o grupo
+        let { data: contact } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('phone', groupPhone)
+          .eq('company_id', companyId)
+          .maybeSingle()
+
+        if (!contact) {
+          const { data: newContact } = await supabase
+            .from('contacts')
+            .insert({ phone: groupPhone, name: groupName, company_id: companyId })
+            .select('id')
+            .single()
+          contact = newContact
+        } else {
+          // Atualizar nome do grupo se mudou
+          await supabase
+            .from('contacts')
+            .update({ name: groupName })
+            .eq('id', contact.id)
+        }
+
+        if (!contact) continue
+
+        // Verificar se já tem conversa para este grupo
+        const { data: existingConv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('contact_id', contact.id)
+          .eq('company_id', companyId)
+          .eq('channel', 'whatsapp_group')
+          .maybeSingle()
+
+        if (!existingConv) {
+          await supabase
+            .from('conversations')
+            .insert({
+              contact_id: contact.id,
+              company_id: companyId,
+              channel: 'whatsapp_group',
+              status: 'open',
+              last_message: null,
+              last_message_at: new Date().toISOString(),
+            })
+          syncCount++
+        }
+      }
+
+      console.log(`[${instanceId}] ✅ ${syncCount} novos grupos sincronizados (${Object.keys(groups).length} total)`)
+    } catch (error) {
+      console.error(`[${instanceId}] ⚠️ Erro ao sincronizar grupos:`, error)
+    }
   }
 
   async disconnect(instanceId: string): Promise<void> {
