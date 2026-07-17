@@ -70,14 +70,21 @@ export function useMessages(conversationId: string | null) {
         },
         (payload) => {
           const newMsg = payload.new as Message
-          // Ignorar mensagens vazias (sem conteúdo e sem mídia)
-          if (newMsg.type === 'text' && !newMsg.content && !newMsg.media_url) return
+          // Ignorar mensagens vazias (sem conteúdo e sem mídia) exceto notas
+          if (newMsg.type === 'text' && !newMsg.content && !newMsg.media_url && newMsg.direction !== 'internal') return
           setMessages((prev) => {
             // Evitar duplicatas
             if (prev.some(m => m.id === newMsg.id)) return prev
-            // Remover mensagem otimista correspondente
-            const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-'))
-            return [...withoutOptimistic, newMsg]
+            // Se é outbound, remover apenas a mensagem otimista correspondente (mesmo conteúdo)
+            if (newMsg.direction === 'outbound' || newMsg.direction === 'internal') {
+              const filtered = prev.filter(m => {
+                if (!m.id.startsWith('temp-')) return true
+                // Remover temp que tem o mesmo conteúdo
+                return m.content !== newMsg.content
+              })
+              return [...filtered, newMsg]
+            }
+            return [...prev, newMsg]
           })
         }
       )

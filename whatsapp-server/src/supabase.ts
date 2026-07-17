@@ -173,6 +173,12 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   if (!conversation) return
 
+  // Não salvar mensagens de texto vazias
+  if ((msg.type || 'text') === 'text' && !content) {
+    console.log(`[Supabase] ⚠️ Mensagem vazia ignorada (não salva)`)
+    return
+  }
+
   // 4. Salvar mensagem (com proteção contra duplicatas)
   // Verificar se já existe mensagem idêntica nos últimos 10 segundos
   const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
