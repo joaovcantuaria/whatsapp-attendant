@@ -48,7 +48,27 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Buscar mensagens do chat (últimas 100)
+    if (action === 'members') {
+      // Buscar todos os membros da equipe
+      const { data: members } = await serviceClient
+        .from('company_members')
+        .select('user_id')
+        .eq('company_id', member.company_id)
+        .eq('is_active', true)
+
+      const userIds = members?.map(m => m.user_id) || []
+
+      const { data: agents } = await serviceClient
+        .from('agents')
+        .select('id, name, avatar_url, is_online')
+        .in('id', userIds.length > 0 ? userIds : ['none'])
+
+      return NextResponse.json({
+        agents: agents?.map(a => ({ id: a.id, name: a.name, avatar: a.avatar_url, is_online: a.is_online })) || [],
+      })
+    }
+
+    // Buscar mensagens do chat (últimas 100) - apenas do grupo (sem target)
     const { data: messages } = await serviceClient
       .from('team_messages')
       .select(`
@@ -59,6 +79,7 @@ export async function GET(request: NextRequest) {
         agents:agent_id(name, avatar_url)
       `)
       .eq('company_id', member.company_id)
+      .is('target_agent_id', null)
       .order('created_at', { ascending: true })
       .limit(100)
 

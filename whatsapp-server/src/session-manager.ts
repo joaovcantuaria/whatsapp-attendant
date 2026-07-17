@@ -199,7 +199,12 @@ export class SessionManager {
         if (!phone) continue
 
         // Ignorar mensagens de protocolo/sistema sem conteúdo real
-        if (!msg.message || msg.message.protocolMessage || msg.message.senderKeyDistributionMessage) continue
+        if (!msg.message) continue
+        if (msg.message.protocolMessage || 
+            msg.message.senderKeyDistributionMessage ||
+            msg.message.messageContextInfo ||
+            msg.message.reactionMessage ||
+            msg.messageStubType) continue
 
         const content =
           msg.message?.conversation ||
