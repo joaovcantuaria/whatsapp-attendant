@@ -4,6 +4,7 @@ import { ConversationList } from '@/components/chat/conversation-list'
 import { ChatWindow } from '@/components/chat/chat-window'
 import { ContactPanelV2 } from '@/components/chat/contact-panel-v2'
 import { ConversationTabs } from '@/components/chat/conversation-tabs'
+import { ConnectionBanner } from '@/components/chat/connection-banner'
 import { useConversationStore } from '@/store/conversation-store'
 import { useState } from 'react'
 import { MessageCircle, PanelRightClose, PanelRightOpen } from 'lucide-react'
@@ -14,6 +15,9 @@ export default function ConversationsPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Connection Banner */}
+      <ConnectionBanner />
+
       {/* Top: Conversation Tabs */}
       <ConversationTabs />
 

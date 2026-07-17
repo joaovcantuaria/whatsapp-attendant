@@ -31,7 +31,7 @@ import { ConversationStatus } from '@/types'
 import { buildTemplateComponents } from '@/lib/template-utils'
 
 export function ConversationList() {
-  const { filter, setFilter, searchQuery, setSearchQuery, agentFilter } = useConversationStore()
+  const { filter, setFilter, searchQuery, setSearchQuery, agentFilter, channelFilter, setChannelFilter } = useConversationStore()
   const { setSelectedConversation } = useConversationStore()
   const { conversations, isLoading, refetch } = useConversations(filter)
   const [showNewConversation, setShowNewConversation] = useState(false)
@@ -209,6 +209,7 @@ export function ConversationList() {
 
   const filteredConversations = conversations.filter((conv) => {
     if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
+    if (channelFilter !== 'all' && conv.channel !== channelFilter) return false
     if (searchQuery) {
       const contactName = conv.contact?.name || ''
       const contactPhone = conv.contact?.phone || ''
@@ -254,6 +255,28 @@ export function ConversationList() {
 
         {/* Agent Filter */}
         <AgentFilter />
+
+        {/* Channel Filter */}
+        <div className="flex gap-1">
+          {[
+            { value: 'all', label: 'Todos', icon: '💬' },
+            { value: 'whatsapp', label: 'WhatsApp', icon: '📱' },
+            { value: 'instagram', label: 'Instagram', icon: '📸' },
+          ].map(ch => (
+            <button
+              key={ch.value}
+              onClick={() => setChannelFilter(ch.value as 'all' | 'whatsapp' | 'instagram')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
+                channelFilter === ch.value
+                  ? 'bg-[#F26522]/10 text-[#F26522] border border-[#F26522]/30'
+                  : 'bg-slate-50 text-slate-500 border border-transparent hover:bg-slate-100'
+              }`}
+            >
+              <span className="text-xs">{ch.icon}</span>
+              {ch.label}
+            </button>
+          ))}
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-0.5 bg-slate-100 rounded-lg p-0.5">
