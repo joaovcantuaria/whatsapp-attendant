@@ -43,6 +43,17 @@ export async function processAiResponse(
 ): Promise<{ responded: boolean; transferred: boolean }> {
   const supabase = createServiceRoleClient()
 
+  // 0. Verificar se a IA está habilitada para esta conversa
+  const { data: convData } = await supabase
+    .from('conversations')
+    .select('ai_enabled')
+    .eq('id', conversationId)
+    .single()
+
+  if (convData && convData.ai_enabled === false) {
+    return { responded: false, transferred: false }
+  }
+
   // 1. Buscar config do agente
   const { data: config, error: configError } = await supabase
     .from('ai_agent_config')

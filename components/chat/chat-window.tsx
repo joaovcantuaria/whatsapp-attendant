@@ -16,7 +16,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import { WindowExpiryBanner } from './window-expiry-banner'
 import { getInitials, formatPhone } from '@/lib/utils'
-import { MoreVertical, UserPlus, XCircle, RotateCcw, Target, Clock, ArrowRightLeft } from 'lucide-react'
+import { MoreVertical, UserPlus, XCircle, RotateCcw, Target, Clock, ArrowRightLeft, Bot, BotOff } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,7 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   const { toast } = useToast()
   const contact = conversation.contact
   const [isContactTyping, setIsContactTyping] = useState(false)
+  const [aiEnabled, setAiEnabled] = useState<boolean>((conversation as any).ai_enabled !== false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -242,6 +243,21 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
               </Button>
             </>
           )}
+          <Button
+            size="sm"
+            variant={aiEnabled ? 'outline' : 'default'}
+            onClick={async () => {
+              const newValue = !aiEnabled
+              setAiEnabled(newValue)
+              await supabase.from('conversations').update({ ai_enabled: newValue }).eq('id', conversation.id)
+              toast({ title: newValue ? '🤖 IA ativada para esta conversa' : '🚫 IA desativada para esta conversa' })
+            }}
+            className={`h-7 text-[10px] px-2 ${aiEnabled ? 'text-green-600 border-green-200 hover:bg-green-50' : 'bg-slate-500 hover:bg-slate-600 text-white'}`}
+            title={aiEnabled ? 'IA ativa — clique para desativar' : 'IA inativa — clique para ativar'}
+          >
+            {aiEnabled ? <Bot className="h-3 w-3 mr-1" /> : <BotOff className="h-3 w-3 mr-1" />}
+            {aiEnabled ? 'IA' : 'IA off'}
+          </Button>
           <Button size="sm" variant="outline" onClick={handleSignalLead} className="h-7 text-[11px] px-2.5 text-orange-600 border-orange-200 hover:bg-orange-50">
             <Target className="h-3 w-3 mr-1" /> Lead
           </Button>
