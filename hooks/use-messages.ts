@@ -41,7 +41,12 @@ export function useMessages(conversationId: string | null) {
       return
     }
 
-    setMessages(data || [])
+    // Filtrar mensagens vazias (sem conteúdo e sem mídia)
+    const filtered = (data || []).filter((msg: Message) => 
+      msg.content || msg.media_url || msg.type !== 'text'
+    )
+
+    setMessages(filtered)
     setIsLoading(false)
   }, [conversationId, supabase])
 
@@ -61,7 +66,16 @@ export function useMessages(conversationId: string | null) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message])
+          const newMsg = payload.new as Message
+          // Ignorar mensagens vazias (sem conteúdo e sem mídia)
+          if (newMsg.type === 'text' && !newMsg.content && !newMsg.media_url) return
+          setMessages((prev) => {
+            // Evitar duplicatas
+            if (prev.some(m => m.id === newMsg.id)) return prev
+            // Remover mensagem otimista correspondente
+            const withoutOptimistic = prev.filter(m => !m.id.startsWith('temp-'))
+            return [...withoutOptimistic, newMsg]
+          })
         }
       )
       .on(

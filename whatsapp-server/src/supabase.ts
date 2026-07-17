@@ -173,7 +173,24 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   if (!conversation) return
 
-  // 4. Salvar mensagem
+  // 4. Salvar mensagem (com proteção contra duplicatas)
+  // Verificar se já existe mensagem idêntica nos últimos 10 segundos
+  const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
+  const { data: existingMsg } = await supabase
+    .from('messages')
+    .select('id')
+    .eq('conversation_id', conversation.id)
+    .eq('content', content || '')
+    .eq('direction', fromMe ? 'outbound' : 'inbound')
+    .gte('created_at', tenSecondsAgo)
+    .limit(1)
+    .maybeSingle()
+
+  if (existingMsg) {
+    console.log(`[Supabase] ⚠️ Mensagem duplicada ignorada: ${content?.substring(0, 20)}`)
+    return
+  }
+
   await supabase.from('messages').insert({
     conversation_id: conversation.id,
     company_id: companyId,
