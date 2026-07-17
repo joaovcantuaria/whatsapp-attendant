@@ -1,14 +1,16 @@
 import { create } from 'zustand'
 import { Conversation, ConversationStatus } from '@/types'
 
+type FilterType = ConversationStatus | 'all' | 'groups'
+
 interface ConversationStore {
   selectedConversation: Conversation | null
-  filter: ConversationStatus | 'all'
+  filter: FilterType
   searchQuery: string
   agentFilter: string | 'all'
   channelFilter: 'all' | 'whatsapp' | 'instagram'
   setSelectedConversation: (conversation: Conversation | null) => void
-  setFilter: (filter: ConversationStatus | 'all') => void
+  setFilter: (filter: FilterType) => void
   setSearchQuery: (query: string) => void
   setAgentFilter: (agentId: string | 'all') => void
   setChannelFilter: (channel: 'all' | 'whatsapp' | 'instagram') => void
@@ -16,7 +18,7 @@ interface ConversationStore {
 
 export const useConversationStore = create<ConversationStore>((set) => ({
   selectedConversation: null,
-  filter: 'all',
+  filter: 'pending',
   searchQuery: '',
   agentFilter: 'all',
   channelFilter: 'all',

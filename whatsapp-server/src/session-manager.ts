@@ -165,14 +165,30 @@ export class SessionManager {
 
         const remoteJid = msg.key.remoteJid || ''
         
-        // Ignorar grupos e newsletters
-        if (remoteJid.includes('@g.us') || remoteJid.includes('@newsletter')) continue
+        // Ignorar newsletters
+        if (remoteJid.includes('@newsletter')) continue
+
+        // Detectar se é grupo
+        const isGroup = remoteJid.includes('@g.us')
+
+        // Para grupos, buscar nome do grupo
+        let groupName = ''
+        if (isGroup) {
+          try {
+            const groupMetadata = await socket.groupMetadata(remoteJid)
+            groupName = groupMetadata?.subject || ''
+          } catch {}
+        }
 
         // Extrair número de telefone do JID
         // Formato normal: 5511999999999@s.whatsapp.net
-        // Formato LID (multi-device): 197801061421087@lid  
+        // Formato LID (multi-device): 197801061421087@lid
+        // Formato grupo: 5538999209694-1234567890@g.us
         let phone = ''
-        if (remoteJid.endsWith('@s.whatsapp.net')) {
+        if (isGroup) {
+          // Para grupos, usar o groupJid como identificador
+          phone = remoteJid.replace('@g.us', '')
+        } else if (remoteJid.endsWith('@s.whatsapp.net')) {
           phone = remoteJid.replace('@s.whatsapp.net', '')
         } else if (remoteJid.endsWith('@lid') || remoteJid.includes(':')) {
           // LID format - tentar mapear para o número real usando signalRepository
@@ -274,12 +290,13 @@ export class SessionManager {
             instanceId,
             phone,
             content,
-            pushName,
+            pushName: isGroup ? (groupName || pushName) : pushName,
             timestamp,
             fromMe: false,
             messageId: msg.key.id || '',
             type: messageType,
             mediaUrl: mediaData,
+            isGroup,
           })
 
           // Atualizar nome do contato se veio pushName

@@ -21,6 +21,8 @@ interface IncomingMessage {
   messageId: string
   type?: string
   mediaUrl?: string | null
+  isGroup?: boolean
+  groupName?: string
 }
 
 export async function saveMessageToSupabase(msg: IncomingMessage) {
@@ -137,8 +139,8 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
         .insert({
           contact_id: contact.id,
           company_id: companyId,
-          channel: 'whatsapp',
-          status: 'pending',
+          channel: msg.isGroup ? 'whatsapp_group' : 'whatsapp',
+          status: msg.isGroup ? 'open' : 'pending',
           last_message: content,
           last_message_at: timestamp,
           unread_count: fromMe ? 0 : 1,

@@ -208,8 +208,22 @@ export function ConversationList() {
   )
 
   const filteredConversations = conversations.filter((conv) => {
+    // Filtro de grupos: aba "groups" mostra só grupos, outras abas escondem grupos
+    if (filter === 'groups') {
+      if (conv.channel !== 'whatsapp_group') return false
+    } else {
+      // Nas outras abas, esconder grupos
+      if (conv.channel === 'whatsapp_group') return false
+      // Filtro "all" mostra tudo (exceto grupos)
+      if (filter === 'all') {
+        // OK, sem filtro de status
+      } else {
+        // Filtrar pelo status selecionado
+        if (conv.status !== filter) return false
+      }
+    }
     if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
-    if (channelFilter !== 'all' && conv.channel !== channelFilter) return false
+    if (channelFilter !== 'all' && conv.channel !== channelFilter && conv.channel !== 'whatsapp_group') return false
     if (searchQuery) {
       const contactName = conv.contact?.name || ''
       const contactPhone = conv.contact?.phone || ''
@@ -224,10 +238,11 @@ export function ConversationList() {
   })
 
   const tabs = [
-    { value: 'pending', label: 'Pendentes', count: conversations.filter(c => c.status === 'pending').length },
-    { value: 'open', label: 'Abertas', count: conversations.filter(c => c.status === 'open').length },
-    { value: 'closed', label: 'Fechadas', count: conversations.filter(c => c.status === 'closed').length },
-    { value: 'all', label: 'Todas', count: conversations.length },
+    { value: 'pending', label: 'Pendentes', count: conversations.filter(c => c.status === 'pending' && c.channel !== 'whatsapp_group').length },
+    { value: 'groups', label: 'Grupos', count: conversations.filter(c => c.channel === 'whatsapp_group').length },
+    { value: 'open', label: 'Abertas', count: conversations.filter(c => c.status === 'open' && c.channel !== 'whatsapp_group').length },
+    { value: 'closed', label: 'Fechadas', count: conversations.filter(c => c.status === 'closed' && c.channel !== 'whatsapp_group').length },
+    { value: 'all', label: 'Todas', count: conversations.filter(c => c.channel !== 'whatsapp_group').length },
   ]
 
   return (
@@ -285,7 +300,7 @@ export function ConversationList() {
           {tabs.map(tab => (
             <button
               key={tab.value}
-              onClick={() => setFilter(tab.value as ConversationStatus | 'all')}
+              onClick={() => setFilter(tab.value as any)}
               className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-medium transition-all ${
                 filter === tab.value
                   ? 'bg-white text-slate-800 shadow-sm'

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Conversation, ConversationStatus } from '@/types'
 
-export function useConversations(filter: ConversationStatus | 'all' = 'all') {
+export function useConversations(filter: string = 'all') {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
@@ -12,7 +12,8 @@ export function useConversations(filter: ConversationStatus | 'all' = 'all') {
   const fetchConversations = useCallback(async () => {
     try {
       const params = new URLSearchParams()
-      if (filter !== 'all') params.set('status', filter)
+      // Para 'groups' e 'all', buscar todas as conversas; filtro visual é no frontend
+      if (filter !== 'all' && filter !== 'groups') params.set('status', filter)
 
       const res = await fetch(`/api/conversations?${params.toString()}`)
       if (res.ok) {
