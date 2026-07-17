@@ -293,6 +293,76 @@ export class SessionManager {
       }
     })
 
+    // Message receipt updates (delivered, read)
+    socket.ev.on('message-receipt.update', async (updates) => {
+      for (const update of updates) {
+        const messageId = update.key.id
+        if (!messageId) continue
+
+        let status: string | null = null
+        if (update.receipt.receiptTimestamp) {
+          // Receipt timestamp means delivered
+          status = 'delivered'
+        }
+        if (update.receipt.readTimestamp) {
+          status = 'read'
+        }
+
+        if (!status) continue
+
+        try {
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabase = createClient(
+            process.env.SUPABASE_URL || '',
+            process.env.SUPABASE_SERVICE_KEY || '',
+            { auth: { persistSession: false } }
+          )
+
+          await supabase
+            .from('messages')
+            .update({ status })
+            .eq('whatsapp_message_id', messageId)
+
+          console.log(`[${instanceId}] 📬 Status atualizado: ${messageId} → ${status}`)
+        } catch (err) {
+          console.log(`[${instanceId}] ⚠️ Erro ao atualizar status: ${err}`)
+        }
+      }
+    })
+
+    // Message update events (also captures status changes)
+    socket.ev.on('messages.update', async (updates) => {
+      for (const update of updates) {
+        const messageId = update.key.id
+        if (!messageId || !update.update) continue
+
+        let status: string | null = null
+        if (update.update.status === 2) status = 'delivered' // SERVER_ACK
+        if (update.update.status === 3) status = 'delivered' // DELIVERY_ACK
+        if (update.update.status === 4) status = 'read'      // READ
+
+        if (!status) continue
+
+        try {
+          const { createClient } = await import('@supabase/supabase-js')
+          const supabase = createClient(
+            process.env.SUPABASE_URL || '',
+            process.env.SUPABASE_SERVICE_KEY || '',
+            { auth: { persistSession: false } }
+          )
+
+          await supabase
+            .from('messages')
+            .update({ status })
+            .eq('whatsapp_message_id', messageId)
+
+          console.log(`[${instanceId}] 📬 Status (messages.update): ${messageId} → ${status}`)
+        } catch (err) {
+          console.log(`[${instanceId}] ⚠️ Erro status update: ${err}`)
+        }
+      }
+    })
+
     return this.getStatus(instanceId)
   }
 
@@ -342,13 +412,14 @@ export class SessionManager {
     }
   }
 
-  async sendText(instanceId: string, phone: string, message: string, skipSave: boolean = false): Promise<boolean> {
+  async sendText(instanceId: string, phone: string, message: string, skipSave: boolean = false): Promise<string | false> {
     const instance = this.instances.get(instanceId)
     if (!instance?.socket || instance.status !== 'connected') return false
 
     try {
       const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`
-      await instance.socket.sendMessage(jid, { text: message })
+      const sent = await instance.socket.sendMessage(jid, { text: message })
+      const sentMessageId = sent?.key?.id || `sent_${Date.now()}`
 
       // Salvar mensagem enviada no Supabase (pular se já será salvo pelo caller)
       if (!skipSave) {
@@ -361,12 +432,12 @@ export class SessionManager {
             pushName: '',
             timestamp: new Date().toISOString(),
             fromMe: true,
-            messageId: `sent_${Date.now()}`,
+            messageId: sentMessageId,
           })
         } catch {}
       }
 
-      return true
+      return sentMessageId
     } catch (error) {
       console.error(`[${instanceId}] Erro ao enviar:`, error)
       return false

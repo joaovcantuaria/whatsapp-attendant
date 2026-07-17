@@ -112,7 +112,7 @@ router.post('/message/send-text', async (req, res) => {
 
     const sent = await sessions.sendText(instanceId, phone, message, skipSave || false)
     if (sent) {
-      res.json({ success: true })
+      res.json({ success: true, messageId: typeof sent === 'string' ? sent : null })
     } else {
       res.status(400).json({ error: 'Falha ao enviar. Instância não conectada.' })
     }

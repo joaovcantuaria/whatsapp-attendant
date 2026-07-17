@@ -85,6 +85,12 @@ export async function POST(request: NextRequest) {
             error: errData.error || 'Erro ao enviar via WhatsApp (QR Code)',
           }, { status: 500 })
         }
+
+        // Capturar messageId real do Baileys
+        const baileyData = await baileyRes.json().catch(() => ({}))
+        if (baileyData.messageId) {
+          whatsappMessageId = baileyData.messageId
+        }
       } else if (['image', 'document', 'audio', 'video'].includes(type)) {
         const baileyRes = await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
           method: 'POST',
