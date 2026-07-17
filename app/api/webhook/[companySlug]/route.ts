@@ -135,26 +135,52 @@ async function processInboundMessage(
     .single()
 
   if (!conversation) {
-    // Verificar limite de conversas
-    const canCreate = await checkConversationLimit(companyId)
-    if (!canCreate) {
-      console.warn(`Company ${companyId} reached conversation limit`)
-      return
-    }
-
-    const { data: newConversation } = await supabase
+    // Verificar se tem conversa fechada para reabrir
+    const { data: closedConv } = await supabase
       .from('conversations')
-      .insert({
-        contact_id: contact.id,
-        company_id: companyId,
-        status: 'pending',
-        channel: 'whatsapp',
-      })
-      .select()
+      .select('*')
+      .eq('contact_id', contact.id)
+      .eq('company_id', companyId)
+      .eq('status', 'closed')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single()
-    conversation = newConversation
 
-    await incrementUsage(companyId, 'conversation')
+    if (closedConv) {
+      // Reabrir a conversa fechada
+      const { data: reopened } = await supabase
+        .from('conversations')
+        .update({
+          status: 'pending',
+          agent_id: null,
+          unread_count: 1,
+        })
+        .eq('id', closedConv.id)
+        .select()
+        .single()
+      conversation = reopened || closedConv
+    } else {
+      // Criar nova conversa
+      const canCreate = await checkConversationLimit(companyId)
+      if (!canCreate) {
+        console.warn(`Company ${companyId} reached conversation limit`)
+        return
+      }
+
+      const { data: newConversation } = await supabase
+        .from('conversations')
+        .insert({
+          contact_id: contact.id,
+          company_id: companyId,
+          status: 'pending',
+          channel: 'whatsapp',
+        })
+        .select()
+        .single()
+      conversation = newConversation
+
+      await incrementUsage(companyId, 'conversation')
+    }
   }
 
   if (!conversation) return

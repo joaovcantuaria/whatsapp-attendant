@@ -16,7 +16,7 @@ interface ConversationStore {
 
 export const useConversationStore = create<ConversationStore>((set) => ({
   selectedConversation: null,
-  filter: 'pending',
+  filter: 'all',
   searchQuery: '',
   agentFilter: 'all',
   channelFilter: 'all',

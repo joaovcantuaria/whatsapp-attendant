@@ -92,34 +92,66 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   if (!contact) return
 
-  // 3. Buscar ou criar conversa
+  // 3. Buscar conversa existente (qualquer status, incluindo fechada)
+  // Prioridade: aberta/pendente primeiro, depois fechada mais recente
   let { data: conversation } = await supabase
     .from('conversations')
-    .select('id')
+    .select('id, status')
     .eq('contact_id', contact.id)
     .eq('company_id', companyId)
-    .neq('status', 'closed')
+    .in('status', ['pending', 'open'])
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
 
   if (!conversation) {
-    const { data: newConv } = await supabase
+    // Verificar se tem uma conversa fechada para reabrir
+    const { data: closedConv } = await supabase
       .from('conversations')
-      .insert({
-        contact_id: contact.id,
-        company_id: companyId,
-        channel: 'whatsapp',
-        status: 'pending',
-        last_message: content,
-        last_message_at: timestamp,
-        unread_count: fromMe ? 0 : 1,
-      })
-      .select('id')
+      .select('id, status')
+      .eq('contact_id', contact.id)
+      .eq('company_id', companyId)
+      .eq('status', 'closed')
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single()
-    conversation = newConv
+
+    if (closedConv && !fromMe) {
+      // Reabrir a conversa fechada como pendente
+      await supabase
+        .from('conversations')
+        .update({
+          status: 'pending',
+          agent_id: null,
+          last_message: content,
+          last_message_at: timestamp,
+          unread_count: 1,
+        })
+        .eq('id', closedConv.id)
+      conversation = closedConv
+      console.log(`[Supabase] 🔄 Conversa reaberta: ${closedConv.id}`)
+    } else if (!closedConv) {
+      // Nenhuma conversa existe — criar nova
+      const { data: newConv } = await supabase
+        .from('conversations')
+        .insert({
+          contact_id: contact.id,
+          company_id: companyId,
+          channel: 'whatsapp',
+          status: 'pending',
+          last_message: content,
+          last_message_at: timestamp,
+          unread_count: fromMe ? 0 : 1,
+        })
+        .select('id, status')
+        .single()
+      conversation = newConv
+    } else {
+      // Conversa fechada mas mensagem é outbound (enviada por nós) — usar a fechada sem reabrir
+      conversation = closedConv
+    }
   } else {
-    // Atualizar conversa existente
+    // Atualizar conversa existente (aberta ou pendente)
     const updates: any = {
       last_message: content,
       last_message_at: timestamp,
