@@ -30,15 +30,17 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   // 1. Buscar empresa - tentar por instanceId, senão buscar pela mais recente
   let companyId: string | null = null
+  let connectedPhone: string | null = null
   
   // Tentar buscar por UUID
   if (instanceId && instanceId !== 'default') {
     const { data: company } = await supabase
       .from('companies')
-      .select('id')
+      .select('id, connected_phone')
       .eq('id', instanceId)
       .maybeSingle()
     companyId = company?.id || null
+    connectedPhone = company?.connected_phone || null
   }
 
   // Fallback: buscar a empresa mais recente (última criada)
@@ -96,24 +98,47 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   // 3. Buscar conversa existente (qualquer status, incluindo fechada)
   // Prioridade: aberta/pendente primeiro, depois fechada mais recente
+  // Filtrar pelo source_phone (número conectado) para não misturar conversas
   let { data: conversation } = await supabase
     .from('conversations')
     .select('id, status')
     .eq('contact_id', contact.id)
     .eq('company_id', companyId)
     .in('status', ['pending', 'open'])
+    .eq('source_phone', connectedPhone || '')
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
 
+  // Se não achou com source_phone, tentar sem (conversas antigas sem o campo)
   if (!conversation) {
-    // Verificar se tem uma conversa fechada para reabrir
+    const { data: legacyConv } = await supabase
+      .from('conversations')
+      .select('id, status')
+      .eq('contact_id', contact.id)
+      .eq('company_id', companyId)
+      .in('status', ['pending', 'open'])
+      .is('source_phone', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    
+    if (legacyConv) {
+      // Atualizar conversa antiga com o source_phone
+      await supabase.from('conversations').update({ source_phone: connectedPhone }).eq('id', legacyConv.id)
+      conversation = legacyConv
+    }
+  }
+
+  if (!conversation) {
+    // Verificar se tem uma conversa fechada para reabrir (do mesmo número)
     const { data: closedConv } = await supabase
       .from('conversations')
       .select('id, status')
       .eq('contact_id', contact.id)
       .eq('company_id', companyId)
       .eq('status', 'closed')
+      .or(`source_phone.eq.${connectedPhone || ''},source_phone.is.null`)
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
@@ -128,6 +153,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
           last_message: content,
           last_message_at: timestamp,
           unread_count: 1,
+          source_phone: connectedPhone,
         })
         .eq('id', closedConv.id)
       conversation = closedConv
@@ -144,6 +170,7 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
           last_message: content,
           last_message_at: timestamp,
           unread_count: fromMe ? 0 : 1,
+          source_phone: connectedPhone,
         })
         .select('id, status')
         .single()

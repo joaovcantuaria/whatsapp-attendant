@@ -41,6 +41,19 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
+    // Filtrar por número conectado (source_phone)
+    // Buscar o connected_phone da empresa
+    const { data: companyData } = await serviceClient
+      .from('companies')
+      .select('connected_phone')
+      .eq('id', companyId)
+      .single()
+
+    if (companyData?.connected_phone) {
+      // Mostrar conversas do número atual + conversas antigas (sem source_phone)
+      query = query.or(`source_phone.eq.${companyData.connected_phone},source_phone.is.null`)
+    }
+
     const { data, error } = await query
 
     if (error) {

@@ -148,6 +148,23 @@ export class SessionManager {
         }
         console.log(`[${instanceId}] ✅ Conectado como ${instance.phone}`)
 
+        // Salvar o número conectado na empresa (para filtrar conversas)
+        if (instance.phone) {
+          try {
+            const { createClient } = await import('@supabase/supabase-js')
+            const supabase = createClient(
+              process.env.SUPABASE_URL || '',
+              process.env.SUPABASE_SERVICE_KEY || '',
+              { auth: { persistSession: false } }
+            )
+            await supabase
+              .from('companies')
+              .update({ connected_phone: instance.phone })
+              .eq('id', instanceId)
+            console.log(`[${instanceId}] 📱 connected_phone salvo: ${instance.phone}`)
+          } catch {}
+        }
+
         // Start heartbeat to confirm server is alive
         this.startHeartbeat(instanceId)
 
