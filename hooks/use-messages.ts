@@ -41,9 +41,9 @@ export function useMessages(conversationId: string | null) {
       return
     }
 
-    // Filtrar mensagens vazias (sem conteúdo e sem mídia)
+    // Filtrar mensagens vazias (sem conteúdo e sem mídia) - mas manter notas internas
     const filtered = (data || []).filter((msg: Message) => 
-      msg.content || msg.media_url || msg.type !== 'text'
+      msg.content || msg.media_url || msg.type !== 'text' || msg.type === 'internal_note' || msg.direction === 'internal'
     )
 
     setMessages(filtered)

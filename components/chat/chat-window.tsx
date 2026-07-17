@@ -16,7 +16,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
 import { WindowExpiryBanner } from './window-expiry-banner'
 import { getInitials, formatPhone } from '@/lib/utils'
-import { MoreVertical, UserPlus, XCircle, RotateCcw, Target, Clock } from 'lucide-react'
+import { MoreVertical, UserPlus, XCircle, RotateCcw, Target, Clock, ArrowRightLeft } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,6 +122,44 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
     if (response.ok) { setSelectedConversation(await response.json()); toast({ title: 'Conversa reaberta' }) }
   }
 
+  const handleTransfer = async () => {
+    // Buscar lista de agentes disponíveis
+    try {
+      const res = await fetch('/api/team-chat?action=members')
+      if (!res.ok) { toast({ title: 'Erro ao buscar agentes', variant: 'destructive' }); return }
+      const data = await res.json()
+      const agents = (data.agents || []).filter((a: any) => a.id !== agent?.id)
+      
+      if (agents.length === 0) {
+        toast({ title: 'Nenhum outro agente disponível', variant: 'destructive' })
+        return
+      }
+
+      // Por simplicidade, transferir para o primeiro agente disponível que não é o atual
+      // Em produção, isso seria um modal com seleção
+      const targetName = prompt(`Transferir para qual atendente?\n\nDisponíveis:\n${agents.map((a: any, i: number) => `${i + 1}. ${a.name}`).join('\n')}\n\nDigite o número:`)
+      if (!targetName) return
+
+      const targetIndex = parseInt(targetName) - 1
+      const target = agents[targetIndex]
+      if (!target) { toast({ title: 'Agente inválido', variant: 'destructive' }); return }
+
+      const response = await fetch('/api/conversations/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: conversation.id, targetAgentId: target.id }),
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        setSelectedConversation(updated)
+        toast({ title: `Conversa transferida para ${target.name}` })
+      } else {
+        toast({ title: 'Erro ao transferir', variant: 'destructive' })
+      }
+    } catch { toast({ title: 'Erro ao transferir', variant: 'destructive' }) }
+  }
+
   const handleSignalLead = async () => {
     try {
       // Buscar pipeline e primeiro stage
@@ -221,6 +259,9 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
             <DropdownMenuContent align="end" className="text-xs">
               <DropdownMenuItem onClick={handleAssign} className="text-xs">
                 <UserPlus className="mr-2 h-3 w-3" /> Assumir
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleTransfer} className="text-xs">
+                <ArrowRightLeft className="mr-2 h-3 w-3" /> Transferir
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignalLead} className="text-xs text-orange-600">
                 <Target className="mr-2 h-3 w-3" /> Sinalizar como Lead

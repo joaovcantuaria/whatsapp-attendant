@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { QuickReplyPicker } from './quick-reply-picker'
 import { TemplateSelector } from './template-selector'
 import { EmojiPicker } from './emoji-picker'
+import { cn } from '@/lib/utils'
 import {
   Send,
   Paperclip,
@@ -20,6 +21,7 @@ import {
   Smile,
   LayoutTemplate,
   Loader2,
+  StickyNote,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -36,6 +38,7 @@ interface MessageInputProps {
 
 export function MessageInput({ conversation, windowStatus, onOptimisticSend }: MessageInputProps) {
   const [text, setText] = useState('')
+  const [isNoteMode, setIsNoteMode] = useState(false)
   const [showQuickReplies, setShowQuickReplies] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -171,10 +174,49 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
   }, [])
 
   const handleSend = async () => {
-    if (!text.trim() || !phone) return
+    if (!text.trim()) return
+    if (!isNoteMode && !phone) return
 
     const messageText = text.trim()
     setText('') // Limpa input imediatamente
+
+    if (isNoteMode) {
+      // Enviar como nota interna
+      if (onOptimisticSend) {
+        onOptimisticSend({
+          content: messageText,
+          sender_type: 'agent',
+          message_type: 'internal_note',
+          direction: 'internal',
+          type: 'internal_note',
+        })
+      }
+
+      try {
+        const res = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: conversation.id,
+            content: messageText,
+          }),
+        })
+
+        if (!res.ok) {
+          toast({
+            title: 'Erro ao salvar nota',
+            description: 'Tente novamente',
+            variant: 'destructive',
+          })
+        }
+      } catch {
+        toast({
+          title: 'Erro ao salvar nota',
+          variant: 'destructive',
+        })
+      }
+      return
+    }
 
     // Optimistic: mostra na tela antes do servidor responder
     if (onOptimisticSend) {
@@ -327,6 +369,14 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
 
   return (
     <div className="border-t p-3 relative">
+      {/* Note Mode Indicator */}
+      {isNoteMode && (
+        <div className="mb-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md flex items-center gap-2">
+          <StickyNote className="h-3.5 w-3.5 text-amber-600" />
+          <span className="text-xs text-amber-700 font-medium">Modo nota interna — não será enviada ao cliente</span>
+        </div>
+      )}
+
       {/* Quick Replies Dropdown */}
       {showQuickReplies && (
         <QuickReplyPicker
@@ -396,6 +446,20 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
           <Smile className="h-5 w-5" />
         </Button>
 
+        {/* Note Mode Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'shrink-0',
+            isNoteMode && 'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800'
+          )}
+          onClick={() => setIsNoteMode(!isNoteMode)}
+          title={isNoteMode ? 'Desativar modo nota' : 'Nota interna'}
+        >
+          <StickyNote className="h-5 w-5" />
+        </Button>
+
         {/* Recording State or Text Input */}
         {isRecording ? (
           <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
@@ -428,12 +492,15 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
             {/* Text Input */}
             <Input
               ref={inputRef}
-              placeholder="Digite uma mensagem... (/ para respostas rápidas)"
+              placeholder={isNoteMode ? 'Nota interna (não será enviada ao cliente)...' : 'Digite uma mensagem... (/ para respostas rápidas)'}
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
-              className="flex-1"
+              className={cn(
+                'flex-1',
+                isNoteMode && 'bg-amber-50 border-amber-200 placeholder:text-amber-500'
+              )}
             />
 
             {/* Send or Mic Button */}
@@ -442,9 +509,14 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
                 onClick={handleSend}
                 disabled={!text.trim()}
                 size="icon"
-                className="shrink-0 bg-[#F26522] hover:bg-[#d4561c]"
+                className={cn(
+                  'shrink-0',
+                  isNoteMode
+                    ? 'bg-amber-500 hover:bg-amber-600'
+                    : 'bg-[#F26522] hover:bg-[#d4561c]'
+                )}
               >
-                <Send className="h-4 w-4" />
+                {isNoteMode ? <StickyNote className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             ) : (
               <Button

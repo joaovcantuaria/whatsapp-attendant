@@ -7,6 +7,7 @@ import { ConversationTabs } from '@/components/chat/conversation-tabs'
 import { ConnectionBanner } from '@/components/chat/connection-banner'
 import { useConversationStore } from '@/store/conversation-store'
 import { useNotificationSound } from '@/hooks/use-notification-sound'
+import { useDesktopNotifications } from '@/hooks/use-desktop-notifications'
 import { useState } from 'react'
 import { MessageCircle, PanelRightClose, PanelRightOpen } from 'lucide-react'
 
@@ -16,6 +17,8 @@ export default function ConversationsPage() {
 
   // Notificação sonora para novas mensagens
   useNotificationSound()
+  // Notificações desktop (browser push)
+  useDesktopNotifications()
 
   return (
     <div className="flex flex-col h-full">

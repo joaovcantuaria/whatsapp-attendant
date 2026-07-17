@@ -56,6 +56,7 @@ function DownloadButton({ mediaUrl, filename, type }: { mediaUrl: string; filena
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isOutbound = message.direction === 'outbound'
+  const isInternalNote = message.type === 'internal_note' || message.direction === 'internal'
 
   const StatusIcon = () => {
     if (!isOutbound) return null
@@ -263,9 +264,35 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div className="text-2xl">{message.content}</div>
         )
 
+      case 'internal_note':
+        return (
+          <div className="space-y-1">
+            <p className="text-[10px] font-medium text-amber-700 flex items-center gap-1">
+              📝 Nota interna
+            </p>
+            <p className="text-sm whitespace-pre-wrap break-words italic text-amber-900">{message.content}</p>
+          </div>
+        )
+
       default:
         return <p className="text-sm text-muted-foreground italic">[{message.type}]</p>
     }
+  }
+
+  // Internal notes render centered with amber styling
+  if (isInternalNote) {
+    return (
+      <div className="flex justify-center">
+        <div className="max-w-[70%] rounded-lg px-3 py-2 shadow-sm bg-amber-50 border border-amber-200">
+          {renderContent()}
+          <div className="flex items-center gap-1 mt-1 justify-end">
+            <span className="text-[10px] text-amber-600">
+              {formatMessageTime(message.created_at)}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
