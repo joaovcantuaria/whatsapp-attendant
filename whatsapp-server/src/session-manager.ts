@@ -149,7 +149,8 @@ export class SessionManager {
 
     // Incoming messages
     socket.ev.on('messages.upsert', async ({ messages: msgs, type }) => {
-      if (type !== 'notify') return
+      // Processar tanto mensagens em tempo real (notify) quanto offline (append)
+      if (type !== 'notify' && type !== 'append') return
 
       for (const msg of msgs) {
         if (msg.key.fromMe) continue
