@@ -61,15 +61,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     if (!isOutbound) return null
     switch (message.status) {
       case 'sent':
-        return <Check className="h-3 w-3 text-muted-foreground" />
+        return <Check className="h-3.5 w-3.5 text-muted-foreground" />
       case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-muted-foreground" />
+        return <CheckCheck className="h-3.5 w-3.5 text-muted-foreground" />
       case 'read':
-        return <CheckCheck className="h-3 w-3 text-blue-500" />
+        return <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
       case 'failed':
-        return <XCircle className="h-3 w-3 text-destructive" />
+        return <XCircle className="h-3.5 w-3.5 text-destructive" />
       default:
-        return <Clock className="h-3 w-3 text-muted-foreground" />
+        return <Clock className="h-3.5 w-3.5 text-muted-foreground" />
     }
   }
 

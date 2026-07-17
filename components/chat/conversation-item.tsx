@@ -4,7 +4,7 @@ import { Conversation } from '@/types'
 import { useConversationStore } from '@/store/conversation-store'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn, formatRelativeTime, getInitials, truncateText } from '@/lib/utils'
-import { Clock, CheckCheck, AlertCircle, User, Instagram } from 'lucide-react'
+import { Clock, CheckCheck, AlertCircle, User, Instagram, Timer } from 'lucide-react'
 
 interface ConversationItemProps {
   conversation: Conversation
@@ -38,6 +38,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const contact = conversation.contact
   const protocol = (conversation as any).protocol
   const status = statusConfig[conversation.status] || statusConfig.pending
+
+  // Calculate waiting time for pending conversations
+  const waitingTime = conversation.status === 'pending' && conversation.last_message_at
+    ? formatRelativeTime(conversation.last_message_at)
+    : null
   
   // Gerar cor do agente: usar agent object se disponível, senão usar agent_id
   const agent = (conversation as any).agent
@@ -127,11 +132,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
             </span>
           )}
 
-          {/* Status badge for pending */}
+          {/* Status badge for pending with waiting time */}
           {conversation.status === 'pending' && (
             <span className="inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-              <Clock className="h-2 w-2" />
-              Aguardando
+              <Timer className="h-2 w-2" />
+              {waitingTime ? `Esperando ${waitingTime}` : 'Aguardando'}
             </span>
           )}
 

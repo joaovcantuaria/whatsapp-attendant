@@ -6,12 +6,16 @@ import { ContactPanelV2 } from '@/components/chat/contact-panel-v2'
 import { ConversationTabs } from '@/components/chat/conversation-tabs'
 import { ConnectionBanner } from '@/components/chat/connection-banner'
 import { useConversationStore } from '@/store/conversation-store'
+import { useNotificationSound } from '@/hooks/use-notification-sound'
 import { useState } from 'react'
 import { MessageCircle, PanelRightClose, PanelRightOpen } from 'lucide-react'
 
 export default function ConversationsPage() {
   const { selectedConversation } = useConversationStore()
   const [panelOpen, setPanelOpen] = useState(true)
+
+  // Notificação sonora para novas mensagens
+  useNotificationSound()
 
   return (
     <div className="flex flex-col h-full">

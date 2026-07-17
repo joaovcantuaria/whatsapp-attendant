@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Conversation } from '@/types'
 import { useMessages } from '@/hooks/use-messages'
 import { useWindowExpiry } from '@/hooks/use-window-expiry'
@@ -39,6 +39,7 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   const supabase = createClient()
   const { toast } = useToast()
   const contact = conversation.contact
+  const [isContactTyping, setIsContactTyping] = useState(false)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -49,6 +50,24 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
       supabase.from('conversations').update({ unread_count: 0 }).eq('id', conversation.id).then()
     }
   }, [conversation.id, conversation.unread_count, supabase])
+
+  // Listen for typing events via Supabase realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel(`typing:${conversation.id}`)
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload?.isTyping) {
+          setIsContactTyping(true)
+          // Auto-clear after 3 seconds
+          setTimeout(() => setIsContactTyping(false), 3000)
+        } else {
+          setIsContactTyping(false)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [conversation.id, supabase])
 
   const handleAssign = async () => {
     try {
@@ -167,6 +186,9 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
               <span className="text-[10px] text-slate-400">{status.label}</span>
             </div>
             <p className="text-[10px] text-slate-400">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
+            {isContactTyping && (
+              <p className="text-[10px] text-green-600 font-medium animate-pulse">Digitando...</p>
+            )}
           </div>
         </div>
 

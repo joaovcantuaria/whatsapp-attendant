@@ -25,6 +25,7 @@ interface Instance extends InstanceStatus {
 export class SessionManager {
   private instances: Map<string, Instance> = new Map()
   private sessionsDir: string
+  private heartbeatInterval: NodeJS.Timeout | null = null
 
   constructor() {
     this.sessionsDir = path.join(process.cwd(), 'sessions')
@@ -90,6 +91,9 @@ export class SessionManager {
       browser: ['BoraGerir', 'Chrome', '120.0.0'],
       connectTimeoutMs: 60000,
       qrTimeout: 60000,
+      keepAliveIntervalMs: 30000,
+      retryRequestDelayMs: 250,
+      markOnlineOnConnect: false,
       shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || false,
     })
 
@@ -120,11 +124,12 @@ export class SessionManager {
           if (fs.existsSync(authDir)) {
             fs.rmSync(authDir, { recursive: true, force: true })
           }
-        } else if (instance.retryCount < 5) {
+        } else if (instance.retryCount < 10) {
           instance.retryCount++
           instance.status = 'connecting'
-          console.log(`[${instanceId}] Reconectando... (tentativa ${instance.retryCount})`)
-          setTimeout(() => this.connect(instanceId), 5000)
+          const delay = Math.min(5000 * Math.pow(1.5, instance.retryCount), 60000)
+          console.log(`[${instanceId}] Reconectando... (tentativa ${instance.retryCount}, próxima em ${Math.round(delay / 1000)}s)`)
+          setTimeout(() => this.connect(instanceId), delay)
         } else {
           console.log(`[${instanceId}] Máximo de tentativas atingido`)
           instance.status = 'disconnected'
@@ -142,6 +147,9 @@ export class SessionManager {
           instance.name = user.name || null
         }
         console.log(`[${instanceId}] ✅ Conectado como ${instance.phone}`)
+
+        // Start heartbeat to confirm server is alive
+        this.startHeartbeat(instanceId)
       }
     })
 
@@ -286,6 +294,38 @@ export class SessionManager {
     })
 
     return this.getStatus(instanceId)
+  }
+
+  private startHeartbeat(instanceId: string) {
+    // Clear any existing heartbeat
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+    }
+
+    this.heartbeatInterval = setInterval(async () => {
+      const instance = this.instances.get(instanceId)
+      if (!instance || instance.status !== 'connected') {
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval)
+        return
+      }
+
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.SUPABASE_URL || '',
+          process.env.SUPABASE_SERVICE_KEY || '',
+          { auth: { persistSession: false } }
+        )
+        await supabase
+          .from('companies')
+          .select('id')
+          .limit(1)
+          .maybeSingle()
+        console.log(`[${instanceId}] 💓 Heartbeat OK`)
+      } catch (err) {
+        console.log(`[${instanceId}] ⚠️ Heartbeat failed: ${err}`)
+      }
+    }, 60000)
   }
 
   async disconnect(instanceId: string): Promise<void> {

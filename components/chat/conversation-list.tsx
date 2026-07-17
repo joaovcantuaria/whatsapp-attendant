@@ -213,9 +213,11 @@ export function ConversationList() {
     if (searchQuery) {
       const contactName = conv.contact?.name || ''
       const contactPhone = conv.contact?.phone || ''
+      const lastMessage = conv.last_message || ''
       if (
         !contactName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !contactPhone.includes(searchQuery)
+        !contactPhone.includes(searchQuery) &&
+        !lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
       ) return false
     }
     return true
