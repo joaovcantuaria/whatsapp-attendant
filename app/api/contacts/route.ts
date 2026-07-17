@@ -113,19 +113,45 @@ export async function POST(request: NextRequest) {
     }
 
     // Criação individual
+    const { category_ids, ...contactData } = body
+
+    // Verificar se já existe contato com esse telefone nesta empresa
+    const { data: existingContact } = await serviceClient
+      .from('contacts')
+      .select('*')
+      .eq('phone', contactData.phone)
+      .eq('company_id', companyId)
+      .maybeSingle()
+
+    if (existingContact) {
+      return NextResponse.json(existingContact) // Retorna o existente
+    }
+
     const { data, error } = await serviceClient
       .from('contacts')
-      .insert({ ...body, company_id: companyId })
+      .insert({ ...contactData, company_id: companyId })
       .select()
       .single()
 
     if (error) {
+      // Se é duplicate key, tentar buscar o contato existente
+      if (error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        const { data: existing } = await serviceClient
+          .from('contacts')
+          .select('*')
+          .eq('phone', contactData.phone)
+          .eq('company_id', companyId)
+          .single()
+        if (existing) {
+          return NextResponse.json(existing)
+        }
+      }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     // Atribuir categorias se fornecidas
-    if (body.category_ids && body.category_ids.length > 0 && data) {
-      const assignments = body.category_ids.map((catId: string) => ({
+    if (category_ids && category_ids.length > 0 && data) {
+      const assignments = category_ids.map((catId: string) => ({
         contact_id: data.id,
         category_id: catId,
       }))
