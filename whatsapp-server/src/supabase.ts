@@ -139,10 +139,12 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
   // 4. Salvar mensagem
   await supabase.from('messages').insert({
     conversation_id: conversation.id,
+    company_id: companyId,
+    whatsapp_message_id: messageId,
+    direction: fromMe ? 'outbound' : 'inbound',
+    type: 'text',
     content,
-    sender_type: fromMe ? 'agent' : 'contact',
-    message_type: 'text',
-    external_id: messageId,
+    status: fromMe ? 'sent' : 'delivered',
     created_at: timestamp,
   })
 

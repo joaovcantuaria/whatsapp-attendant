@@ -12,6 +12,7 @@ import {
   Shield,
   ChevronRight,
   Instagram,
+  QrCode,
 } from 'lucide-react'
 
 const settingsItems = [
@@ -32,9 +33,16 @@ const settingsItems = [
   {
     href: '/settings/whatsapp',
     icon: Wifi,
-    title: 'WhatsApp',
+    title: 'WhatsApp API Oficial',
     description: 'Token, Phone Number ID e configuração da API Meta',
     color: 'bg-green-50 text-green-600',
+  },
+  {
+    href: '/settings/qrcode',
+    icon: QrCode,
+    title: 'WhatsApp QR Code',
+    description: 'Conecte um WhatsApp comum via QR Code (sem API oficial)',
+    color: 'bg-emerald-50 text-emerald-600',
   },
   {
     href: '/settings/integrations/instagram',
