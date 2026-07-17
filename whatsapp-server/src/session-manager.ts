@@ -198,6 +198,9 @@ export class SessionManager {
 
         if (!phone) continue
 
+        // Ignorar mensagens de protocolo/sistema sem conteúdo real
+        if (!msg.message || msg.message.protocolMessage || msg.message.senderKeyDistributionMessage) continue
+
         const content =
           msg.message?.conversation ||
           msg.message?.extendedTextMessage?.text ||
@@ -220,6 +223,9 @@ export class SessionManager {
         } else if (msg.message?.stickerMessage) {
           messageType = 'sticker'
         }
+
+        // Ignorar mensagens de texto vazias (sem conteúdo e sem mídia)
+        if (messageType === 'text' && !content) continue
 
         // Para stickers e imagens, baixar e salvar como base64 data URI
         if (messageType === 'sticker' || messageType === 'image' || messageType === 'audio' || messageType === 'video') {
