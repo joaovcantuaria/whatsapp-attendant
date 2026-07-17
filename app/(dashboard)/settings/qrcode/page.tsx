@@ -14,7 +14,7 @@ const WHATSAPP_SERVER_URL = '/api/whatsapp-server'
 export default function QRCodeSettingsPage() {
   const { company } = useCompany()
   const { toast } = useToast()
-  const [status, setStatus] = useState<string>('disconnected')
+  const [status, setStatus] = useState<string>('loading')
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [phone, setPhone] = useState<string | null>(null)
   const [name, setName] = useState<string | null>(null)
@@ -95,6 +95,7 @@ export default function QRCodeSettingsPage() {
   }, [status])
 
   const statusConfig: Record<string, { label: string; color: string; icon: typeof Wifi }> = {
+    loading: { label: 'Verificando...', color: 'bg-slate-100 text-slate-500', icon: Loader2 },
     connected: { label: 'Conectado', color: 'bg-green-100 text-green-700', icon: Wifi },
     connecting: { label: 'Conectando...', color: 'bg-yellow-100 text-yellow-700', icon: RefreshCw },
     qr_ready: { label: 'Aguardando QR', color: 'bg-blue-100 text-blue-700', icon: QrCode },
@@ -181,6 +182,13 @@ export default function QRCodeSettingsPage() {
                 </div>
                 <p className="text-sm text-red-600">Servidor WhatsApp não está acessível</p>
                 <p className="text-xs text-slate-400">Verifique se o servidor está rodando na VPS</p>
+              </div>
+            )}
+
+            {status === 'loading' && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
+                <p className="text-sm text-slate-500">Verificando conexão...</p>
               </div>
             )}
           </CardContent>
