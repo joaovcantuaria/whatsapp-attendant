@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { QuickReplyPicker } from './quick-reply-picker'
 import { TemplateSelector } from './template-selector'
+import { EmojiPicker } from './emoji-picker'
 import {
   Send,
   Paperclip,
@@ -35,6 +36,7 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
   const [text, setText] = useState('')
   const [showQuickReplies, setShowQuickReplies] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [quickReplyQuery, setQuickReplyQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const { sendMessage, isLoading } = useSendMessage()
@@ -97,6 +99,11 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
   const handleQuickReplySelect = (content: string) => {
     setText(content)
     setShowQuickReplies(false)
+    inputRef.current?.focus()
+  }
+
+  const handleEmojiSelect = (emoji: string) => {
+    setText((prev) => prev + emoji)
     inputRef.current?.focus()
   }
 
@@ -203,6 +210,14 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
         />
       )}
 
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <EmojiPicker
+          onSelect={handleEmojiSelect}
+          onClose={() => setShowEmojiPicker(false)}
+        />
+      )}
+
       {/* Template Selector Modal */}
       {showTemplateSelector && (
         <TemplateSelector
@@ -243,6 +258,16 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
           onClick={() => setShowTemplateSelector(true)}
         >
           <LayoutTemplate className="h-5 w-5" />
+        </Button>
+
+        {/* Emoji Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+        >
+          <Smile className="h-5 w-5" />
         </Button>
 
         {/* Text Input */}

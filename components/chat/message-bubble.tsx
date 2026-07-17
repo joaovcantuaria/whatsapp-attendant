@@ -37,7 +37,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div className="space-y-1">
             {message.media_url ? (
               <img
-                src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
+                src={message.media_url.startsWith('data:') ? message.media_url : `/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
                 alt="Imagem"
                 className="rounded-md max-w-[280px] max-h-[300px] object-cover cursor-pointer"
                 loading="lazy"
@@ -68,7 +68,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               <audio
                 controls
                 className="max-w-[250px] h-8"
-                src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
+                src={message.media_url.startsWith('data:') ? message.media_url : `/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
               >
                 Seu navegador não suporta áudio.
               </audio>
@@ -125,11 +125,22 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div>
             {message.media_url && (
               <img
-                src={`/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
+                src={message.media_url.startsWith('data:') ? message.media_url : `/api/media?mediaUrl=${encodeURIComponent(message.media_url)}`}
                 alt="Sticker"
                 className="w-32 h-32 object-contain"
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  target.parentElement?.insertAdjacentHTML(
+                    'afterbegin',
+                    '<span class="text-2xl">🏷️</span>'
+                  )
+                }}
               />
+            )}
+            {!message.media_url && (
+              <span className="text-2xl">🏷️</span>
             )}
           </div>
         )

@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Instagram,
   QrCode,
+  MessageSquare,
 } from 'lucide-react'
 
 const settingsItems = [
@@ -57,6 +58,13 @@ const settingsItems = [
     title: 'Integrações (API)',
     description: 'Chaves de API para conectar sistemas externos',
     color: 'bg-orange-50 text-orange-600',
+  },
+  {
+    href: '/settings/quick-replies',
+    icon: MessageSquare,
+    title: 'Respostas Rápidas',
+    description: 'Cadastre mensagens prontas para usar no chat com /',
+    color: 'bg-amber-50 text-amber-600',
   },
   {
     href: '/settings/billing',

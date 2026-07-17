@@ -205,6 +205,41 @@ export class SessionManager {
           msg.message?.videoMessage?.caption ||
           ''
 
+        // Detectar tipo de mensagem
+        let messageType = 'text'
+        let mediaData: string | null = null
+
+        if (msg.message?.imageMessage) {
+          messageType = 'image'
+        } else if (msg.message?.videoMessage) {
+          messageType = 'video'
+        } else if (msg.message?.audioMessage) {
+          messageType = 'audio'
+        } else if (msg.message?.documentMessage) {
+          messageType = 'document'
+        } else if (msg.message?.stickerMessage) {
+          messageType = 'sticker'
+        }
+
+        // Para stickers e imagens, baixar e salvar como base64 data URI
+        if (messageType === 'sticker' || messageType === 'image' || messageType === 'audio' || messageType === 'video') {
+          try {
+            const { downloadMediaMessage } = await import('@whiskeysockets/baileys')
+            const buffer = await downloadMediaMessage(msg, 'buffer', {})
+            if (buffer) {
+              const mimeType = 
+                msg.message?.stickerMessage?.mimetype ||
+                msg.message?.imageMessage?.mimetype ||
+                msg.message?.audioMessage?.mimetype ||
+                msg.message?.videoMessage?.mimetype ||
+                'application/octet-stream'
+              mediaData = `data:${mimeType};base64,${Buffer.from(buffer).toString('base64')}`
+            }
+          } catch (dlError) {
+            console.log(`[${instanceId}] ⚠️ Erro ao baixar mídia: ${dlError}`)
+          }
+        }
+
         const pushName = msg.pushName || ''
         const timestamp = msg.messageTimestamp
           ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
@@ -223,6 +258,8 @@ export class SessionManager {
             timestamp,
             fromMe: false,
             messageId: msg.key.id || '',
+            type: messageType,
+            mediaUrl: mediaData,
           })
 
           // Atualizar nome do contato se veio pushName

@@ -19,6 +19,8 @@ interface IncomingMessage {
   timestamp: string
   fromMe: boolean
   messageId: string
+  type?: string
+  mediaUrl?: string | null
 }
 
 export async function saveMessageToSupabase(msg: IncomingMessage) {
@@ -145,8 +147,9 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
     company_id: companyId,
     whatsapp_message_id: messageId,
     direction: fromMe ? 'outbound' : 'inbound',
-    type: 'text',
+    type: msg.type || 'text',
     content,
+    media_url: msg.mediaUrl || null,
     status: fromMe ? 'sent' : 'delivered',
     created_at: timestamp,
   })
