@@ -9,8 +9,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { SettingsBack } from '@/components/shared/settings-back'
 import { Smartphone, QrCode, Wifi, WifiOff, RefreshCw, Loader2, Unplug } from 'lucide-react'
 
-const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-const API_KEY = 'boragerir-whatsapp-server-2026'
+const WHATSAPP_SERVER_URL = '/api/whatsapp-server'
 
 export default function QRCodeSettingsPage() {
   const { company } = useCompany()
@@ -26,9 +25,7 @@ export default function QRCodeSettingsPage() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch(`${WHATSAPP_SERVER_URL}/api/instance/status/${instanceId}`, {
-        headers: { 'x-api-key': API_KEY },
-      })
+      const res = await fetch(`${WHATSAPP_SERVER_URL}/instance/status/${instanceId}`)
       if (res.ok) {
         const data = await res.json()
         setStatus(data.status)
@@ -44,9 +41,9 @@ export default function QRCodeSettingsPage() {
   const handleConnect = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`${WHATSAPP_SERVER_URL}/api/instance/connect`, {
+      const res = await fetch(`${WHATSAPP_SERVER_URL}/instance/connect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instanceId }),
       })
       if (res.ok) {
@@ -67,9 +64,9 @@ export default function QRCodeSettingsPage() {
 
   const handleDisconnect = async () => {
     try {
-      await fetch(`${WHATSAPP_SERVER_URL}/api/instance/disconnect`, {
+      await fetch(`${WHATSAPP_SERVER_URL}/instance/disconnect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ instanceId }),
       })
       setStatus('disconnected')
