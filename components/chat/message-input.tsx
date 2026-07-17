@@ -16,8 +16,10 @@ import {
   Image,
   FileText,
   Mic,
+  MicOff,
   Smile,
   LayoutTemplate,
+  Loader2,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -38,11 +40,135 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [quickReplyQuery, setQuickReplyQuery] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [isSendingAudio, setIsSendingAudio] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { sendMessage, isLoading } = useSendMessage()
   const { toast } = useToast()
 
   const phone = conversation.contact?.phone || ''
+
+  // Gravação de áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await sendAudioMessage(audioBlob)
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+      setRecordingTime(0)
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1)
+      }, 1000)
+    } catch {
+      toast({
+        title: 'Erro ao acessar microfone',
+        description: 'Permita o acesso ao microfone no navegador',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+        recordingIntervalRef.current = null
+      }
+    }
+  }
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop())
+      mediaRecorderRef.current = null
+      audioChunksRef.current = []
+      setIsRecording(false)
+      setRecordingTime(0)
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+        recordingIntervalRef.current = null
+      }
+    }
+  }
+
+  const sendAudioMessage = async (audioBlob: Blob) => {
+    setIsSendingAudio(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', audioBlob, `audio_${Date.now()}.webm`)
+      formData.append('conversationId', conversation.id)
+      formData.append('phone', phone)
+      formData.append('type', 'audio')
+
+      const res = await fetch('/api/upload-media', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        if (onOptimisticSend) {
+          onOptimisticSend({
+            content: null,
+            sender_type: 'agent',
+            message_type: 'audio',
+          })
+        }
+      } else {
+        const data = await res.json()
+        toast({
+          title: 'Erro ao enviar áudio',
+          description: data.error || 'Tente novamente',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Erro ao enviar áudio',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSendingAudio(false)
+      setRecordingTime(0)
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current)
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stream?.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
 
   const handleSend = async () => {
     if (!text.trim() || !phone) return
@@ -245,7 +371,7 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleMediaUpload('audio')}>
               <Mic className="mr-2 h-4 w-4" />
-              Áudio
+              Áudio (arquivo)
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -270,26 +396,68 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
           <Smile className="h-5 w-5" />
         </Button>
 
-        {/* Text Input */}
-        <Input
-          ref={inputRef}
-          placeholder="Digite uma mensagem... (/ para respostas rápidas)"
-          value={text}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          disabled={isLoading}
-          className="flex-1"
-        />
+        {/* Recording State or Text Input */}
+        {isRecording ? (
+          <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+            <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-sm font-medium text-red-600">{formatTime(recordingTime)}</span>
+            <span className="text-xs text-red-400 flex-1">Gravando...</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cancelRecording}
+              className="h-7 text-xs text-red-500 hover:text-red-700"
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={stopRecording}
+              className="h-7 text-xs bg-red-500 hover:bg-red-600"
+            >
+              <Send className="h-3 w-3 mr-1" /> Enviar
+            </Button>
+          </div>
+        ) : isSendingAudio ? (
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-slate-50 border rounded-md">
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <span className="text-sm text-slate-500">Enviando áudio...</span>
+          </div>
+        ) : (
+          <>
+            {/* Text Input */}
+            <Input
+              ref={inputRef}
+              placeholder="Digite uma mensagem... (/ para respostas rápidas)"
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              disabled={isLoading}
+              className="flex-1"
+            />
 
-        {/* Send Button */}
-        <Button
-          onClick={handleSend}
-          disabled={!text.trim()}
-          size="icon"
-          className="shrink-0"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+            {/* Send or Mic Button */}
+            {text.trim() ? (
+              <Button
+                onClick={handleSend}
+                disabled={!text.trim()}
+                size="icon"
+                className="shrink-0 bg-[#F26522] hover:bg-[#d4561c]"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={startRecording}
+                variant="ghost"
+                size="icon"
+                className="shrink-0 text-slate-500 hover:text-[#F26522]"
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

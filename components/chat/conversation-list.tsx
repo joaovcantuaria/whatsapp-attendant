@@ -221,10 +221,10 @@ export function ConversationList() {
   })
 
   const tabs = [
-    { value: 'all', label: 'Todas', count: conversations.length },
     { value: 'pending', label: 'Pendentes', count: conversations.filter(c => c.status === 'pending').length },
     { value: 'open', label: 'Abertas', count: conversations.filter(c => c.status === 'open').length },
     { value: 'closed', label: 'Fechadas', count: conversations.filter(c => c.status === 'closed').length },
+    { value: 'all', label: 'Todas', count: conversations.length },
   ]
 
   return (

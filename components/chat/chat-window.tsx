@@ -219,7 +219,7 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
       {windowStatus !== 'open' && <WindowExpiryBanner status={windowStatus} />}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 bg-slate-50">
+      <ScrollArea className="flex-1" style={{ background: '#efeae2 url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z\' fill=\'%23d4cfc6\' fill-opacity=\'0.15\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")' }}>
         <div className="p-4 max-w-3xl mx-auto">
           {isLoading ? (
             <div className="space-y-4">
@@ -228,6 +228,16 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
                   <Skeleton className="h-10 w-44 rounded-xl" />
                 </div>
               ))}
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+              <div className="h-16 w-16 rounded-full bg-white/80 flex items-center justify-center mb-3 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-slate-500">Nenhuma mensagem ainda</p>
+              <p className="text-xs text-slate-400 mt-0.5">Envie uma mensagem para iniciar</p>
             </div>
           ) : (
             <div className="space-y-1.5">
