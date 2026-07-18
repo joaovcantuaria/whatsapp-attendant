@@ -239,6 +239,23 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
   })
 
   console.log(`[Supabase] ✅ Mensagem salva: ${phone} → ${content.substring(0, 30)}`)
+
+  // Disparar push notification para agentes da empresa (se mensagem inbound)
+  if (!fromMe && companyId) {
+    try {
+      const pushUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://chat.boragerir.com'
+      await fetch(`${pushUrl}/api/push-send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId,
+          title: `${pushName || phone}`,
+          body: content?.substring(0, 100) || 'Nova mensagem recebida',
+          url: '/conversations',
+        }),
+      }).catch(() => {})
+    } catch {}
+  }
 }
 
 export async function updateContactName(instanceId: string, phone: string, name: string) {

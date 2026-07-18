@@ -8,6 +8,7 @@ import { ConnectionBanner } from '@/components/chat/connection-banner'
 import { useConversationStore } from '@/store/conversation-store'
 import { useNotificationSound } from '@/hooks/use-notification-sound'
 import { useDesktopNotifications } from '@/hooks/use-desktop-notifications'
+import { usePushNotifications } from '@/hooks/use-push-notifications'
 import { useState } from 'react'
 import { MessageCircle, PanelRightClose, PanelRightOpen, ArrowLeft } from 'lucide-react'
 
@@ -19,6 +20,8 @@ export default function ConversationsPage() {
   useNotificationSound()
   // Notificações desktop (browser push)
   useDesktopNotifications()
+  // Registrar push notifications (app fechado)
+  usePushNotifications()
 
   return (
     <div className="flex flex-col h-full">
