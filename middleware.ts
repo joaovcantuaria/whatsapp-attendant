@@ -63,8 +63,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Proteger super-admin
-  if (pathname.startsWith('/super-admin')) {
+  // Proteger super-admin e admin
+  if (pathname.startsWith('/super-admin') || pathname.startsWith('/admin')) {
     if (!session || session.user.email !== process.env.SUPER_ADMIN_EMAIL) {
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = '/conversations'
