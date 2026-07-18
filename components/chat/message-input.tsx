@@ -446,12 +446,12 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
           <Smile className="h-5 w-5" />
         </Button>
 
-        {/* Note Mode Toggle */}
+        {/* Note Mode Toggle - only on desktop */}
         <Button
           variant="ghost"
           size="icon"
           className={cn(
-            'shrink-0',
+            'shrink-0 hidden md:flex',
             isNoteMode && 'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:text-amber-800'
           )}
           onClick={() => setIsNoteMode(!isNoteMode)}
@@ -462,24 +462,13 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
 
         {/* Recording State or Text Input */}
         {isRecording ? (
-          <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
-            <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-sm font-medium text-red-600">{formatTime(recordingTime)}</span>
-            <span className="text-xs text-red-400 flex-1">Gravando...</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={cancelRecording}
-              className="h-7 text-xs text-red-500 hover:text-red-700"
-            >
-              Cancelar
-            </Button>
-            <Button
-              size="sm"
-              onClick={stopRecording}
-              className="h-7 text-xs bg-red-500 hover:bg-red-600"
-            >
-              <Send className="h-3 w-3 mr-1" /> Enviar
+          <div className="flex-1 flex items-center gap-2 px-2 py-1.5 bg-red-50 border border-red-200 rounded-md">
+            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span className="text-xs font-medium text-red-600">{formatTime(recordingTime)}</span>
+            <div className="flex-1" />
+            <button onClick={cancelRecording} className="text-[10px] text-red-500 font-medium">✕</button>
+            <Button size="sm" onClick={stopRecording} className="h-6 text-[10px] bg-red-500 hover:bg-red-600 px-2">
+              <Send className="h-3 w-3" />
             </Button>
           </div>
         ) : isSendingAudio ? (
@@ -492,13 +481,13 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
             {/* Text Input */}
             <Input
               ref={inputRef}
-              placeholder={isNoteMode ? 'Nota interna (não será enviada ao cliente)...' : 'Digite uma mensagem... (/ para respostas rápidas)'}
+              placeholder={isNoteMode ? 'Nota interna...' : 'Digite uma mensagem...'}
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
               className={cn(
-                'flex-1',
+                'flex-1 text-[16px] md:text-sm',
                 isNoteMode && 'bg-amber-50 border-amber-200 placeholder:text-amber-500'
               )}
             />

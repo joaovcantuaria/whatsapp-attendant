@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { CompanyProvider } from '@/hooks/use-company'
 import { Sidebar } from '@/components/shared/sidebar'
 import { MessageCircle, LayoutDashboard, Users, Settings } from 'lucide-react'
+import { useConversationStore } from '@/store/conversation-store'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -82,15 +83,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-hidden bg-slate-50 md:rounded-2xl pb-[72px] md:pb-0">
           {children}
         </main>
-        {/* Mobile bottom navigation */}
-        <MobileNav />
+        {/* Mobile bottom navigation - hidden when chat is open */}
+        <MobileNav hide={false} />
       </div>
     </CompanyProvider>
   )
 }
 
-function MobileNav() {
+function MobileNav({ hide }: { hide?: boolean }) {
   const pathname = usePathname()
+  const { selectedConversation } = useConversationStore()
+
+  // Hide when inside a chat on mobile
+  if (selectedConversation && pathname?.includes('/conversations')) return null
+  if (hide) return null
 
   const items = [
     { href: '/conversations', icon: MessageCircle, label: 'Chat' },

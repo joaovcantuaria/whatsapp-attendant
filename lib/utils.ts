@@ -33,8 +33,14 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 export function formatMessageTime(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  // Garantir que a data é interpretada como UTC se não tiver timezone
+  let date: Date
+  if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('T')) {
+    date = new Date(dateString)
+  } else {
+    date = new Date(dateString + 'Z')
+  }
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })
 }
 
 export function formatDate(dateString: string): string {

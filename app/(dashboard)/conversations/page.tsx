@@ -50,7 +50,7 @@ export default function ConversationsPage() {
           {selectedConversation ? (
             <>
               {/* Mobile back button */}
-              <div className="md:hidden h-11 border-b flex items-center px-3 bg-white">
+              <div className="md:hidden h-11 border-b flex items-center px-3 bg-white shrink-0">
                 <button
                   onClick={() => setSelectedConversation(null)}
                   className="flex items-center gap-2 text-slate-600 hover:text-slate-800"
@@ -59,7 +59,9 @@ export default function ConversationsPage() {
                   <span className="text-sm font-medium">Conversas</span>
                 </button>
               </div>
-              <ChatWindow conversation={selectedConversation} />
+              <div className="flex-1 flex flex-col min-h-0 pb-0 md:pb-0">
+                <ChatWindow conversation={selectedConversation} />
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center bg-slate-50/50">
