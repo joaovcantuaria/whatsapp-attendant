@@ -325,6 +325,9 @@ export class SessionManager {
           ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
           : new Date().toISOString()
 
+        // Não salvar se não tem conteúdo nem mídia (evita quadradinhos vazios)
+        if (!content && !mediaData) continue
+
         console.log(`[${instanceId}] 📩 ${phone}: ${content.substring(0, 50)}`)
 
         // Salvar no Supabase
