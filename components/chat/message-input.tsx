@@ -136,6 +136,8 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
             content: null,
             sender_type: 'agent',
             message_type: 'audio',
+            direction: 'outbound',
+            type: 'audio',
           })
         }
       } else {
@@ -224,6 +226,8 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
         content: messageText,
         sender_type: 'agent',
         message_type: 'text',
+        direction: 'outbound',
+        type: 'text',
       })
     }
 
