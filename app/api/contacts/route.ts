@@ -43,7 +43,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Filtrar grupos (números com mais de 15 dígitos ou com hífen - formato de grupo WhatsApp)
+    const contacts = (data || []).filter((contact: any) => {
+      const phone = contact.phone || ''
+      // Grupos têm formato como "120363422746351261" (>15 dígitos) ou contêm hífen
+      if (phone.includes('-')) return false
+      if (phone.replace(/\D/g, '').length > 15) return false
+      return true
+    })
+
+    return NextResponse.json(contacts)
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
