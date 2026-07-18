@@ -45,8 +45,10 @@ export function useMessages(conversationId: string | null) {
     const filtered = (data || []).filter((msg: Message) => {
       // Sempre manter notas internas
       if (msg.direction === 'internal' || (msg.type as string) === 'internal_note') return true
-      // Manter mensagens com conteúdo ou mídia ou tipo não-texto
-      return msg.content || msg.media_url || msg.type !== 'text'
+      // Manter mensagens com conteúdo ou mídia
+      if (msg.content || msg.media_url) return true
+      // Descartar mensagens sem conteúdo e sem mídia (quadradinhos vazios)
+      return false
     })
 
     setMessages(filtered)
@@ -71,7 +73,7 @@ export function useMessages(conversationId: string | null) {
         (payload) => {
           const newMsg = payload.new as Message
           // Ignorar mensagens vazias (sem conteúdo e sem mídia) exceto notas
-          if (newMsg.type === 'text' && !newMsg.content && !newMsg.media_url && newMsg.direction !== 'internal') return
+          if (!newMsg.content && !newMsg.media_url && newMsg.direction !== 'internal') return
           setMessages((prev) => {
             // Evitar duplicatas
             if (prev.some(m => m.id === newMsg.id)) return prev
