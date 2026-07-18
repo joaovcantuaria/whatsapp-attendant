@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase'
 import { useAuthStore } from '@/store/auth-store'
 import { CompanyProvider } from '@/hooks/use-company'
 import { Sidebar } from '@/components/shared/sidebar'
-import { MessageCircle, LayoutDashboard, Bot, Users, Settings } from 'lucide-react'
+import { MessageCircle, LayoutDashboard, Users, Settings } from 'lucide-react'
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -79,7 +79,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="hidden md:block">
           <Sidebar />
         </div>
-        <main className="flex-1 overflow-hidden bg-slate-50 md:rounded-2xl pb-14 md:pb-0">
+        <main className="flex-1 overflow-hidden bg-slate-50 md:rounded-2xl pb-[72px] md:pb-0">
           {children}
         </main>
         {/* Mobile bottom navigation */}
@@ -95,28 +95,30 @@ function MobileNav() {
   const items = [
     { href: '/conversations', icon: MessageCircle, label: 'Chat' },
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { href: '/chatbots', icon: Bot, label: 'Robôs' },
     { href: '/contacts', icon: Users, label: 'Contatos' },
     { href: '/settings', icon: Settings, label: 'Config' },
   ]
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around h-14 z-50">
-      {items.map((item) => {
-        const isActive = pathname?.startsWith(item.href)
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
-              isActive ? 'text-[#F26522]' : 'text-slate-400'
-            }`}
-          >
-            <item.icon className="h-5 w-5" />
-            <span className="text-[9px] font-medium">{item.label}</span>
-          </Link>
-        )
-      })}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+      <div className="flex items-center justify-around h-12 mb-2">
+        {items.map((item) => {
+          const isActive = pathname?.startsWith(item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
+                isActive ? 'text-[#F26522]' : 'text-slate-400'
+              }`}
+            >
+              <item.icon className="h-5 w-5" />
+              <span className="text-[9px] font-medium">{item.label}</span>
+            </Link>
+          )
+        })}
+      </div>
+      <div className="h-4 bg-white" />
     </nav>
   )
 }

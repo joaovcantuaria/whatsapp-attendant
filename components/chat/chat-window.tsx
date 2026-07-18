@@ -210,74 +210,84 @@ export function ChatWindow({ conversation }: ChatWindowProps) {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="h-12 border-b flex items-center justify-between px-4 bg-white">
-        <div className="flex items-center gap-2.5">
-          <Avatar className="h-8 w-8">
+      <div className="h-12 border-b flex items-center justify-between px-3 md:px-4 bg-white shrink-0 sticky top-0 z-20">
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarImage src={contact?.profile_picture || ''} />
             <AvatarFallback className="text-[10px] bg-[#F26522]/10 text-[#F26522] font-semibold">
               {contact?.name ? getInitials(contact.name) : '?'}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm font-medium text-slate-800">{contact?.name || 'Desconhecido'}</p>
-              <div className={`w-1.5 h-1.5 rounded-full ${status.color}`} />
-              <span className="text-[10px] text-slate-400">{status.label}</span>
-            </div>
-            <p className="text-[10px] text-slate-400">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
-            {isContactTyping && (
-              <p className="text-[10px] text-green-600 font-medium animate-pulse">Digitando...</p>
-            )}
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800 truncate">{contact?.name || 'Desconhecido'}</p>
+            <p className="text-[10px] text-slate-400 truncate">{contact?.phone ? formatPhone(contact.phone) : ''}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* Pending: show assign + wait */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Mobile: only show Atribuir + menu gear */}
           {(conversation.status === 'pending' || !conversation.agent_id) && (
-            <>
-              <Button size="sm" onClick={handleAssign} className="h-7 text-[10px] px-2.5 bg-[#F26522] hover:bg-[#d4561c]">
-                <UserPlus className="h-3 w-3 mr-1" /> Atribuir
-              </Button>
+            <Button size="sm" onClick={handleAssign} className="h-7 text-[10px] px-2 bg-[#F26522] hover:bg-[#d4561c]">
+              <UserPlus className="h-3 w-3 md:mr-1" />
+              <span className="hidden md:inline">Atribuir</span>
+            </Button>
+          )}
+
+          {/* Desktop only buttons */}
+          <div className="hidden md:flex items-center gap-1">
+            {(conversation.status === 'pending' || !conversation.agent_id) && (
               <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2.5 text-slate-500">
                 <Clock className="h-3 w-3 mr-1" /> Espera
               </Button>
-            </>
-          )}
-          <Button
-            size="sm"
-            variant={aiEnabled ? 'outline' : 'default'}
-            onClick={async () => {
-              const newValue = !aiEnabled
-              setAiEnabled(newValue)
-              await supabase.from('conversations').update({ ai_enabled: newValue }).eq('id', conversation.id)
-              toast({ title: newValue ? '🤖 IA ativada para esta conversa' : '🚫 IA desativada para esta conversa' })
-            }}
-            className={`h-7 text-[10px] px-2 ${aiEnabled ? 'text-green-600 border-green-200 hover:bg-green-50' : 'bg-slate-500 hover:bg-slate-600 text-white'}`}
-            title={aiEnabled ? 'IA ativa — clique para desativar' : 'IA inativa — clique para ativar'}
-          >
-            {aiEnabled ? <Bot className="h-3 w-3 mr-1" /> : <Bot className="h-3 w-3 mr-1" />}
-            {aiEnabled ? 'IA' : 'IA off'}
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleSignalLead} className="h-7 text-[11px] px-2.5 text-orange-600 border-orange-200 hover:bg-orange-50">
-            <Target className="h-3 w-3 mr-1" /> Lead
-          </Button>
-          {conversation.status !== 'closed' && (
-            <Button size="sm" variant="ghost" onClick={handleClose} className="h-7 text-[11px] px-2.5 text-slate-500">
-              <XCircle className="h-3 w-3 mr-1" /> Encerrar
+            )}
+            <Button
+              size="sm"
+              variant={aiEnabled ? 'outline' : 'default'}
+              onClick={async () => {
+                const newValue = !aiEnabled
+                setAiEnabled(newValue)
+                await supabase.from('conversations').update({ ai_enabled: newValue }).eq('id', conversation.id)
+                toast({ title: newValue ? '🤖 IA ativada' : '🚫 IA desativada' })
+              }}
+              className={`h-7 text-[10px] px-2 ${aiEnabled ? 'text-green-600 border-green-200 hover:bg-green-50' : 'bg-slate-500 hover:bg-slate-600 text-white'}`}
+            >
+              <Bot className="h-3 w-3 mr-1" />
+              {aiEnabled ? 'IA' : 'IA off'}
             </Button>
-          )}
+            <Button size="sm" variant="outline" onClick={handleSignalLead} className="h-7 text-[11px] px-2.5 text-orange-600 border-orange-200 hover:bg-orange-50">
+              <Target className="h-3 w-3 mr-1" /> Lead
+            </Button>
+            {conversation.status !== 'closed' && (
+              <Button size="sm" variant="ghost" onClick={handleClose} className="h-7 text-[11px] px-2.5 text-slate-500">
+                <XCircle className="h-3 w-3 mr-1" /> Encerrar
+              </Button>
+            )}
+          </div>
+
+          {/* Menu (both mobile & desktop) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7">
                 <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="text-xs">
+            <DropdownMenuContent align="end" className="text-xs w-48">
               <DropdownMenuItem onClick={handleAssign} className="text-xs">
                 <UserPlus className="mr-2 h-3 w-3" /> Assumir
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTransfer} className="text-xs">
                 <ArrowRightLeft className="mr-2 h-3 w-3" /> Transferir
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const newValue = !aiEnabled
+                  setAiEnabled(newValue)
+                  await supabase.from('conversations').update({ ai_enabled: newValue }).eq('id', conversation.id)
+                  toast({ title: newValue ? '🤖 IA ativada' : '🚫 IA desativada' })
+                }}
+                className="text-xs"
+              >
+                <Bot className="mr-2 h-3 w-3" /> {aiEnabled ? 'Desativar IA' : 'Ativar IA'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignalLead} className="text-xs text-orange-600">
                 <Target className="mr-2 h-3 w-3" /> Sinalizar como Lead

@@ -25,8 +25,8 @@ export default function ConversationsPage() {
       {/* Connection Banner */}
       <ConnectionBanner />
 
-      {/* Top: Conversation Tabs - hidden on mobile when chat is open */}
-      <div className={`${selectedConversation ? 'hidden md:block' : ''}`}>
+      {/* Top: Conversation Tabs - only on desktop */}
+      <div className="hidden md:block">
         <ConversationTabs />
       </div>
 

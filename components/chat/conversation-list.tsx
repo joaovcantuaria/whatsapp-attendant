@@ -343,7 +343,7 @@ export function ConversationList() {
 
       {/* New Conversation Dialog */}
       <Dialog open={showNewConversation} onOpenChange={setShowNewConversation}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-[92vw] md:max-w-md max-h-[80vh] overflow-y-auto mx-auto rounded-xl">
           <DialogHeader>
             <DialogTitle>Nova Conversa</DialogTitle>
             <DialogDescription>Inicie uma conversa enviando um template aprovado</DialogDescription>
