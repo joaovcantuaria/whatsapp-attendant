@@ -100,7 +100,7 @@ export class SessionManager {
     instance.socket = socket
 
     // Connection updates
-    socket.ev.on('connection.update', (update) => {
+    socket.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update
 
       if (qr) {
