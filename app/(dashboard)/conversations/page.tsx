@@ -9,10 +9,10 @@ import { useConversationStore } from '@/store/conversation-store'
 import { useNotificationSound } from '@/hooks/use-notification-sound'
 import { useDesktopNotifications } from '@/hooks/use-desktop-notifications'
 import { useState } from 'react'
-import { MessageCircle, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { MessageCircle, PanelRightClose, PanelRightOpen, ArrowLeft } from 'lucide-react'
 
 export default function ConversationsPage() {
-  const { selectedConversation } = useConversationStore()
+  const { selectedConversation, setSelectedConversation } = useConversationStore()
   const [panelOpen, setPanelOpen] = useState(true)
 
   // Notificação sonora para novas mensagens
@@ -25,20 +25,42 @@ export default function ConversationsPage() {
       {/* Connection Banner */}
       <ConnectionBanner />
 
-      {/* Top: Conversation Tabs */}
-      <ConversationTabs />
+      {/* Top: Conversation Tabs - hidden on mobile when chat is open */}
+      <div className={`${selectedConversation ? 'hidden md:block' : ''}`}>
+        <ConversationTabs />
+      </div>
 
       {/* Body */}
-      <div className="flex flex-1 min-h-0">
-        {/* Lista de Conversas */}
-        <div className="w-[300px] border-r border-slate-200 flex-shrink-0">
+      <div className="flex flex-1 min-h-0 relative">
+        {/* Lista de Conversas - full width on mobile, fixed width on desktop */}
+        <div className={`
+          w-full md:w-[300px] md:border-r md:border-slate-200 md:flex-shrink-0
+          ${selectedConversation ? 'hidden md:block' : 'block'}
+        `}>
           <ConversationList />
         </div>
 
-        {/* Chat */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Chat - full screen on mobile (overlays the list), flex on desktop */}
+        <div className={`
+          absolute inset-0 md:relative md:inset-auto
+          flex-1 flex flex-col min-w-0
+          ${selectedConversation ? 'block' : 'hidden md:flex'}
+          bg-white z-10 md:z-auto
+        `}>
           {selectedConversation ? (
-            <ChatWindow conversation={selectedConversation} />
+            <>
+              {/* Mobile back button */}
+              <div className="md:hidden h-11 border-b flex items-center px-3 bg-white">
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-800"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="text-sm font-medium">Conversas</span>
+                </button>
+              </div>
+              <ChatWindow conversation={selectedConversation} />
+            </>
           ) : (
             <div className="flex-1 flex items-center justify-center bg-slate-50/50">
               <div className="text-center">
@@ -52,9 +74,9 @@ export default function ConversationsPage() {
           )}
         </div>
 
-        {/* Painel Lateral - Colapsável */}
+        {/* Painel Lateral - hidden on mobile */}
         {selectedConversation && (
-          <>
+          <div className="hidden lg:block">
             {panelOpen ? (
               <div className="w-[280px] border-l border-slate-200 flex-shrink-0 relative">
                 <button
@@ -77,7 +99,7 @@ export default function ConversationsPage() {
                 </button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
