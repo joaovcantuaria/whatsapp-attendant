@@ -19,9 +19,9 @@ export const metadata: Metadata = {
     userScalable: false,
   },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/icon.png',
+    icon: '/icon-app.png',
+    shortcut: '/icon-app.png',
+    apple: '/icon-app.png',
   },
 }
 
@@ -38,7 +38,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="BoraGerir" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/icon-app.png" />
       </head>
       <body className="font-sans antialiased">
         {children}
