@@ -39,6 +39,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="BoraGerir" />
         <link rel="apple-touch-icon" href="/icon-app.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icon-app.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icon-app.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/icon-app.png" />
+        <link rel="icon" type="image/png" href="/icon-app.png" />
       </head>
       <body className="font-sans antialiased">
         {children}
