@@ -209,23 +209,16 @@ export class SessionManager {
         // Ignorar newsletters
         if (remoteJid.includes('@newsletter')) continue
 
-        // Detectar se é grupo
-        const isGroup = remoteJid.includes('@g.us')
+        // Ignorar status/stories do WhatsApp
+        if (remoteJid === 'status@broadcast') continue
 
-        // Para grupos, buscar nome do grupo
-        let groupName = ''
-        if (isGroup) {
-          try {
-            const groupMetadata = await socket.groupMetadata(remoteJid)
-            groupName = groupMetadata?.subject || ''
-          } catch {}
-        }
+        // Detectar se é grupo - ignorar mensagens de grupo
+        const isGroup = remoteJid.includes('@g.us')
+        if (isGroup) continue
 
         // Extrair número de telefone do JID
         let phone = ''
-        if (isGroup) {
-          phone = remoteJid.replace('@g.us', '')
-        } else if (remoteJid.endsWith('@s.whatsapp.net')) {
+        if (remoteJid.endsWith('@s.whatsapp.net')) {
           phone = remoteJid.replace('@s.whatsapp.net', '')
         } else if (remoteJid.endsWith('@lid') || remoteJid.includes(':')) {
           console.log(`[${instanceId}] ⚠️ Mensagem com LID JID: ${remoteJid}`)
@@ -337,13 +330,12 @@ export class SessionManager {
             instanceId,
             phone,
             content,
-            pushName: isGroup ? (groupName || pushName) : pushName,
+            pushName,
             timestamp,
             fromMe: false,
             messageId: msg.key.id || '',
             type: messageType,
             mediaUrl: mediaData,
-            isGroup,
           })
 
           // Atualizar nome do contato se veio pushName
@@ -460,100 +452,8 @@ export class SessionManager {
   }
 
   private async syncGroups(instanceId: string, socket: WASocket) {
-    try {
-      console.log(`[${instanceId}] 🔄 Sincronizando grupos...`)
-      const groups = await socket.groupFetchAllParticipating()
-      
-      if (!groups || Object.keys(groups).length === 0) {
-        console.log(`[${instanceId}] Nenhum grupo encontrado`)
-        return
-      }
-
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.SUPABASE_URL || '',
-        process.env.SUPABASE_SERVICE_KEY || '',
-        { auth: { persistSession: false } }
-      )
-
-      let companyId: string | null = null
-      if (instanceId && instanceId !== 'default') {
-        const { data: company } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('id', instanceId)
-          .maybeSingle()
-        companyId = company?.id || null
-      }
-      if (!companyId && process.env.DEFAULT_COMPANY_ID) {
-        companyId = process.env.DEFAULT_COMPANY_ID
-      }
-      if (!companyId) {
-        const { data: latestCompany } = await supabase
-          .from('companies')
-          .select('id')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        companyId = latestCompany?.id || null
-      }
-      if (!companyId) return
-
-      let syncCount = 0
-      for (const [jid, group] of Object.entries(groups)) {
-        const groupPhone = jid.replace('@g.us', '')
-        const groupName = group.subject || 'Grupo sem nome'
-
-        let { data: contact } = await supabase
-          .from('contacts')
-          .select('id')
-          .eq('phone', groupPhone)
-          .eq('company_id', companyId)
-          .maybeSingle()
-
-        if (!contact) {
-          const { data: newContact } = await supabase
-            .from('contacts')
-            .insert({ phone: groupPhone, name: groupName, company_id: companyId })
-            .select('id')
-            .single()
-          contact = newContact
-        } else {
-          await supabase
-            .from('contacts')
-            .update({ name: groupName })
-            .eq('id', contact.id)
-        }
-
-        if (!contact) continue
-
-        const { data: existingConv } = await supabase
-          .from('conversations')
-          .select('id')
-          .eq('contact_id', contact.id)
-          .eq('company_id', companyId)
-          .eq('channel', 'whatsapp_group')
-          .maybeSingle()
-
-        if (!existingConv) {
-          await supabase
-            .from('conversations')
-            .insert({
-              contact_id: contact.id,
-              company_id: companyId,
-              channel: 'whatsapp_group',
-              status: 'open',
-              last_message: null,
-              last_message_at: new Date().toISOString(),
-            })
-          syncCount++
-        }
-      }
-
-      console.log(`[${instanceId}] ✅ ${syncCount} novos grupos sincronizados (${Object.keys(groups).length} total)`)
-    } catch (error) {
-      console.error(`[${instanceId}] ⚠️ Erro ao sincronizar grupos:`, error)
-    }
+    // Grupos não são sincronizados como contatos
+    console.log(`[${instanceId}] ℹ️ Sincronização de grupos desativada`)
   }
 
   async disconnect(instanceId: string): Promise<void> {
