@@ -43,10 +43,67 @@ export async function POST(request: NextRequest) {
       .eq('id', member.company_id)
       .single()
 
-    if (!company?.whatsapp_token || !company?.whatsapp_phone_number_id) {
-      return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
+    // Determinar se usa Baileys ou Meta API
+    const useBaileys = !company?.whatsapp_token || !company?.whatsapp_phone_number_id
+
+    if (useBaileys) {
+      // ===== ENVIO VIA BAILEYS (QR Code) =====
+      // Converter arquivo para base64 data URI
+      const arrayBuffer = await file.arrayBuffer()
+      const base64 = Buffer.from(arrayBuffer).toString('base64')
+      const dataUri = `data:${file.type};base64,${base64}`
+
+      const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
+      const API_KEY = 'boragerir-whatsapp-server-2026'
+
+      const baileyRes = await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
+        method: 'POST',
+        headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceId: member.company_id,
+          phone,
+          mediaUrl: dataUri,
+          caption: caption || undefined,
+          type,
+        }),
+      })
+
+      if (!baileyRes.ok) {
+        const errData = await baileyRes.json().catch(() => ({}))
+        return NextResponse.json({ error: errData.error || 'Erro ao enviar mídia via QR Code' }, { status: 500 })
+      }
+
+      // Salvar mensagem no banco
+      const { data: message } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          company_id: member.company_id,
+          whatsapp_message_id: `baileys_media_${Date.now()}`,
+          direction: 'outbound',
+          type,
+          content: caption || null,
+          media_url: dataUri,
+          media_mime_type: file.type,
+          media_filename: file.name,
+          status: 'sent',
+          agent_id: session.user.id,
+        })
+        .select()
+        .single()
+
+      // Atualizar conversa
+      await supabase.from('conversations').update({
+        last_message: caption || `[${type}]`,
+        last_message_at: new Date().toISOString(),
+        status: 'open',
+        updated_at: new Date().toISOString(),
+      }).eq('id', conversationId)
+
+      return NextResponse.json(message || { success: true })
     }
 
+    // ===== ENVIO VIA META API (Oficial) =====
     const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
 
     // 1. Upload da mídia para a Meta
