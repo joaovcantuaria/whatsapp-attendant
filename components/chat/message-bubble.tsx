@@ -55,9 +55,10 @@ function DownloadButton({ mediaUrl, filename, type }: { mediaUrl: string; filena
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  // Não renderizar mensagens vazias (sem conteúdo visível e sem mídia)
+  // Não renderizar mensagens vazias (sem conteúdo visível e sem mídia real)
   const hasVisibleContent = message.content && message.content.trim().length > 0
-  if (!hasVisibleContent && !message.media_url && message.direction !== 'internal' && message.type !== 'internal_note') {
+  const hasMedia = message.media_url && message.media_url.trim().length > 0
+  if (!hasVisibleContent && !hasMedia && message.direction !== 'internal' && message.type !== 'internal_note') {
     return null
   }
 
