@@ -2,13 +2,26 @@ import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
   WASocket,
+  makeCacheableSignalKeyStore,
+  WAMessageKey,
+  WAMessageContent,
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import path from 'path'
 import fs from 'fs'
 import pino from 'pino'
+import WebSocket from 'ws'
+
+// Garantir WebSocket global antes de qualquer uso do Supabase
+if (!globalThis.WebSocket) {
+  ;(globalThis as any).WebSocket = WebSocket
+}
 
 const logger = pino({ level: 'silent' })
+
+// Cache para retry de mensagens que falharam na decriptação
+// Isso permite ao Baileys solicitar re-envio quando Bad MAC ocorre
+const msgRetryCounterMap = new Map<string, number>()
 
 export interface InstanceStatus {
   status: 'disconnected' | 'connecting' | 'connected' | 'qr_ready'
@@ -85,7 +98,10 @@ export class SessionManager {
     this.instances.set(instanceId, instance)
 
     const socket = makeWASocket({
-      auth: state,
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger),
+      },
       printQRInTerminal: true,
       logger,
       browser: ['BoraGerir', 'Chrome', '120.0.0'],
@@ -95,6 +111,11 @@ export class SessionManager {
       retryRequestDelayMs: 250,
       markOnlineOnConnect: false,
       shouldIgnoreJid: (jid) => jid?.endsWith('@newsletter') || false,
+      msgRetryCounterCache: msgRetryCounterMap as any,
+      getMessage: async (key: WAMessageKey): Promise<WAMessageContent | undefined> => {
+        // Retornar undefined para forçar o Baileys a solicitar retry do remetente
+        return undefined
+      },
     })
 
     instance.socket = socket
@@ -201,24 +222,17 @@ export class SessionManager {
         }
 
         // Extrair número de telefone do JID
-        // Formato normal: 5511999999999@s.whatsapp.net
-        // Formato LID (multi-device): 197801061421087@lid
-        // Formato grupo: 5538999209694-1234567890@g.us
         let phone = ''
         if (isGroup) {
-          // Para grupos, usar o groupJid como identificador
           phone = remoteJid.replace('@g.us', '')
         } else if (remoteJid.endsWith('@s.whatsapp.net')) {
           phone = remoteJid.replace('@s.whatsapp.net', '')
         } else if (remoteJid.endsWith('@lid') || remoteJid.includes(':')) {
-          // LID format - tentar mapear para o número real usando signalRepository
           console.log(`[${instanceId}] ⚠️ Mensagem com LID JID: ${remoteJid}`)
           
           try {
-            // Usar o mapeamento LID → PN (Phone Number) do Baileys
             const phoneJid = await (socket as any).signalRepository?.lidMapping?.getPNForLID(remoteJid)
             if (phoneJid) {
-              // phoneJid vem como "5511999999999:0@s.whatsapp.net" ou "5511999999999@s.whatsapp.net"
               phone = phoneJid.split(':')[0].replace('@s.whatsapp.net', '')
               console.log(`[${instanceId}] ✅ LID mapeado para número real: ${phone}`)
             }
@@ -226,13 +240,11 @@ export class SessionManager {
             console.log(`[${instanceId}] ⚠️ Erro ao mapear LID: ${lidError}`)
           }
 
-          // Fallback: tentar extrair do formato numero:device@s.whatsapp.net
           if (!phone) {
             const colonSplit = remoteJid.split(':')
             if (colonSplit[0] && /^\d{10,15}$/.test(colonSplit[0])) {
               phone = colonSplit[0]
             } else {
-              // Último recurso: usar o LID como identificador (não ideal mas mantém o contato rastreável)
               phone = remoteJid.replace('@lid', '').replace(/@.*$/, '')
               console.log(`[${instanceId}] ⚠️ Usando LID como phone (sem mapeamento): ${phone}`)
             }
@@ -245,11 +257,23 @@ export class SessionManager {
 
         // Ignorar mensagens de protocolo/sistema sem conteúdo real
         if (!msg.message) continue
-        if (msg.message.protocolMessage || 
-            msg.message.senderKeyDistributionMessage ||
-            msg.message.messageContextInfo ||
-            msg.message.reactionMessage ||
-            msg.messageStubType) continue
+        
+        // Verificar se é apenas uma mensagem de protocolo (sem conteúdo útil)
+        const hasRealContent = msg.message.conversation ||
+          msg.message.extendedTextMessage ||
+          msg.message.imageMessage ||
+          msg.message.videoMessage ||
+          msg.message.audioMessage ||
+          msg.message.documentMessage ||
+          msg.message.stickerMessage ||
+          msg.message.contactMessage ||
+          msg.message.locationMessage ||
+          msg.message.buttonsResponseMessage ||
+          msg.message.listResponseMessage ||
+          msg.message.templateButtonReplyMessage
+        
+        if (!hasRealContent) continue
+        if (msg.message.protocolMessage || msg.message.reactionMessage || msg.messageStubType) continue
 
         const content =
           msg.message?.conversation ||
@@ -321,7 +345,6 @@ export class SessionManager {
 
           // Atualizar nome do contato se veio pushName
           if (pushName) {
-            const { updateContactName } = await import('./supabase')
             await updateContactName(instanceId, phone, pushName)
           }
         } catch (error) {
@@ -338,7 +361,6 @@ export class SessionManager {
 
         let status: string | null = null
         if (update.receipt.receiptTimestamp) {
-          // Receipt timestamp means delivered
           status = 'delivered'
         }
         if (update.receipt.readTimestamp) {
@@ -404,7 +426,6 @@ export class SessionManager {
   }
 
   private startHeartbeat(instanceId: string) {
-    // Clear any existing heartbeat
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
     }
@@ -452,7 +473,6 @@ export class SessionManager {
         { auth: { persistSession: false } }
       )
 
-      // Buscar company_id
       let companyId: string | null = null
       if (instanceId && instanceId !== 'default') {
         const { data: company } = await supabase
@@ -481,7 +501,6 @@ export class SessionManager {
         const groupPhone = jid.replace('@g.us', '')
         const groupName = group.subject || 'Grupo sem nome'
 
-        // Buscar ou criar contato para o grupo
         let { data: contact } = await supabase
           .from('contacts')
           .select('id')
@@ -497,7 +516,6 @@ export class SessionManager {
             .single()
           contact = newContact
         } else {
-          // Atualizar nome do grupo se mudou
           await supabase
             .from('contacts')
             .update({ name: groupName })
@@ -506,7 +524,6 @@ export class SessionManager {
 
         if (!contact) continue
 
-        // Verificar se já tem conversa para este grupo
         const { data: existingConv } = await supabase
           .from('conversations')
           .select('id')
@@ -559,7 +576,6 @@ export class SessionManager {
       const sent = await instance.socket.sendMessage(jid, { text: message })
       const sentMessageId = sent?.key?.id || `sent_${Date.now()}`
 
-      // Salvar mensagem enviada no Supabase (pular se já será salvo pelo caller)
       if (!skipSave) {
         try {
           const { saveMessageToSupabase } = await import('./supabase')

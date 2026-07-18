@@ -5,6 +5,11 @@ import QRCode from 'qrcode'
 export const router = Router()
 const sessions = new SessionManager()
 
+// Export para auto-reconnect
+export function getSessionManager() {
+  return sessions
+}
+
 // Criar/conectar instância
 router.post('/instance/connect', async (req, res) => {
   try {

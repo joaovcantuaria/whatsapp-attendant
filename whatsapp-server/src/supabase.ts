@@ -1,3 +1,10 @@
+import WebSocket from 'ws'
+
+// Garantir WebSocket global para o Supabase Realtime
+if (!globalThis.WebSocket) {
+  ;(globalThis as any).WebSocket = WebSocket
+}
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -45,7 +52,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   // Fallback: buscar a empresa mais recente (última criada)
   if (!companyId) {
-    // Primeiro checar se tem env var definida
     if (process.env.DEFAULT_COMPANY_ID) {
       companyId = process.env.DEFAULT_COMPANY_ID
       console.log(`[Supabase] Usando empresa da env: ${companyId}`)
@@ -97,8 +103,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
   if (!contact) return
 
   // 3. Buscar conversa existente (qualquer status, incluindo fechada)
-  // Prioridade: aberta/pendente primeiro, depois fechada mais recente
-  // Filtrar pelo source_phone (número conectado) para não misturar conversas
   let { data: conversation } = await supabase
     .from('conversations')
     .select('id, status')
@@ -124,7 +128,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       .single()
     
     if (legacyConv) {
-      // Atualizar conversa antiga com o source_phone
       await supabase.from('conversations').update({ source_phone: connectedPhone }).eq('id', legacyConv.id)
       conversation = legacyConv
     }
@@ -144,7 +147,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       .single()
 
     if (closedConv && !fromMe) {
-      // Reabrir a conversa fechada como pendente
       await supabase
         .from('conversations')
         .update({
@@ -159,7 +161,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       conversation = closedConv
       console.log(`[Supabase] 🔄 Conversa reaberta: ${closedConv.id}`)
     } else if (!closedConv) {
-      // Nenhuma conversa existe — criar nova
       const { data: newConv } = await supabase
         .from('conversations')
         .insert({
@@ -176,7 +177,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
         .single()
       conversation = newConv
     } else {
-      // Conversa fechada mas mensagem é outbound (enviada por nós) — usar a fechada sem reabrir
       conversation = closedConv
     }
   } else {
@@ -186,7 +186,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
       last_message_at: timestamp,
     }
     if (!fromMe) {
-      // Incrementar unread
       const { data: currentConv } = await supabase
         .from('conversations')
         .select('unread_count')
@@ -209,7 +208,6 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
   }
 
   // 4. Salvar mensagem (com proteção contra duplicatas)
-  // Verificar se já existe mensagem idêntica nos últimos 10 segundos
   const tenSecondsAgo = new Date(Date.now() - 10000).toISOString()
   const { data: existingMsg } = await supabase
     .from('messages')

@@ -1,7 +1,9 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { router } from './routes'
+import path from 'path'
+import fs from 'fs'
+import { router, getSessionManager } from './routes'
 
 dotenv.config()
 
@@ -36,4 +38,32 @@ app.get('/health', (req, res) => {
 
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 BoraGerir WhatsApp Server rodando na porta ${PORT}`)
+  autoReconnectSessions()
 })
+
+async function autoReconnectSessions() {
+  const sessionsDir = path.join(process.cwd(), 'sessions')
+  if (!fs.existsSync(sessionsDir)) return
+
+  const sessionFolders = fs.readdirSync(sessionsDir).filter((f) => {
+    const fullPath = path.join(sessionsDir, f)
+    return fs.statSync(fullPath).isDirectory()
+  })
+
+  if (sessionFolders.length === 0) {
+    console.log('📂 Nenhuma sessão salva para reconectar')
+    return
+  }
+
+  console.log(`📂 Reconectando ${sessionFolders.length} sessão(ões) salvas...`)
+
+  const sessions = getSessionManager()
+  for (const instanceId of sessionFolders) {
+    try {
+      console.log(`🔄 Reconectando: ${instanceId}`)
+      await sessions.connect(instanceId)
+    } catch (error) {
+      console.error(`❌ Erro ao reconectar ${instanceId}:`, error)
+    }
+  }
+}
