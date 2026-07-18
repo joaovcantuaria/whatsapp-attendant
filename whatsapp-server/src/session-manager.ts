@@ -328,7 +328,7 @@ export class SessionManager {
         // Não salvar se não tem conteúdo nem mídia (evita quadradinhos vazios)
         if (!content && !mediaData) continue
 
-        console.log(`[${instanceId}] 📩 ${phone}: ${content.substring(0, 50)}`)
+        console.log(`[${instanceId}] 📩 ${phone}: ${content.substring(0, 50)} [type=${messageType}, hasMedia=${!!mediaData}]`)
 
         // Salvar no Supabase
         try {
