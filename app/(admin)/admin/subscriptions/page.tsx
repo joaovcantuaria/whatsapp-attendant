@@ -42,7 +42,15 @@ export default function AdminSubscriptions() {
       const res = await fetch('/api/admin/plans')
       if (res.ok) {
         const data = await res.json()
-        setPlans(Array.isArray(data) ? data : [])
+        const parsed = Array.isArray(data) ? data.map((plan: any) => ({
+          ...plan,
+          features: parseFeatures(plan.features),
+          max_agents: plan.max_agents ?? 0,
+          max_messages: plan.max_messages ?? 0,
+          max_contacts: plan.max_contacts ?? 0,
+          price_monthly: plan.price_monthly ?? 0,
+        })) : []
+        setPlans(parsed)
       } else {
         console.error('Erro ao carregar planos:', res.status)
         setPlans([])
@@ -53,6 +61,19 @@ export default function AdminSubscriptions() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function parseFeatures(features: any): string[] {
+    if (Array.isArray(features)) return features
+    if (typeof features === 'string') {
+      try {
+        const parsed = JSON.parse(features)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return features.split('\n').filter(Boolean)
+      }
+    }
+    return []
   }
 
   async function savePlan() {
