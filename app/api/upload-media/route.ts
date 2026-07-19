@@ -3,6 +3,9 @@ import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supab
 
 export const dynamic = 'force-dynamic'
 
+// Aumentar limite de body para uploads de mídia
+export const maxDuration = 30 // 30 segundos (plano Pro) ou 10s (Hobby)
+
 // POST - Upload de mídia e envio via WhatsApp
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +25,12 @@ export async function POST(request: NextRequest) {
 
     if (!file || !conversationId || !phone || !type) {
       return NextResponse.json({ error: 'file, conversationId, phone e type são obrigatórios' }, { status: 400 })
+    }
+
+    // Validar tamanho - Baileys aceita até ~16MB, mas Vercel limita o body
+    // Base64 aumenta ~33%, então limitamos o arquivo original a 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Arquivo muito grande (máximo 10MB)' }, { status: 400 })
     }
 
     // Buscar credenciais da empresa
@@ -48,59 +57,101 @@ export async function POST(request: NextRequest) {
 
     if (useBaileys) {
       // ===== ENVIO VIA BAILEYS (QR Code) =====
-      // Converter arquivo para base64 data URI
       const arrayBuffer = await file.arrayBuffer()
       const base64 = Buffer.from(arrayBuffer).toString('base64')
-      const dataUri = `data:${file.type};base64,${base64}`
+      const mimeType = file.type || 'application/octet-stream'
+      const dataUri = `data:${mimeType};base64,${base64}`
 
       const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
       const API_KEY = 'boragerir-whatsapp-server-2026'
 
-      const baileyRes = await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
-        method: 'POST',
-        headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instanceId: member.company_id,
-          phone,
-          mediaUrl: dataUri,
-          caption: caption || undefined,
-          type,
-        }),
-      })
+      // Usar AbortController para timeout de 25s
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 25000)
 
-      if (!baileyRes.ok) {
-        const errData = await baileyRes.json().catch(() => ({}))
-        return NextResponse.json({ error: errData.error || 'Erro ao enviar mídia via QR Code' }, { status: 500 })
-      }
-
-      // Salvar mensagem no banco
-      const { data: message } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          company_id: member.company_id,
-          whatsapp_message_id: `baileys_media_${Date.now()}`,
-          direction: 'outbound',
-          type,
-          content: caption || null,
-          media_url: dataUri,
-          media_mime_type: file.type,
-          media_filename: file.name,
-          status: 'sent',
-          agent_id: session.user.id,
+      try {
+        const baileyRes = await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
+          method: 'POST',
+          headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instanceId: member.company_id,
+            phone,
+            mediaUrl: dataUri,
+            caption: caption || undefined,
+            type,
+            fileName: file.name,
+          }),
+          signal: controller.signal,
         })
-        .select()
-        .single()
 
-      // Atualizar conversa
-      await supabase.from('conversations').update({
-        last_message: caption || `[${type}]`,
-        last_message_at: new Date().toISOString(),
-        status: 'open',
-        updated_at: new Date().toISOString(),
-      }).eq('id', conversationId)
+        clearTimeout(timeout)
 
-      return NextResponse.json(message || { success: true })
+        if (!baileyRes.ok) {
+          const errData = await baileyRes.json().catch(() => ({}))
+          console.error('Baileys send-media error:', errData)
+          return NextResponse.json({ error: errData.error || 'Erro ao enviar mídia via QR Code' }, { status: 500 })
+        }
+
+        const baileyData = await baileyRes.json().catch(() => ({}))
+
+        // Salvar URL da mídia no Supabase Storage para exibição posterior
+        let storedMediaUrl = dataUri
+        try {
+          const storagePath = `media/${member.company_id}/${Date.now()}_${file.name}`
+          const { data: uploadData } = await serviceClient.storage
+            .from('media')
+            .upload(storagePath, Buffer.from(arrayBuffer), {
+              contentType: mimeType,
+              upsert: false,
+            })
+          if (uploadData?.path) {
+            const { data: publicUrl } = serviceClient.storage
+              .from('media')
+              .getPublicUrl(uploadData.path)
+            if (publicUrl?.publicUrl) {
+              storedMediaUrl = publicUrl.publicUrl
+            }
+          }
+        } catch (storageErr) {
+          // Se falhar o storage, usa o dataUri mesmo (vai funcionar mas ocupa mais no banco)
+          console.warn('Storage upload failed, using dataUri:', storageErr)
+        }
+
+        // Salvar mensagem no banco
+        const { data: message } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            company_id: member.company_id,
+            whatsapp_message_id: baileyData?.messageId || `baileys_media_${Date.now()}`,
+            direction: 'outbound',
+            type,
+            content: caption || null,
+            media_url: storedMediaUrl,
+            media_mime_type: mimeType,
+            media_filename: file.name,
+            status: 'sent',
+            agent_id: session.user.id,
+          })
+          .select()
+          .single()
+
+        // Atualizar conversa
+        await supabase.from('conversations').update({
+          last_message: caption || `[${type}]`,
+          last_message_at: new Date().toISOString(),
+          status: 'open',
+          updated_at: new Date().toISOString(),
+        }).eq('id', conversationId)
+
+        return NextResponse.json(message || { success: true })
+      } catch (fetchErr: any) {
+        clearTimeout(timeout)
+        if (fetchErr.name === 'AbortError') {
+          return NextResponse.json({ error: 'Timeout ao enviar mídia - o servidor WhatsApp demorou para responder' }, { status: 504 })
+        }
+        throw fetchErr
+      }
     }
 
     // ===== ENVIO VIA META API (Oficial) =====
@@ -219,6 +270,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(message)
   } catch (error) {
     console.error('Upload media error:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    return NextResponse.json({ error: 'Erro interno ao processar mídia' }, { status: 500 })
   }
 }

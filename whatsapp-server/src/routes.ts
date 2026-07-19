@@ -129,14 +129,14 @@ router.post('/message/send-text', async (req, res) => {
 // Enviar mídia
 router.post('/message/send-media', async (req, res) => {
   try {
-    const { instanceId, phone, mediaUrl, caption, type } = req.body
+    const { instanceId, phone, mediaUrl, caption, type, fileName } = req.body
     if (!instanceId || !phone || !mediaUrl) {
       return res.status(400).json({ error: 'instanceId, phone e mediaUrl obrigatórios' })
     }
 
-    const sent = await sessions.sendMedia(instanceId, phone, mediaUrl, caption, type)
-    if (sent) {
-      res.json({ success: true })
+    const result = await sessions.sendMedia(instanceId, phone, mediaUrl, caption, type, fileName)
+    if (result.success) {
+      res.json({ success: true, messageId: result.messageId })
     } else {
       res.status(400).json({ error: 'Falha ao enviar mídia.' })
     }

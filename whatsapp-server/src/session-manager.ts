@@ -506,10 +506,13 @@ export class SessionManager {
     phone: string,
     mediaUrl: string,
     caption?: string,
-    type?: string
-  ): Promise<boolean> {
+    type?: string,
+    fileName?: string
+  ): Promise<{ success: boolean; messageId?: string }> {
     const instance = this.instances.get(instanceId)
-    if (!instance?.socket || instance.status !== 'connected') return false
+    if (!instance?.socket || instance.status !== 'connected') {
+      return { success: false }
+    }
 
     try {
       const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`
@@ -517,25 +520,57 @@ export class SessionManager {
       const mediaType = type || 'image'
       const messageContent: any = {}
 
-      if (mediaType === 'image') {
-        messageContent.image = { url: mediaUrl }
-        if (caption) messageContent.caption = caption
-      } else if (mediaType === 'video') {
-        messageContent.video = { url: mediaUrl }
-        if (caption) messageContent.caption = caption
-      } else if (mediaType === 'audio') {
-        messageContent.audio = { url: mediaUrl }
-        messageContent.mimetype = 'audio/mpeg'
-      } else if (mediaType === 'document') {
-        messageContent.document = { url: mediaUrl }
-        messageContent.fileName = caption || 'document'
+      // Converter data URI para buffer se necessário
+      let mediaSource: any
+      if (mediaUrl.startsWith('data:')) {
+        const matches = mediaUrl.match(/^data:(.+);base64,(.+)$/)
+        if (matches) {
+          const mimetype = matches[1]
+          const buffer = Buffer.from(matches[2], 'base64')
+          mediaSource = buffer
+          
+          if (mediaType === 'image') {
+            messageContent.image = mediaSource
+            messageContent.mimetype = mimetype
+            if (caption) messageContent.caption = caption
+          } else if (mediaType === 'video') {
+            messageContent.video = mediaSource
+            messageContent.mimetype = mimetype
+            if (caption) messageContent.caption = caption
+          } else if (mediaType === 'audio') {
+            messageContent.audio = mediaSource
+            messageContent.mimetype = mimetype || 'audio/mpeg'
+            messageContent.ptt = mimetype?.includes('ogg') ? true : false
+          } else if (mediaType === 'document') {
+            messageContent.document = mediaSource
+            messageContent.mimetype = mimetype
+            messageContent.fileName = fileName || caption || 'document'
+          }
+        } else {
+          return { success: false }
+        }
+      } else {
+        // URL normal
+        if (mediaType === 'image') {
+          messageContent.image = { url: mediaUrl }
+          if (caption) messageContent.caption = caption
+        } else if (mediaType === 'video') {
+          messageContent.video = { url: mediaUrl }
+          if (caption) messageContent.caption = caption
+        } else if (mediaType === 'audio') {
+          messageContent.audio = { url: mediaUrl }
+          messageContent.mimetype = 'audio/mpeg'
+        } else if (mediaType === 'document') {
+          messageContent.document = { url: mediaUrl }
+          messageContent.fileName = fileName || caption || 'document'
+        }
       }
 
-      await instance.socket.sendMessage(jid, messageContent)
-      return true
+      const sent = await instance.socket.sendMessage(jid, messageContent)
+      return { success: true, messageId: sent?.key?.id }
     } catch (error) {
       console.error(`[${instanceId}] Erro ao enviar mídia:`, error)
-      return false
+      return { success: false }
     }
   }
 }
