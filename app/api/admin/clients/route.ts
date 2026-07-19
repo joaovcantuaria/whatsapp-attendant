@@ -14,12 +14,33 @@ export async function GET(request: NextRequest) {
 
     const { data: agents, error } = await serviceClient
       .from('agents')
-      .select('*, companies(name)')
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json(agents || [])
+    // Enrich with company names
+    const companyIds = [...new Set((agents || []).map(a => a.company_id).filter(Boolean))]
+    let companiesMap: Record<string, string> = {}
+
+    if (companyIds.length > 0) {
+      const { data: companies } = await serviceClient
+        .from('companies')
+        .select('id, name')
+        .in('id', companyIds)
+
+      companiesMap = (companies || []).reduce((acc, c) => {
+        acc[c.id] = c.name
+        return acc
+      }, {} as Record<string, string>)
+    }
+
+    const enriched = (agents || []).map(agent => ({
+      ...agent,
+      companies: agent.company_id ? { name: companiesMap[agent.company_id] || '—' } : null
+    }))
+
+    return NextResponse.json(enriched)
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }

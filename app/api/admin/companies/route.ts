@@ -14,10 +14,24 @@ export async function GET(request: NextRequest) {
 
     const { data: companies, error } = await serviceClient
       .from('companies')
-      .select('*, plans(name, slug, price_monthly)')
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Enrich with plan info and member count
+    const planIds = [...new Set((companies || []).map(c => c.plan_id).filter(Boolean))]
+    let plansMap: Record<string, any> = {}
+    if (planIds.length > 0) {
+      const { data: plans } = await serviceClient
+        .from('plans')
+        .select('id, name, slug, price_monthly')
+        .in('id', planIds)
+      plansMap = (plans || []).reduce((acc, p) => {
+        acc[p.id] = p
+        return acc
+      }, {} as Record<string, any>)
+    }
 
     // Enriquecer com contagem de membros
     const enriched = await Promise.all(
@@ -30,6 +44,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...company,
+          plans: company.plan_id ? plansMap[company.plan_id] || null : null,
           members_count: membersCount || 0,
         }
       })

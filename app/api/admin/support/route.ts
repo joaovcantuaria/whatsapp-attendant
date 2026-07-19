@@ -14,12 +14,31 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await serviceClient
       .from('support_tickets')
-      .select('*, companies(name)')
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    return NextResponse.json(data || [])
+    // Enrich with company names
+    const companyIds = [...new Set((data || []).map(t => t.company_id).filter(Boolean))]
+    let companiesMap: Record<string, string> = {}
+    if (companyIds.length > 0) {
+      const { data: companies } = await serviceClient
+        .from('companies')
+        .select('id, name')
+        .in('id', companyIds)
+      companiesMap = (companies || []).reduce((acc, c) => {
+        acc[c.id] = c.name
+        return acc
+      }, {} as Record<string, string>)
+    }
+
+    const enriched = (data || []).map(ticket => ({
+      ...ticket,
+      companies: ticket.company_id ? { name: companiesMap[ticket.company_id] || '—' } : null
+    }))
+
+    return NextResponse.json(enriched)
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
