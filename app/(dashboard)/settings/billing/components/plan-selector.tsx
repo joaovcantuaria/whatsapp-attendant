@@ -33,7 +33,7 @@ export function PlanSelector({ currentPlanId, onSelectPlan, currentPeriodEnd, bi
   useEffect(() => {
     async function fetchPlans() {
       try {
-        const res = await fetch('/api/admin/plans')
+        const res = await fetch('/api/billing/plans')
         if (res.ok) {
           const data = await res.json()
           setPlans(data.filter((p: Plan) => p.is_active))

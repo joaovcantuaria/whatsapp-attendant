@@ -195,22 +195,18 @@ export default function BillingPage() {
             trialEndDate={company?.trial_ends_at || new Date().toISOString()}
             onActivate={() => setShowPaymentForm(true)}
           />
-          {isAdmin && (
-            <>
-              <PlanSelector
-                currentPlanId={company?.plan_id || null}
-                onSelectPlan={handleSelectPlan}
-                billingCycle="monthly"
-              />
-              {showPaymentForm && selectedPlanId && (
-                <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
-                  selectedPlanId={selectedPlanId}
-                  onSuccess={handlePaymentSuccess}
-                  payerEmail={company?.email || ''}
-                />
-              )}
-            </>
+          <PlanSelector
+            currentPlanId={company?.plan_id || null}
+            onSelectPlan={handleSelectPlan}
+            billingCycle="monthly"
+          />
+          {showPaymentForm && selectedPlanId && (
+            <PaymentForm
+              plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+              selectedPlanId={selectedPlanId}
+              onSuccess={handlePaymentSuccess}
+              payerEmail={company?.email || ''}
+            />
           )}
         </>
       )}
