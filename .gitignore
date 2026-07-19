@@ -35,3 +35,6 @@ next-env.d.ts
 
 # baileys sessions
 .baileys-sessions/
+
+# steering files com informações sensíveis
+.kiro/steering/system-overview.md

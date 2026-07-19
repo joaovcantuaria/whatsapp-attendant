@@ -175,13 +175,13 @@ export default function AdminSubscriptions() {
 
             <h3 className="text-base font-bold text-slate-900">{plan.name}</h3>
             <div className="flex items-baseline gap-1 mt-1 mb-4">
-              <span className="text-2xl font-bold text-orange-500">R${plan.price_monthly}</span>
+              <span className="text-2xl font-bold text-orange-500">R${plan.price_monthly ?? 0}</span>
               <span className="text-sm text-slate-400">/mês</span>
             </div>
 
             <div className="space-y-1.5 mb-4">
               <div className="text-[11px] text-slate-500">
-                {plan.max_agents} atendentes · {plan.max_messages.toLocaleString()} msgs · {plan.max_contacts.toLocaleString()} contatos
+                {plan.max_agents ?? 0} atendentes · {(plan.max_messages ?? 0).toLocaleString()} msgs · {(plan.max_contacts ?? 0).toLocaleString()} contatos
               </div>
               {plan.features?.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-slate-600">

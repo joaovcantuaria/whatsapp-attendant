@@ -55,11 +55,19 @@ function DownloadButton({ mediaUrl, filename, type }: { mediaUrl: string; filena
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
-  // Não renderizar mensagens vazias (sem conteúdo visível e sem mídia real)
-  const hasVisibleContent = message.content && message.content.trim().length > 0
-  const hasMedia = message.media_url && message.media_url.trim().length > 0
-  if (!hasVisibleContent && !hasMedia && message.direction !== 'internal' && message.type !== 'internal_note') {
-    return null
+  const isNote = message.direction === 'internal' || message.type === 'internal_note'
+  
+  // Não renderizar mensagens fantasma
+  if (!isNote) {
+    const mediaTypes = ['document', 'image', 'video', 'audio', 'sticker']
+    const isMediaType = mediaTypes.includes(message.type || '')
+    const hasMedia = message.media_url && message.media_url.trim().length > 0
+    const hasText = message.content && message.content.trim().length > 0
+    
+    // Se é tipo mídia mas não tem media_url, é fantasma
+    if (isMediaType && !hasMedia) return null
+    // Se é tipo texto mas não tem conteúdo, é fantasma
+    if (!isMediaType && !hasText && !hasMedia) return null
   }
 
   const isOutbound = message.direction === 'outbound'

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { SettingsBack } from '@/components/shared/settings-back'
-import { Smartphone, QrCode, Wifi, WifiOff, RefreshCw, Loader2, Unplug } from 'lucide-react'
+import { Smartphone, QrCode, Wifi, WifiOff, RefreshCw, Loader2, Unplug, XCircle } from 'lucide-react'
 
 const WHATSAPP_SERVER_URL = '/api/whatsapp-server'
 
@@ -20,6 +20,7 @@ export default function QRCodeSettingsPage() {
   const [name, setName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [polling, setPolling] = useState(false)
+  const [loadingTooLong, setLoadingTooLong] = useState(false)
 
   const instanceId = company?.id || 'default'
 
@@ -78,6 +79,32 @@ export default function QRCodeSettingsPage() {
     } catch {
       toast({ title: 'Erro', variant: 'destructive' })
     }
+  }
+
+  // Detectar quando loading demora mais de 10 segundos
+  useEffect(() => {
+    if (status === 'loading') {
+      const timeout = setTimeout(() => setLoadingTooLong(true), 10000)
+      return () => clearTimeout(timeout)
+    } else {
+      setLoadingTooLong(false)
+    }
+  }, [status])
+
+  const handleCancelLoading = () => {
+    setStatus('disconnected')
+    setQrCode(null)
+    setPhone(null)
+    setName(null)
+    setPolling(false)
+    setLoadingTooLong(false)
+    toast({ title: 'Verificação cancelada' })
+  }
+
+  const handleRetryConnection = () => {
+    setLoadingTooLong(false)
+    setStatus('loading')
+    fetchStatus()
   }
 
   // Polling para atualizar status/QR
@@ -189,6 +216,21 @@ export default function QRCodeSettingsPage() {
               <div className="flex flex-col items-center gap-3 py-6">
                 <Loader2 className="h-8 w-8 text-slate-400 animate-spin" />
                 <p className="text-sm text-slate-500">Verificando conexão...</p>
+                {loadingTooLong && (
+                  <div className="flex flex-col items-center gap-2 mt-2">
+                    <p className="text-xs text-amber-600">A verificação está demorando mais que o esperado.</p>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={handleRetryConnection}>
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        Tentar Novamente
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleCancelLoading} className="text-red-600 hover:text-red-700">
+                        <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
