@@ -204,7 +204,7 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
@@ -228,7 +228,7 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
@@ -307,7 +307,7 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
@@ -332,7 +332,7 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
