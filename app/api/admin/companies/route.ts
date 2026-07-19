@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Enrich with plan info and member count
-    const planIds = [...new Set((companies || []).map(c => c.plan_id).filter(Boolean))]
+    const planIds = Array.from(new Set((companies || []).map(c => c.plan_id).filter(Boolean)))
     let plansMap: Record<string, any> = {}
     if (planIds.length > 0) {
       const { data: plans } = await serviceClient

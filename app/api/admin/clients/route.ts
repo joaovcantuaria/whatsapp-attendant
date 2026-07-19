@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Enrich with company names
-    const companyIds = [...new Set((agents || []).map(a => a.company_id).filter(Boolean))]
+    const companyIds = Array.from(new Set((agents || []).map(a => a.company_id).filter(Boolean)))
     let companiesMap: Record<string, string> = {}
 
     if (companyIds.length > 0) {

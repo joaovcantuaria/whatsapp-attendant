@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     let estimatedRevenue = 0
     if (activeComps && activeComps.length > 0) {
-      const planIds = [...new Set(activeComps.map(c => c.plan_id).filter(Boolean))]
+      const planIds = Array.from(new Set(activeComps.map(c => c.plan_id).filter(Boolean)))
       if (planIds.length > 0) {
         const { data: plans } = await serviceClient
           .from('plans')
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       .limit(20)
 
     // Enrich with company names
-    const agentCompanyIds = [...new Set((recentAgents || []).map(a => a.company_id).filter(Boolean))]
+    const agentCompanyIds = Array.from(new Set((recentAgents || []).map(a => a.company_id).filter(Boolean)))
     let agentCompaniesMap: Record<string, string> = {}
     if (agentCompanyIds.length > 0) {
       const { data: agentCompanies } = await serviceClient
