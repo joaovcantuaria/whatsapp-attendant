@@ -79,9 +79,10 @@ export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: Pa
 
   // Task 4.3: Handle card validation errors
   const handleError = useCallback(
-    (error: { cause?: string; field?: string; message?: string }[]) => {
-      const messages = error
-        .map((e) => {
+    (error: any) => {
+      const errors = Array.isArray(error) ? error : [error]
+      const messages = errors
+        .map((e: any) => {
           if (e.field && CARD_VALIDATION_ERRORS[e.field]) {
             return CARD_VALIDATION_ERRORS[e.field]
           }
@@ -96,7 +97,7 @@ export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: Pa
 
   // Task 4.2: Handle form submission
   const handleSubmit = useCallback(
-    async (formData: { token: string; payment_method_id?: string; issuer_id?: string; payer?: { email?: string; identification?: { type: string; number: string } } }) => {
+    async (formData: any) => {
       setIsSubmitting(true)
       setValidationErrors([])
       setApiError(null)
