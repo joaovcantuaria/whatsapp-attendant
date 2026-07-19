@@ -1,123 +1,348 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { useCompany } from '@/hooks/use-company'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/components/ui/use-toast'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { CreditCard, Clock, Zap } from 'lucide-react'
 import { SettingsBack } from '@/components/shared/settings-back'
+import { XCircle } from 'lucide-react'
+import type { Subscription } from '@/types/billing'
+
+import { TrialBanner } from './components/trial-banner'
+import { SuspendedBanner } from './components/suspended-banner'
+import { SubscriptionStatus } from './components/subscription-status'
+import { PlanSelector } from './components/plan-selector'
+import { PaymentForm } from './components/payment-form'
+import { PaymentHistory } from './components/payment-history'
+import { CancelDialog } from './components/cancel-dialog'
+
+interface SubscriptionWithPlan extends Subscription {
+  plan?: { id: string; name: string; price_monthly: number; price_yearly?: number | null }
+}
 
 export default function BillingPage() {
-  const { company, plan, trialDaysLeft, isPlanActive } = useCompany()
+  const { company, plan, membership, trialDaysLeft, refetch } = useCompany()
+  const { toast } = useToast()
 
-  const statusLabel: Record<string, string> = {
-    trial: 'Trial',
-    active: 'Ativo',
-    suspended: 'Suspenso',
-    cancelled: 'Cancelado',
-  }
+  const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null)
+  const [loadingSub, setLoadingSub] = useState(true)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
 
-  const statusVariant = (status: string) => {
-    switch (status) {
-      case 'active': return 'success' as const
-      case 'trial': return 'warning' as const
-      case 'suspended': return 'destructive' as const
-      default: return 'secondary' as const
+  // Task 9.2: Role-based access
+  const isAdmin = membership?.role === 'admin' || membership?.role === 'owner'
+  const planStatus = company?.plan_status || 'trial'
+
+  // Fetch subscription state on mount
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const res = await fetch('/api/billing/subscription')
+      if (res.ok) {
+        const data = await res.json()
+        setSubscription(data.subscription || null)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingSub(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSubscription()
+  }, [fetchSubscription])
+
+  const handleSelectPlan = (planId: string) => {
+    setSelectedPlanId(planId)
+    if (!subscription || subscription.status === 'cancelled') {
+      setShowPaymentForm(true)
     }
   }
 
+  const handlePaymentSuccess = async () => {
+    await fetchSubscription()
+    await refetch()
+    setShowPaymentForm(false)
+    toast({ title: 'Assinatura ativada com sucesso!' })
+  }
+
+  const handleChangePlan = async (planId: string) => {
+    if (!subscription || subscription.status !== 'active') {
+      // No active subscription — show payment form
+      setSelectedPlanId(planId)
+      setShowPaymentForm(true)
+      return
+    }
+
+    // Active subscription — change plan via API
+    try {
+      const res = await fetch('/api/billing/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          new_plan_id: planId,
+          billing_cycle: subscription.billing_cycle || 'monthly',
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.type === 'upgrade') {
+          toast({
+            title: 'Plano atualizado!',
+            description: data.prorated_amount
+              ? `Cobrança proporcional: R$ ${data.prorated_amount.toFixed(2).replace('.', ',')}`
+              : `Seu plano agora é ${data.new_plan.name}`,
+          })
+        } else {
+          toast({
+            title: 'Downgrade agendado',
+            description: `Seu plano será alterado para ${data.new_plan.name} ao final do período atual.`,
+          })
+        }
+        await fetchSubscription()
+        await refetch()
+      } else {
+        const err = await res.json().catch(() => null)
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao alterar plano',
+          description: err?.error || 'Tente novamente.',
+        })
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Erro de conexão. Tente novamente.',
+      })
+    }
+  }
+
+  // Task 9.4: Cancel action with toast
+  const handleCancel = async () => {
+    try {
+      const res = await fetch('/api/billing/cancel', { method: 'POST' })
+      if (res.ok) {
+        toast({ title: 'Assinatura cancelada', description: 'Seu acesso continua ativo até o final do período.' })
+        await fetchSubscription()
+        await refetch()
+        setCancelDialogOpen(false)
+      } else {
+        const err = await res.json().catch(() => null)
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao cancelar',
+          description: err?.error || 'Tente novamente.',
+        })
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Erro de conexão. Tente novamente.',
+      })
+    }
+  }
+
+  // Task 9.4: Reactivate action with toast
+  const handleReactivate = async () => {
+    try {
+      const res = await fetch('/api/billing/reactivate', { method: 'POST' })
+      if (res.ok) {
+        toast({ title: 'Assinatura reativada!' })
+        await fetchSubscription()
+        await refetch()
+      } else {
+        const err = await res.json().catch(() => null)
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao reativar',
+          description: err?.error || 'Tente novamente.',
+        })
+      }
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Erro de conexão. Tente novamente.',
+      })
+    }
+  }
+
+  if (loadingSub) {
+    return (
+      <div className="p-6 space-y-6 h-full overflow-y-auto max-w-4xl mx-auto">
+        <SettingsBack />
+        <h1 className="text-2xl font-bold">Faturamento</h1>
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
+    )
+  }
+
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-3xl mx-auto">
+    <div className="p-6 space-y-6 h-full overflow-y-auto max-w-4xl mx-auto">
       <SettingsBack />
       <h1 className="text-2xl font-bold">Faturamento</h1>
 
-      {/* Plano Atual */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Plano Atual</CardTitle>
-            <Badge variant={statusVariant(company?.plan_status || 'trial')}>
-              {statusLabel[company?.plan_status || 'trial']}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div>
-              <p className="font-bold text-xl">{plan?.name || 'Starter'}</p>
-              <p className="text-sm text-muted-foreground">{plan?.description}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">R$ {plan?.price_monthly || '297'}</p>
-              <p className="text-xs text-muted-foreground">/mês</p>
-            </div>
-          </div>
+      {/* Trial state: show trial banner + plan selector + payment form */}
+      {planStatus === 'trial' && (
+        <>
+          <TrialBanner
+            trialEndDate={company?.trial_ends_at || new Date().toISOString()}
+            onActivate={() => setShowPaymentForm(true)}
+          />
+          {isAdmin && (
+            <>
+              <PlanSelector
+                currentPlanId={company?.plan_id || null}
+                onSelectPlan={handleSelectPlan}
+                billingCycle="monthly"
+              />
+              {showPaymentForm && selectedPlanId && (
+                <PaymentForm
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  selectedPlanId={selectedPlanId}
+                  onSuccess={handlePaymentSuccess}
+                  payerEmail={company?.email || ''}
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
 
-          {company?.plan_status === 'trial' && trialDaysLeft !== null && (
-            <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
-              <Clock className="h-4 w-4" />
-              <span>
-                {trialDaysLeft > 0
-                  ? `Seu trial expira em ${trialDaysLeft} dia${trialDaysLeft > 1 ? 's' : ''}`
-                  : 'Seu trial expirou. Ative um plano para continuar.'
-                }
-              </span>
-            </div>
+      {/* Suspended state: show suspended banner + plan selector + payment form */}
+      {planStatus === 'suspended' && (
+        <>
+          <SuspendedBanner onActivate={() => setShowPaymentForm(true)} />
+          {isAdmin && (
+            <>
+              <PlanSelector
+                currentPlanId={company?.plan_id || null}
+                onSelectPlan={handleSelectPlan}
+                billingCycle="monthly"
+              />
+              {showPaymentForm && selectedPlanId && (
+                <PaymentForm
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  selectedPlanId={selectedPlanId}
+                  onSuccess={handlePaymentSuccess}
+                  payerEmail={company?.email || ''}
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* Active subscription: show status + plan selector (upgrade/downgrade) + history + cancel */}
+      {planStatus === 'active' && subscription?.status === 'active' && (
+        <>
+          <SubscriptionStatus subscription={subscription} />
+
+          {isAdmin && (
+            <>
+              <PlanSelector
+                currentPlanId={subscription.plan_id}
+                onSelectPlan={handleChangePlan}
+                currentPeriodEnd={subscription.current_period_end}
+                billingCycle={subscription.billing_cycle}
+              />
+
+              <PaymentHistory />
+
+              <div className="rounded-2xl border bg-white p-6">
+                <h3 className="text-lg font-semibold mb-2">Cancelar Assinatura</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ao cancelar, seu acesso continua até o final do período de cobrança atual.
+                </p>
+                <Button
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => setCancelDialogOpen(true)}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancelar Assinatura
+                </Button>
+              </div>
+
+              <CancelDialog
+                periodEndDate={subscription.current_period_end || new Date().toISOString()}
+                onConfirm={handleCancel}
+                open={cancelDialogOpen}
+                onOpenChange={setCancelDialogOpen}
+              />
+            </>
           )}
 
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Agentes incluídos</span>
-              <span className="font-medium">{plan?.max_agents || 2}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Conversas/mês</span>
-              <span className="font-medium">{plan?.max_conversations_per_month?.toLocaleString() || '500'}</span>
-            </div>
-          </div>
+          {/* Read-only for non-admins (task 9.2) */}
+          {!isAdmin && <PaymentHistory />}
+        </>
+      )}
 
-          <Button className="w-full">
-            <Zap className="h-4 w-4 mr-2" />
-            Fazer Upgrade
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Pending cancellation: show status with reactivate + history */}
+      {subscription?.status === 'pending_cancellation' && (
+        <>
+          <SubscriptionStatus
+            subscription={subscription}
+            onReactivate={isAdmin ? handleReactivate : undefined}
+          />
+          <PaymentHistory />
+        </>
+      )}
 
-      {/* Planos Disponíveis */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Alterar Plano</CardTitle>
-          <CardDescription>Escolha o plano ideal para sua equipe</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {['Starter', 'Pro', 'Business'].map((planName) => (
-              <div key={planName} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">{planName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {planName === 'Starter' && '2 agentes • 500 conversas/mês'}
-                    {planName === 'Pro' && '5 agentes • 2.000 conversas/mês'}
-                    {planName === 'Business' && '15 agentes • 10.000 conversas/mês'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold">
-                    {planName === 'Starter' && 'R$ 297'}
-                    {planName === 'Pro' && 'R$ 597'}
-                    {planName === 'Business' && 'R$ 997'}
-                  </p>
-                  {plan?.name === planName ? (
-                    <Badge variant="secondary">Atual</Badge>
-                  ) : (
-                    <Button size="sm" variant="outline">Selecionar</Button>
-                  )}
-                </div>
+      {/* No subscription / cancelled: show plan selector + payment form */}
+      {planStatus === 'active' && !subscription && (
+        <>
+          {isAdmin && (
+            <>
+              <PlanSelector
+                currentPlanId={company?.plan_id || null}
+                onSelectPlan={handleSelectPlan}
+                billingCycle="monthly"
+              />
+              {showPaymentForm && selectedPlanId && (
+                <PaymentForm
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  selectedPlanId={selectedPlanId}
+                  onSuccess={handlePaymentSuccess}
+                  payerEmail={company?.email || ''}
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {planStatus === 'cancelled' && (
+        <>
+          {isAdmin && (
+            <>
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center">
+                <p className="text-muted-foreground">Sua assinatura foi cancelada. Selecione um plano para reativar.</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <PlanSelector
+                currentPlanId={null}
+                onSelectPlan={handleSelectPlan}
+                billingCycle="monthly"
+              />
+              {showPaymentForm && selectedPlanId && (
+                <PaymentForm
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: plan.price_yearly }] : []}
+                  selectedPlanId={selectedPlanId}
+                  onSuccess={handlePaymentSuccess}
+                  payerEmail={company?.email || ''}
+                />
+              )}
+            </>
+          )}
+          <PaymentHistory />
+        </>
+      )}
     </div>
   )
 }
