@@ -42,10 +42,14 @@ export default function AdminSubscriptions() {
       const res = await fetch('/api/admin/plans')
       if (res.ok) {
         const data = await res.json()
-        setPlans(data)
+        setPlans(Array.isArray(data) ? data : [])
+      } else {
+        console.error('Erro ao carregar planos:', res.status)
+        setPlans([])
       }
     } catch (e) {
       console.error(e)
+      setPlans([])
     } finally {
       setLoading(false)
     }
@@ -183,7 +187,7 @@ export default function AdminSubscriptions() {
               <div className="text-[11px] text-slate-500">
                 {plan.max_agents ?? 0} atendentes · {(plan.max_messages ?? 0).toLocaleString()} msgs · {(plan.max_contacts ?? 0).toLocaleString()} contatos
               </div>
-              {plan.features?.map((f, i) => (
+              {(plan.features || []).map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
                   <Check className="w-3 h-3 text-green-500 shrink-0" />
                   <span className="text-xs">{f}</span>
