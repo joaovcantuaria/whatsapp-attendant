@@ -83,19 +83,98 @@ export function getInitials(name: string): string {
 
 export function parseCSV(content: string): Record<string, string>[] {
   const lines = content.split('\n').filter(line => line.trim())
-  if (lines.length < 2) return []
+  if (lines.length < 1) return []
   
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+  // Parser que respeita aspas (campos com vírgulas dentro de aspas)
+  function parseLine(line: string): string[] {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        inQuotes = !inQuotes
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
+  const firstLineValues = parseLine(lines[0]).map(v => v.toLowerCase().replace(/['"]/g, '').trim())
+  
+  // Detectar se a primeira linha é cabeçalho (contém palavras-chave conhecidas)
+  const knownHeaders = ['phone', 'telefone', 'tel', 'celular', 'whatsapp', 'numero', 'número', 'fone', 'name', 'nome', 'email', 'razao_social', 'empresa', 'cliente']
+  const hasHeader = firstLineValues.some(v => knownHeaders.includes(v))
+  
+  let headers: string[]
+  let dataStartIndex: number
+
+  if (hasHeader) {
+    headers = firstLineValues
+    dataStartIndex = 1
+  } else {
+    // Sem cabeçalho — detectar automaticamente quais colunas têm telefone, nome, email
+    // Analisar primeira linha de dados para inferir colunas
+    const sampleValues = parseLine(lines[0])
+    headers = sampleValues.map((val, idx) => {
+      const clean = val.replace(/['"]/g, '').trim()
+      const digitsOnly = clean.replace(/\D/g, '')
+      
+      // Detectar telefone: tem 10-13 dígitos, ou começa com +55, ou formato (XX) XXXXX
+      if (digitsOnly.length >= 10 && digitsOnly.length <= 13) return 'phone'
+      if (/^\+?\d{10,13}$/.test(digitsOnly)) return 'phone'
+      if (/\(\d{2}\)\s*\d{4,5}/.test(clean)) return 'phone'
+      
+      // Detectar email
+      if (clean.includes('@') && clean.includes('.')) return 'email'
+      
+      // O restante pode ser nome (primeira coluna com texto não-numérico e curta)
+      return `col_${idx}`
+    })
+    
+    // Se não encontrou 'phone', procurar a coluna com mais dígitos
+    if (!headers.includes('phone')) {
+      let bestPhoneIdx = -1
+      let bestDigitCount = 0
+      sampleValues.forEach((val, idx) => {
+        const digits = val.replace(/\D/g, '').length
+        if (digits >= 10 && digits > bestDigitCount) {
+          bestDigitCount = digits
+          bestPhoneIdx = idx
+        }
+      })
+      if (bestPhoneIdx >= 0) headers[bestPhoneIdx] = 'phone'
+    }
+    
+    // Primeira coluna com texto (não phone/email) = nome
+    const nameIdx = headers.findIndex((h, idx) => {
+      if (h === 'phone' || h === 'email') return false
+      const val = sampleValues[idx]?.replace(/['"]/g, '').trim() || ''
+      return val.length > 0 && val.replace(/\d/g, '').length > val.length * 0.5
+    })
+    if (nameIdx >= 0) headers[nameIdx] = 'name'
+    
+    dataStartIndex = 0
+  }
+  
   const rows: Record<string, string>[] = []
   
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim())
+  for (let i = dataStartIndex; i < lines.length; i++) {
+    const values = parseLine(lines[i])
     const row: Record<string, string> = {}
     headers.forEach((header, index) => {
-      row[header] = values[index] || ''
+      row[header] = (values[index] || '').replace(/^["']|["']$/g, '').trim()
     })
     rows.push(row)
   }
   
+  return rows
+}
   return rows
 }
