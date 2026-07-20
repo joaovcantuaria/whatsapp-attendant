@@ -41,10 +41,12 @@ export function useMessages(conversationId: string | null) {
       return
     }
 
-    // Filtrar mensagens vazias (sem conteúdo e sem mídia) - mas manter notas internas
+    // Filtrar mensagens vazias (sem conteúdo e sem mídia) - mas manter notas internas e templates
     const filtered = (data || []).filter((msg: Message) => {
       // Sempre manter notas internas
       if (msg.direction === 'internal' || (msg.type as string) === 'internal_note') return true
+      // Sempre manter templates (mesmo sem content visível)
+      if ((msg as any).template_name) return true
       // Manter mensagens com conteúdo visível ou mídia real
       const hasContent = msg.content && msg.content.trim().length > 0
       const hasMedia = msg.media_url && msg.media_url.trim().length > 0
@@ -72,10 +74,11 @@ export function useMessages(conversationId: string | null) {
         },
         (payload) => {
           const newMsg = payload.new as Message
-          // Ignorar mensagens vazias (sem conteúdo e sem mídia) exceto notas
+          // Ignorar mensagens vazias (sem conteúdo e sem mídia) exceto notas e templates
           const hasContent = newMsg.content && newMsg.content.trim().length > 0
           const hasMedia = newMsg.media_url && newMsg.media_url.trim().length > 0
-          if (!hasContent && !hasMedia && newMsg.direction !== 'internal') return
+          const hasTemplate = !!(newMsg as any).template_name
+          if (!hasContent && !hasMedia && !hasTemplate && newMsg.direction !== 'internal') return
           setMessages((prev) => {
             // Evitar duplicatas
             if (prev.some(m => m.id === newMsg.id)) return prev
