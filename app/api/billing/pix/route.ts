@@ -6,6 +6,7 @@ import { payment } from '@/lib/mercadopago'
 const pixSchema = z.object({
   plan_id: z.string().uuid(),
   billing_cycle: z.enum(['monthly', 'yearly']),
+  coupon_code: z.string().optional(),
   payer: z.object({
     email: z.string().email(),
     first_name: z.string().min(1),
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { plan_id, billing_cycle, payer } = parsed.data
+    const { plan_id, billing_cycle, payer, coupon_code } = parsed.data
 
     // --- Check admin/owner role ---
     const { data: membership, error: memberError } = await supabase
@@ -80,8 +81,34 @@ export async function POST(request: Request) {
     }
 
     // --- Determine pricing ---
-    const transactionAmount =
+    let transactionAmount =
       billing_cycle === 'yearly' ? plan.price_yearly : plan.price_monthly
+
+    // --- Validate and apply coupon if provided ---
+    let validatedCouponId: string | null = null
+    if (coupon_code) {
+      const { data: coupon } = await serviceClient
+        .from('coupons')
+        .select('*')
+        .ilike('code', coupon_code)
+        .single()
+
+      if (
+        coupon &&
+        coupon.is_active &&
+        coupon.used_count < coupon.max_uses &&
+        (!coupon.expires_at || new Date(coupon.expires_at) > new Date())
+      ) {
+        validatedCouponId = coupon.id
+        if (coupon.type === 'percent') {
+          transactionAmount = transactionAmount * (1 - coupon.discount / 100)
+        } else {
+          transactionAmount = Math.max(0, transactionAmount - coupon.discount)
+        }
+        // Round to 2 decimal places
+        transactionAmount = Math.round(transactionAmount * 100) / 100
+      }
+    }
 
     // --- Create PIX payment in Mercado Pago ---
     let mpPayment: any
@@ -156,6 +183,21 @@ export async function POST(request: Request) {
         status: 'pending',
         failure_reason: null,
       })
+    }
+
+    // --- Increment coupon used_count ---
+    if (validatedCouponId) {
+      const { data: currentCoupon } = await serviceClient
+        .from('coupons')
+        .select('used_count')
+        .eq('id', validatedCouponId)
+        .single()
+      if (currentCoupon) {
+        await serviceClient
+          .from('coupons')
+          .update({ used_count: currentCoupon.used_count + 1 })
+          .eq('id', validatedCouponId)
+      }
     }
 
     return NextResponse.json(

@@ -15,6 +15,7 @@ interface PixPaymentProps {
   payerEmail: string
   billingCycle: BillingCycle
   onSuccess: () => void
+  couponCode?: string
 }
 
 interface PixData {
@@ -32,6 +33,7 @@ export function PixPayment({
   payerEmail,
   billingCycle,
   onSuccess,
+  couponCode,
 }: PixPaymentProps) {
   const { toast } = useToast()
 
@@ -83,6 +85,7 @@ export function PixPayment({
         body: JSON.stringify({
           plan_id: planId,
           billing_cycle: billingCycle,
+          coupon_code: couponCode || undefined,
           payer: {
             email: payerEmail,
             first_name: firstName,

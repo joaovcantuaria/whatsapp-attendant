@@ -17,6 +17,7 @@ import { PaymentForm } from './components/payment-form'
 import { PixPayment } from './components/pix-payment'
 import { PaymentHistory } from './components/payment-history'
 import { CancelDialog } from './components/cancel-dialog'
+import { CouponInput } from './components/coupon-input'
 
 interface SubscriptionWithPlan extends Subscription {
   plan?: { id: string; name: string; price_monthly: number; price_yearly?: number | null }
@@ -33,6 +34,7 @@ export default function BillingPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
   const [allPlans, setAllPlans] = useState<Array<{ id: string; name: string; price_monthly: number; price_yearly?: number | null }>>([])
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; type: 'percent' | 'fixed' } | null>(null)
 
   // Task 9.2: Role-based access (fallback to true if no membership data available)
   const isAdmin = !membership || membership?.role === 'admin' || membership?.role === 'owner'
@@ -179,6 +181,15 @@ export default function BillingPage() {
     }
   }
 
+  // Calculate discounted amount based on coupon
+  const getDiscountedAmount = (amount: number) => {
+    if (!appliedCoupon) return amount
+    if (appliedCoupon.type === 'percent') {
+      return amount * (1 - appliedCoupon.discount / 100)
+    }
+    return Math.max(0, amount - appliedCoupon.discount)
+  }
+
   if (loadingSub) {
     return (
       <div className="p-6 space-y-6 h-full overflow-y-auto max-w-4xl mx-auto">
@@ -209,6 +220,18 @@ export default function BillingPage() {
           />
           {showPaymentForm && selectedPlanId && (
             <div className="space-y-4">
+              <CouponInput
+                onApply={setAppliedCoupon}
+                onRemove={() => setAppliedCoupon(null)}
+                appliedCoupon={appliedCoupon}
+              />
+              {appliedCoupon && (
+                <div className="text-sm text-center text-muted-foreground">
+                  <span className="line-through">R$ {(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  {' '}
+                  <span className="font-semibold text-green-600">R$ {getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex gap-2 justify-center">
                 <button
                   type="button"
@@ -239,16 +262,18 @@ export default function BillingPage() {
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
+                  couponCode={appliedCoupon?.code}
                 />
               )}
               {paymentMethod === 'pix' && selectedPlanId && (
                 <PixPayment
                   planId={selectedPlanId}
                   planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
-                  amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
+                  amount={getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0)}
                   payerEmail={company?.email || ''}
                   billingCycle="monthly"
                   onSuccess={handlePaymentSuccess}
+                  couponCode={appliedCoupon?.code}
                 />
               )}
             </div>
@@ -269,6 +294,18 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <div className="space-y-4">
+                  <CouponInput
+                    onApply={setAppliedCoupon}
+                    onRemove={() => setAppliedCoupon(null)}
+                    appliedCoupon={appliedCoupon}
+                  />
+                  {appliedCoupon && (
+                    <div className="text-sm text-center text-muted-foreground">
+                      <span className="line-through">R$ {(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      {' '}
+                      <span className="font-semibold text-green-600">R$ {getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                   <div className="flex gap-2 justify-center">
                     <button
                       type="button"
@@ -299,16 +336,18 @@ export default function BillingPage() {
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                   {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
                       planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
-                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
+                      amount={getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0)}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                 </div>
@@ -386,6 +425,18 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <div className="space-y-4">
+                  <CouponInput
+                    onApply={setAppliedCoupon}
+                    onRemove={() => setAppliedCoupon(null)}
+                    appliedCoupon={appliedCoupon}
+                  />
+                  {appliedCoupon && (
+                    <div className="text-sm text-center text-muted-foreground">
+                      <span className="line-through">R$ {(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      {' '}
+                      <span className="font-semibold text-green-600">R$ {getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                   <div className="flex gap-2 justify-center">
                     <button
                       type="button"
@@ -416,16 +467,18 @@ export default function BillingPage() {
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                   {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
                       planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
-                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
+                      amount={getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0)}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                 </div>
@@ -449,6 +502,18 @@ export default function BillingPage() {
               />
               {showPaymentForm && selectedPlanId && (
                 <div className="space-y-4">
+                  <CouponInput
+                    onApply={setAppliedCoupon}
+                    onRemove={() => setAppliedCoupon(null)}
+                    appliedCoupon={appliedCoupon}
+                  />
+                  {appliedCoupon && (
+                    <div className="text-sm text-center text-muted-foreground">
+                      <span className="line-through">R$ {(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      {' '}
+                      <span className="font-semibold text-green-600">R$ {getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                   <div className="flex gap-2 justify-center">
                     <button
                       type="button"
@@ -479,16 +544,18 @@ export default function BillingPage() {
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                   {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
                       planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
-                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
+                      amount={getDiscountedAmount(allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0)}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
+                      couponCode={appliedCoupon?.code}
                     />
                   )}
                 </div>

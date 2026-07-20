@@ -24,9 +24,10 @@ interface PaymentFormProps {
   selectedPlanId: string
   onSuccess: () => void
   payerEmail: string
+  couponCode?: string
 }
 
-export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: PaymentFormProps) {
+export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail, couponCode }: PaymentFormProps) {
   const { toast } = useToast()
   const initRef = useRef(false)
 
@@ -129,6 +130,7 @@ export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: Pa
             token: formData.token,
             plan_id: selectedPlanId,
             billing_cycle: billingCycle,
+            coupon_code: couponCode || undefined,
             payer: {
               email: payerEmail,
               identification: formData.payer?.identification ?? { type: 'CPF', number: '' },
@@ -166,7 +168,7 @@ export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: Pa
         setIsSubmitting(false)
       }
     },
-    [selectedPlanId, billingCycle, payerEmail, onSuccess, toast]
+    [selectedPlanId, billingCycle, payerEmail, couponCode, onSuccess, toast]
   )
 
   // Task 4.5: Detect SDK load failure via timeout

@@ -10,6 +10,7 @@ const subscribeSchema = z.object({
   plan_id: z.string().uuid(),
   billing_cycle: z.enum(['monthly', 'yearly']),
   token: z.string().min(1),
+  coupon_code: z.string().optional(),
   payer: z.object({
     email: z.string().email(),
     identification: z.object({
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { plan_id, billing_cycle, token, payer } = parsed.data
+    const { plan_id, billing_cycle, token, payer, coupon_code } = parsed.data
 
     // --- Check admin/owner role ---
     const { data: membership, error: memberError } = await supabase
@@ -82,10 +83,36 @@ export async function POST(request: Request) {
     }
 
     // --- Determine pricing and frequency ---
-    const transactionAmount =
+    let transactionAmount =
       billing_cycle === 'yearly' ? plan.price_yearly : plan.price_monthly
     const frequencyType = billing_cycle === 'yearly' ? 'months' : 'months'
     const frequency = billing_cycle === 'yearly' ? 12 : 1
+
+    // --- Validate and apply coupon if provided ---
+    let validatedCouponId: string | null = null
+    if (coupon_code) {
+      const { data: coupon } = await serviceClient
+        .from('coupons')
+        .select('*')
+        .ilike('code', coupon_code)
+        .single()
+
+      if (
+        coupon &&
+        coupon.is_active &&
+        coupon.used_count < coupon.max_uses &&
+        (!coupon.expires_at || new Date(coupon.expires_at) > new Date())
+      ) {
+        validatedCouponId = coupon.id
+        if (coupon.type === 'percent') {
+          transactionAmount = transactionAmount * (1 - coupon.discount / 100)
+        } else {
+          transactionAmount = Math.max(0, transactionAmount - coupon.discount)
+        }
+        // Round to 2 decimal places
+        transactionAmount = Math.round(transactionAmount * 100) / 100
+      }
+    }
 
     // --- Create preapproval (subscription) in Mercado Pago ---
     let mpSubscription: any
@@ -162,6 +189,21 @@ export async function POST(request: Request) {
 
     if (companyError) {
       console.error('Failed to update company plan:', companyError)
+    }
+
+    // --- Increment coupon used_count ---
+    if (validatedCouponId) {
+      const { data: currentCoupon } = await serviceClient
+        .from('coupons')
+        .select('used_count')
+        .eq('id', validatedCouponId)
+        .single()
+      if (currentCoupon) {
+        await serviceClient
+          .from('coupons')
+          .update({ used_count: currentCoupon.used_count + 1 })
+          .eq('id', validatedCouponId)
+      }
     }
 
     // --- Return response ---
