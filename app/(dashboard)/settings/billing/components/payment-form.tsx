@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,10 +8,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import type { BillingCycle } from '@/types/billing'
 
-// Task 4.1: Initialize MercadoPago SDK at module level (safe init)
-if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MP_PUBLIC_KEY) {
-  initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY)
-}
+// Task 4.1: Initialize MercadoPago SDK (safe init inside component)
+let mpInitialized = false
 
 // Task 4.3: Card validation error messages in Portuguese
 const CARD_VALIDATION_ERRORS: Record<string, string> = {
@@ -30,6 +28,25 @@ interface PaymentFormProps {
 
 export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: PaymentFormProps) {
   const { toast } = useToast()
+  const initRef = useRef(false)
+
+  // Initialize MercadoPago SDK on mount
+  useEffect(() => {
+    if (!initRef.current && !mpInitialized) {
+      const key = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY
+      if (key) {
+        try {
+          initMercadoPago(key)
+          mpInitialized = true
+        } catch (e) {
+          console.error('Failed to init MercadoPago:', e)
+        }
+      } else {
+        console.error('NEXT_PUBLIC_MP_PUBLIC_KEY is not defined')
+      }
+      initRef.current = true
+    }
+  }, [])
 
   // Task 4.6: Billing cycle toggle state
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
@@ -157,7 +174,7 @@ export function PaymentForm({ plans, selectedPlanId, onSuccess, payerEmail }: Pa
     if (sdkReady) return
     const timer = setTimeout(() => {
       setSdkError(true)
-    }, 15000)
+    }, 30000)
     return () => clearTimeout(timer)
   }, [sdkReady, retryKey])
 
