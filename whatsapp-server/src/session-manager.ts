@@ -202,7 +202,7 @@ export class SessionManager {
       if (type !== 'notify' && type !== 'append') return
 
       for (const msg of msgs) {
-        if (msg.key.fromMe) continue
+        const isFromMe = !!msg.key.fromMe
 
         const remoteJid = msg.key.remoteJid || ''
         
@@ -335,7 +335,7 @@ export class SessionManager {
         // Não salvar se não tem conteúdo nem mídia (evita quadradinhos vazios)
         if (!content && !mediaData) continue
 
-        console.log(`[${instanceId}] 📩 ${phone}: ${content.substring(0, 50)} [type=${messageType}, hasMedia=${!!mediaData}]`)
+        console.log(`[${instanceId}] ${isFromMe ? '📤' : '📩'} ${phone}: ${content.substring(0, 50)} [type=${messageType}, hasMedia=${!!mediaData}]`)
 
         // Salvar no Supabase
         try {
@@ -346,14 +346,14 @@ export class SessionManager {
             content,
             pushName,
             timestamp,
-            fromMe: false,
+            fromMe: isFromMe,
             messageId: msg.key.id || '',
             type: messageType,
             mediaUrl: mediaData,
           })
 
-          // Atualizar nome do contato se veio pushName
-          if (pushName) {
+          // Atualizar nome do contato se veio pushName (apenas para mensagens recebidas)
+          if (pushName && !isFromMe) {
             await updateContactName(instanceId, phone, pushName)
           }
         } catch (error) {
