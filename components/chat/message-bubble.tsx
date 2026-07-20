@@ -60,14 +60,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   // Não renderizar mensagens fantasma
   if (!isNote) {
     const mediaTypes = ['document', 'image', 'video', 'audio', 'sticker']
+    const specialTypes = ['template', 'interactive', 'button', 'location']
     const isMediaType = mediaTypes.includes(message.type || '')
+    const isSpecialType = specialTypes.includes(message.type || '')
     const hasMedia = message.media_url && message.media_url.trim().length > 0
     const hasText = message.content && message.content.trim().length > 0
+    const hasTemplate = !!(message as any).template_name
     
     // Se é tipo mídia mas não tem media_url, é fantasma
     if (isMediaType && !hasMedia) return null
-    // Se é tipo texto mas não tem conteúdo, é fantasma
-    if (!isMediaType && !hasText && !hasMedia) return null
+    // Se é tipo texto mas não tem conteúdo, é fantasma (exceto templates e tipos especiais)
+    if (!isMediaType && !isSpecialType && !hasText && !hasMedia && !hasTemplate) return null
   }
 
   const isOutbound = message.direction === 'outbound'
