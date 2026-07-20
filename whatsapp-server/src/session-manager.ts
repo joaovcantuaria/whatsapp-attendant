@@ -581,7 +581,7 @@ export class SessionManager {
       }
 
       const sent = await instance.socket.sendMessage(jid, messageContent)
-      return { success: true, messageId: sent?.key?.id }
+      return { success: true, messageId: sent?.key?.id || undefined }
     } catch (error) {
       console.error(`[${instanceId}] Erro ao enviar mídia:`, error)
       return { success: false }
