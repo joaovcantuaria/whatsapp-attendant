@@ -62,9 +62,9 @@ export function PlanSelector({ currentPlanId, onSelectPlan, currentPeriodEnd, bi
 
   const getPriceLabel = (plan: Plan) => {
     if (billingCycle === 'yearly' && plan.price_yearly) {
-      return `R$ ${plan.price_yearly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/ano`
+      return `R$ ${(plan.price_yearly ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/ano`
     }
-    return `R$ ${plan.price_monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês`
+    return `R$ ${(plan.price_monthly ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês`
   }
 
   // Determine if selecting a plan would be upgrade or downgrade
@@ -167,19 +167,19 @@ export function PlanSelector({ currentPlanId, onSelectPlan, currentPeriodEnd, bi
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Agentes</span>
-                    <span className="font-medium text-foreground">{plan.max_agents}</span>
+                    <span className="font-medium text-foreground">{plan.max_agents ?? 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Conversas/mês</span>
-                    <span className="font-medium text-foreground">{plan.max_conversations_per_month.toLocaleString('pt-BR')}</span>
+                    <span className="font-medium text-foreground">{(plan.max_conversations_per_month ?? 0).toLocaleString('pt-BR')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Contatos</span>
-                    <span className="font-medium text-foreground">{plan.max_contacts.toLocaleString('pt-BR')}</span>
+                    <span className="font-medium text-foreground">{(plan.max_contacts ?? 0).toLocaleString('pt-BR')}</span>
                   </div>
                 </div>
 
-                {plan.features && plan.features.length > 0 && (
+                {plan.features && Array.isArray(plan.features) && plan.features.length > 0 && (
                   <ul className="space-y-1.5 text-sm">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
