@@ -263,7 +263,8 @@ export class SessionManager {
           msg.message.locationMessage ||
           msg.message.buttonsResponseMessage ||
           msg.message.listResponseMessage ||
-          msg.message.templateButtonReplyMessage
+          msg.message.templateButtonReplyMessage ||
+          msg.message.interactiveResponseMessage
         
         if (!hasRealContent) continue
         if (msg.message.protocolMessage || msg.message.reactionMessage || msg.messageStubType) continue
@@ -273,6 +274,19 @@ export class SessionManager {
           msg.message?.extendedTextMessage?.text ||
           msg.message?.imageMessage?.caption ||
           msg.message?.videoMessage?.caption ||
+          msg.message?.buttonsResponseMessage?.selectedDisplayText ||
+          msg.message?.listResponseMessage?.title ||
+          msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
+          msg.message?.templateButtonReplyMessage?.selectedDisplayText ||
+          msg.message?.interactiveResponseMessage?.body?.text ||
+          (msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson
+            ? (() => {
+                try {
+                  const params = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson)
+                  return params?.id || params?.title || params?.body || ''
+                } catch { return '' }
+              })()
+            : '') ||
           ''
 
         // Detectar tipo de mensagem
