@@ -90,16 +90,54 @@ export async function POST(request: NextRequest) {
     // Importação CSV em lote
     if (body.csvContent) {
       const rows = parseCSV(body.csvContent)
-      const contacts = rows.map((row) => ({
-        phone: row.phone || row.telefone,
-        name: row.name || row.nome || null,
-        email: row.email || null,
-        company_id: companyId,
-      })).filter((c) => c.phone)
+      const contacts = rows.map((row) => {
+        // Detectar coluna de telefone - PRIORIZAR WhatsApp sobre telefone fixo
+        const whatsappField = row.whatsapp || row.wpp || row.zap || ''
+        const phoneField = row.phone || row.telefone || row.tel || row.celular || row.numero || row.número || row.fone || ''
+        
+        // Preferir o campo WhatsApp se existir e tiver número válido
+        let rawPhone = ''
+        const cleanWhatsapp = whatsappField.replace(/\D/g, '')
+        const cleanPhoneField = phoneField.replace(/\D/g, '')
+        
+        if (cleanWhatsapp.length >= 10) {
+          rawPhone = cleanWhatsapp
+        } else if (cleanPhoneField.length >= 10) {
+          rawPhone = cleanPhoneField
+        }
+        
+        // Garantir formato: remover 0 inicial se tiver, adicionar 55 se não tiver
+        let cleanPhone = rawPhone
+        if (cleanPhone.startsWith('0') && cleanPhone.length === 11) {
+          cleanPhone = cleanPhone.substring(1) // Remove 0 do DDD
+        }
+        // Se tem 10-11 dígitos sem código do país, adicionar 55
+        if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+          cleanPhone = '55' + cleanPhone
+        }
+        // Se começa com 55 e tem 12 dígitos (fixo), pode ser válido
+        // Se começa com 55 e tem 13 dígitos (celular), perfeito
+        
+        // Detectar coluna de nome
+        const name = row.name || row.nome || row.razao_social || row['razão social'] || row.empresa || row.cliente || ''
+        // Detectar coluna de email
+        const email = row.email || row['e-mail'] || row.mail || ''
+        
+        return {
+          phone: cleanPhone,
+          name: name || null,
+          email: email || null,
+          company_id: companyId,
+        }
+      }).filter((c) => c.phone && c.phone.length >= 12) // Mínimo 12 dígitos (55 + DDD + número)
+
+      if (contacts.length === 0) {
+        return NextResponse.json({ error: 'Nenhum contato válido encontrado. Verifique se o CSV tem uma coluna com nome "phone", "telefone", "celular" ou "whatsapp" com números de celular válidos.' }, { status: 400 })
+      }
 
       const { data, error } = await serviceClient
         .from('contacts')
-        .upsert(contacts, { onConflict: 'phone' })
+        .upsert(contacts, { onConflict: 'phone,company_id' })
         .select()
 
       if (error) {
