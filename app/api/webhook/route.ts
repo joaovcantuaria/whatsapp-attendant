@@ -204,6 +204,20 @@ async function processInboundMessage(
         content = message.interactive.button_reply.title
       } else if (message.interactive?.list_reply) {
         content = message.interactive.list_reply.title
+      } else if (message.interactive?.nfm_reply) {
+        // WhatsApp Flow response
+        try {
+          const flowResponse = JSON.parse(message.interactive.nfm_reply.response_json || '{}')
+          const fields = Object.entries(flowResponse)
+            .filter(([key]) => key !== 'flow_token')
+            .map(([key, value]) => `${value}`)
+            .join(' | ')
+          content = fields || 'Resposta do formulário'
+          
+          ;(message as any)._flowResponse = flowResponse
+        } catch {
+          content = message.interactive.nfm_reply.body || 'Resposta do formulário'
+        }
       }
       break
     case 'reaction':
@@ -240,6 +254,59 @@ async function processInboundMessage(
 
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
+
+  // Detectar resposta de pesquisa de satisfação (Flow)
+  if (message.type === 'interactive' && (message as any)._flowResponse) {
+    try {
+      const flowResponse = (message as any)._flowResponse
+      let rating: number | null = null
+      let feedback: string | null = null
+      
+      for (const [key, value] of Object.entries(flowResponse)) {
+        if (key === 'flow_token') continue
+        const strValue = String(value)
+        
+        const numMatch = strValue.match(/^[1-5]$/)
+        if (numMatch) {
+          rating = parseInt(numMatch[0])
+        } else if (/ótimo|excelente|muito.?bom|5/i.test(strValue)) {
+          rating = 5
+        } else if (/bom|4/i.test(strValue) && !/muito.?bom/i.test(strValue)) {
+          rating = 4
+        } else if (/regular|razoável|3/i.test(strValue)) {
+          rating = 3
+        } else if (/ruim|2/i.test(strValue)) {
+          rating = 2
+        } else if (/péssimo|horrível|1/i.test(strValue)) {
+          rating = 1
+        } else if (/sim/i.test(strValue) && !rating) {
+          rating = 5
+        } else if (/não|nao/i.test(strValue) && !rating) {
+          rating = 2
+        }
+        
+        if (strValue.length > 3 && !numMatch && !/^(sim|não|nao)$/i.test(strValue)) {
+          feedback = strValue
+        }
+      }
+
+      if (rating) {
+        const contactPhone = message.from || ''
+        await supabase.from('satisfaction_ratings').insert({
+          company_id: companyId || contact.company_id,
+          contact_id: contact?.id || null,
+          conversation_id: conversation.id,
+          contact_name: contactInfo?.profile?.name || contactPhone,
+          contact_phone: contactPhone,
+          rating,
+          feedback,
+          rated_at: new Date().toISOString(),
+        })
+      }
+    } catch (err) {
+      console.error('[Webhook] Erro ao registrar avaliação:', err)
+    }
+  }
 
   // 7. Processar com Chatbot e/ou Agente IA (async - não bloqueia o webhook)
   if (content && ['text', 'button', 'interactive'].includes(message.type)) {
