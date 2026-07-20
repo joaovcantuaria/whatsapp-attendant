@@ -37,6 +37,7 @@ import {
   Bell,
   Code2,
   Upload,
+  Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -62,6 +63,7 @@ const toolsNavItems = [
   { href: '/agents', icon: UserCog, label: 'Agentes' },
   { href: '/ai-agent', icon: Brain, label: 'Agente IA' },
   { href: '/team-chat', icon: MessagesSquare, label: 'Chat Interno' },
+  { href: '/satisfaction', icon: Star, label: 'Avaliações' },
 ]
 
 const bottomNavItems = [

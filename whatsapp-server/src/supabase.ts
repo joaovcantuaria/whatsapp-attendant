@@ -238,6 +238,56 @@ export async function saveMessageToSupabase(msg: IncomingMessage) {
 
   console.log(`[Supabase] ✅ Mensagem salva: ${phone} → ${content.substring(0, 30)}`)
 
+  // Detectar avaliação de satisfação (nota 1-5 após pesquisa)
+  if (!fromMe && content) {
+    const ratingMatch = content.match(/^[1-5]$/) || content.match(/\b([1-5])\b/)
+    if (ratingMatch) {
+      try {
+        // Verificar se houve uma pesquisa enviada nessa conversa recentemente (últimas 24h)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        const { data: recentSurvey } = await supabase
+          .from('messages')
+          .select('id, created_at')
+          .eq('conversation_id', conversation.id)
+          .eq('direction', 'outbound')
+          .or('template_name.eq.pesquisa_satisfacao,template_name.eq.pesquisa,content.ilike.%nota%daria%,content.ilike.%satisfação%,content.ilike.%experiência conosco%')
+          .gte('created_at', oneDayAgo)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (recentSurvey) {
+          const rating = parseInt(ratingMatch[1] || ratingMatch[0])
+          // Verificar se já não registrou essa avaliação
+          const { data: existing } = await supabase
+            .from('satisfaction_ratings')
+            .select('id')
+            .eq('conversation_id', conversation.id)
+            .eq('contact_phone', phone)
+            .gte('created_at', oneDayAgo)
+            .maybeSingle()
+
+          if (!existing) {
+            await supabase.from('satisfaction_ratings').insert({
+              company_id: companyId,
+              contact_id: contact.id,
+              conversation_id: conversation.id,
+              contact_name: pushName || null,
+              contact_phone: phone,
+              rating,
+              feedback: content.length > 1 ? content : null,
+              template_sent_at: recentSurvey.created_at,
+              rated_at: timestamp,
+            })
+            console.log(`[Supabase] ⭐ Avaliação registrada: ${phone} → nota ${rating}`)
+          }
+        }
+      } catch (err) {
+        console.log(`[Supabase] ⚠️ Erro ao registrar avaliação:`, err)
+      }
+    }
+  }
+
   // Disparar push notification para agentes da empresa (se mensagem inbound)
   if (!fromMe && companyId) {
     try {
