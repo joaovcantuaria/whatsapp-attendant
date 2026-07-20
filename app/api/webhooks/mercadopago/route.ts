@@ -105,6 +105,24 @@ export async function POST(request: Request) {
         subscription = data
       }
 
+      // Fallback: find subscription via invoice (for PIX payments)
+      if (!subscription && mpPaymentId) {
+        const { data: invoice } = await supabase
+          .from('invoices')
+          .select('subscription_id')
+          .eq('mp_payment_id', mpPaymentId)
+          .single()
+
+        if (invoice?.subscription_id) {
+          const { data } = await supabase
+            .from('subscriptions')
+            .select('id, company_id, consecutive_failures')
+            .eq('id', invoice.subscription_id)
+            .single()
+          subscription = data
+        }
+      }
+
       if (!subscription) {
         console.error('[webhook] No subscription found for payment:', mpPaymentId)
         return NextResponse.json({ received: true }, { status: 200 })
@@ -139,10 +157,43 @@ export async function POST(request: Request) {
           .update({ plan_status: 'active' })
           .eq('id', subscription.company_id)
 
-        // Reset consecutive_failures to 0
+        // Reset consecutive_failures to 0 and activate subscription if pending (PIX flow)
+        const { data: currentSub } = await supabase
+          .from('subscriptions')
+          .select('status, billing_cycle, plan_id')
+          .eq('id', subscription.id)
+          .single()
+
+        const subUpdate: Record<string, any> = {
+          consecutive_failures: 0,
+          updated_at: new Date().toISOString(),
+        }
+
+        // Activate PIX subscriptions that are still pending
+        if (currentSub && currentSub.status !== 'active') {
+          const now = new Date()
+          const periodEnd = new Date(now)
+          if (currentSub.billing_cycle === 'yearly') {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+          } else {
+            periodEnd.setMonth(periodEnd.getMonth() + 1)
+          }
+          subUpdate.status = 'active'
+          subUpdate.current_period_start = now.toISOString()
+          subUpdate.current_period_end = periodEnd.toISOString()
+
+          // Also update the company plan_id
+          if (currentSub.plan_id) {
+            await supabase
+              .from('companies')
+              .update({ plan_id: currentSub.plan_id, plan_status: 'active' })
+              .eq('id', subscription.company_id)
+          }
+        }
+
         await supabase
           .from('subscriptions')
-          .update({ consecutive_failures: 0, updated_at: new Date().toISOString() })
+          .update(subUpdate)
           .eq('id', subscription.id)
       }
 

@@ -14,6 +14,7 @@ import { SuspendedBanner } from './components/suspended-banner'
 import { SubscriptionStatus } from './components/subscription-status'
 import { PlanSelector } from './components/plan-selector'
 import { PaymentForm } from './components/payment-form'
+import { PixPayment } from './components/pix-payment'
 import { PaymentHistory } from './components/payment-history'
 import { CancelDialog } from './components/cancel-dialog'
 
@@ -30,6 +31,7 @@ export default function BillingPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
 
   // Task 9.2: Role-based access
   const isAdmin = membership?.role === 'admin' || membership?.role === 'owner'
@@ -201,12 +203,50 @@ export default function BillingPage() {
             billingCycle="monthly"
           />
           {showPaymentForm && selectedPlanId && (
-            <PaymentForm
-              plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
-              selectedPlanId={selectedPlanId}
-              onSuccess={handlePaymentSuccess}
-              payerEmail={company?.email || ''}
-            />
+            <div className="space-y-4">
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    paymentMethod === 'card'
+                      ? 'bg-white text-foreground shadow-sm border'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Cartão de Crédito
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('pix')}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    paymentMethod === 'pix'
+                      ? 'bg-white text-foreground shadow-sm border'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  PIX
+                </button>
+              </div>
+              {paymentMethod === 'card' && (
+                <PaymentForm
+                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                  selectedPlanId={selectedPlanId}
+                  onSuccess={handlePaymentSuccess}
+                  payerEmail={company?.email || ''}
+                />
+              )}
+              {paymentMethod === 'pix' && plan && (
+                <PixPayment
+                  planId={selectedPlanId}
+                  planName={plan.name}
+                  amount={(plan as any).price_monthly || 0}
+                  payerEmail={company?.email || ''}
+                  billingCycle="monthly"
+                  onSuccess={handlePaymentSuccess}
+                />
+              )}
+            </div>
           )}
         </>
       )}
@@ -223,12 +263,50 @@ export default function BillingPage() {
                 billingCycle="monthly"
               />
               {showPaymentForm && selectedPlanId && (
-                <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
-                  selectedPlanId={selectedPlanId}
-                  onSuccess={handlePaymentSuccess}
-                  payerEmail={company?.email || ''}
-                />
+                <div className="space-y-4">
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'card'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Cartão de Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pix')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'pix'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      PIX
+                    </button>
+                  </div>
+                  {paymentMethod === 'card' && (
+                    <PaymentForm
+                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      selectedPlanId={selectedPlanId}
+                      onSuccess={handlePaymentSuccess}
+                      payerEmail={company?.email || ''}
+                    />
+                  )}
+                  {paymentMethod === 'pix' && plan && (
+                    <PixPayment
+                      planId={selectedPlanId}
+                      planName={plan.name}
+                      amount={(plan as any).price_monthly || 0}
+                      payerEmail={company?.email || ''}
+                      billingCycle="monthly"
+                      onSuccess={handlePaymentSuccess}
+                    />
+                  )}
+                </div>
               )}
             </>
           )}
@@ -302,12 +380,50 @@ export default function BillingPage() {
                 billingCycle="monthly"
               />
               {showPaymentForm && selectedPlanId && (
-                <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
-                  selectedPlanId={selectedPlanId}
-                  onSuccess={handlePaymentSuccess}
-                  payerEmail={company?.email || ''}
-                />
+                <div className="space-y-4">
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'card'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Cartão de Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pix')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'pix'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      PIX
+                    </button>
+                  </div>
+                  {paymentMethod === 'card' && (
+                    <PaymentForm
+                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      selectedPlanId={selectedPlanId}
+                      onSuccess={handlePaymentSuccess}
+                      payerEmail={company?.email || ''}
+                    />
+                  )}
+                  {paymentMethod === 'pix' && plan && (
+                    <PixPayment
+                      planId={selectedPlanId}
+                      planName={plan.name}
+                      amount={(plan as any).price_monthly || 0}
+                      payerEmail={company?.email || ''}
+                      billingCycle="monthly"
+                      onSuccess={handlePaymentSuccess}
+                    />
+                  )}
+                </div>
               )}
             </>
           )}
@@ -327,12 +443,50 @@ export default function BillingPage() {
                 billingCycle="monthly"
               />
               {showPaymentForm && selectedPlanId && (
-                <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
-                  selectedPlanId={selectedPlanId}
-                  onSuccess={handlePaymentSuccess}
-                  payerEmail={company?.email || ''}
-                />
+                <div className="space-y-4">
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'card'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Cartão de Crédito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('pix')}
+                      className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                        paymentMethod === 'pix'
+                          ? 'bg-white text-foreground shadow-sm border'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      PIX
+                    </button>
+                  </div>
+                  {paymentMethod === 'card' && (
+                    <PaymentForm
+                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      selectedPlanId={selectedPlanId}
+                      onSuccess={handlePaymentSuccess}
+                      payerEmail={company?.email || ''}
+                    />
+                  )}
+                  {paymentMethod === 'pix' && plan && (
+                    <PixPayment
+                      planId={selectedPlanId}
+                      planName={plan.name}
+                      amount={(plan as any).price_monthly || 0}
+                      payerEmail={company?.email || ''}
+                      billingCycle="monthly"
+                      onSuccess={handlePaymentSuccess}
+                    />
+                  )}
+                </div>
               )}
             </>
           )}
