@@ -204,10 +204,11 @@ async function processInboundMessage(
         content = message.interactive.button_reply.title
       } else if (message.interactive?.list_reply) {
         content = message.interactive.list_reply.title
-      } else if (message.interactive?.nfm_reply) {
+      } else if ((message.interactive as any)?.nfm_reply) {
         // WhatsApp Flow response
         try {
-          const flowResponse = JSON.parse(message.interactive.nfm_reply.response_json || '{}')
+          const nfmReply = (message.interactive as any).nfm_reply
+          const flowResponse = JSON.parse(nfmReply.response_json || '{}')
           const fields = Object.entries(flowResponse)
             .filter(([key]) => key !== 'flow_token')
             .map(([key, value]) => `${value}`)
@@ -216,7 +217,7 @@ async function processInboundMessage(
           
           ;(message as any)._flowResponse = flowResponse
         } catch {
-          content = message.interactive.nfm_reply.body || 'Resposta do formulário'
+          content = (message.interactive as any).nfm_reply?.body || 'Resposta do formulário'
         }
       }
       break
