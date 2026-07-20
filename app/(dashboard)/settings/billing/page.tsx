@@ -32,6 +32,7 @@ export default function BillingPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
+  const [allPlans, setAllPlans] = useState<Array<{ id: string; name: string; price_monthly: number; price_yearly?: number | null }>>([])
 
   // Task 9.2: Role-based access (fallback to true if no membership data available)
   const isAdmin = !membership || membership?.role === 'admin' || membership?.role === 'owner'
@@ -54,6 +55,10 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchSubscription()
+    // Fetch all plans for payment form
+    fetch('/api/billing/plans').then(res => res.ok ? res.json() : []).then(data => {
+      setAllPlans(Array.isArray(data) ? data.map((p: any) => ({ id: p.id, name: p.name, price_monthly: p.price_monthly ?? 0, price_yearly: p.price_yearly ?? null })) : [])
+    }).catch(() => {})
   }, [fetchSubscription])
 
   const handleSelectPlan = (planId: string) => {
@@ -230,7 +235,7 @@ export default function BillingPage() {
               </div>
               {paymentMethod === 'card' && (
                 <PaymentForm
-                  plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                  plans={allPlans}
                   selectedPlanId={selectedPlanId}
                   onSuccess={handlePaymentSuccess}
                   payerEmail={company?.email || ''}
@@ -290,7 +295,7 @@ export default function BillingPage() {
                   </div>
                   {paymentMethod === 'card' && (
                     <PaymentForm
-                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      plans={allPlans}
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
@@ -407,7 +412,7 @@ export default function BillingPage() {
                   </div>
                   {paymentMethod === 'card' && (
                     <PaymentForm
-                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      plans={allPlans}
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
@@ -470,7 +475,7 @@ export default function BillingPage() {
                   </div>
                   {paymentMethod === 'card' && (
                     <PaymentForm
-                      plans={plan ? [{ id: plan.id, name: plan.name, price_monthly: plan.price_monthly, price_yearly: (plan as any).price_yearly ?? null }] : []}
+                      plans={allPlans}
                       selectedPlanId={selectedPlanId}
                       onSuccess={handlePaymentSuccess}
                       payerEmail={company?.email || ''}
