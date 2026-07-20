@@ -176,5 +176,3 @@ export function parseCSV(content: string): Record<string, string>[] {
   
   return rows
 }
-  return rows
-}
