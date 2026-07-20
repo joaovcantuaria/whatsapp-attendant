@@ -334,7 +334,7 @@ async function processInboundMessage(
           company_id: companyId,
           contact_id: contact?.id || null,
           conversation_id: conversation.id,
-          contact_name: contactData?.profile?.name || phone,
+          contact_name: contactInfo?.profile?.name || phone,
           contact_phone: phone,
           rating,
           feedback,
