@@ -241,11 +241,11 @@ export default function BillingPage() {
                   payerEmail={company?.email || ''}
                 />
               )}
-              {paymentMethod === 'pix' && plan && (
+              {paymentMethod === 'pix' && selectedPlanId && (
                 <PixPayment
                   planId={selectedPlanId}
-                  planName={plan.name}
-                  amount={(plan as any).price_monthly || 0}
+                  planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
+                  amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
                   payerEmail={company?.email || ''}
                   billingCycle="monthly"
                   onSuccess={handlePaymentSuccess}
@@ -301,11 +301,11 @@ export default function BillingPage() {
                       payerEmail={company?.email || ''}
                     />
                   )}
-                  {paymentMethod === 'pix' && plan && (
+                  {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
-                      planName={plan.name}
-                      amount={(plan as any).price_monthly || 0}
+                      planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
+                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
@@ -418,11 +418,11 @@ export default function BillingPage() {
                       payerEmail={company?.email || ''}
                     />
                   )}
-                  {paymentMethod === 'pix' && plan && (
+                  {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
-                      planName={plan.name}
-                      amount={(plan as any).price_monthly || 0}
+                      planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
+                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
@@ -481,11 +481,11 @@ export default function BillingPage() {
                       payerEmail={company?.email || ''}
                     />
                   )}
-                  {paymentMethod === 'pix' && plan && (
+                  {paymentMethod === 'pix' && selectedPlanId && (
                     <PixPayment
                       planId={selectedPlanId}
-                      planName={plan.name}
-                      amount={(plan as any).price_monthly || 0}
+                      planName={allPlans.find(p => p.id === selectedPlanId)?.name || ''}
+                      amount={allPlans.find(p => p.id === selectedPlanId)?.price_monthly || 0}
                       payerEmail={company?.email || ''}
                       billingCycle="monthly"
                       onSuccess={handlePaymentSuccess}
