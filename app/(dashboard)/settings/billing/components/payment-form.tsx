@@ -8,8 +8,10 @@ import { useToast } from '@/components/ui/use-toast'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import type { BillingCycle } from '@/types/billing'
 
-// Task 4.1: Initialize MercadoPago SDK at module level
-initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY!)
+// Task 4.1: Initialize MercadoPago SDK at module level (safe init)
+if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_MP_PUBLIC_KEY) {
+  initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY)
+}
 
 // Task 4.3: Card validation error messages in Portuguese
 const CARD_VALIDATION_ERRORS: Record<string, string> = {

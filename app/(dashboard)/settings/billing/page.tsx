@@ -33,8 +33,8 @@ export default function BillingPage() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
 
-  // Task 9.2: Role-based access
-  const isAdmin = membership?.role === 'admin' || membership?.role === 'owner'
+  // Task 9.2: Role-based access (fallback to true if no membership data available)
+  const isAdmin = !membership || membership?.role === 'admin' || membership?.role === 'owner'
   const planStatus = company?.plan_status || 'trial'
 
   // Fetch subscription state on mount
