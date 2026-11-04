@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { proximoSeguro } from '@/lib/app-link-rotas'
 
 // Rotas públicas que não requerem autenticação
 const publicRoutes = ['/login', '/register', '/pricing', '/invite', '/privacidade', '/set-password', '/auth/callback']
@@ -53,13 +54,17 @@ export async function middleware(request: NextRequest) {
   if (!session && !isPublicRoute) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
+    // Fluxo "Conectar com BoraGerir Chat": volta para a autorização depois do login
+    redirectUrl.search = pathname === '/conectar-app'
+      ? `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`
+      : ''
     return NextResponse.redirect(redirectUrl)
   }
 
   // Redirecionar para dashboard se já autenticado em rotas de auth
   if (session && (pathname === '/login' || pathname === '/register')) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/conversations'
+    const proximo = proximoSeguro(request.nextUrl.searchParams.get('next'))
+    const redirectUrl = new URL(proximo || '/conversations', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 

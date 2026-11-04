@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import Link from 'next/link'
 import { MessageSquare, Users, Zap, Bot, BarChart3, Send } from 'lucide-react'
+import { proximoSeguro } from '@/lib/app-link-rotas'
 
 const features = [
   {
@@ -38,6 +39,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [activeFeature, setActiveFeature] = useState(0)
+  // Vindo do "Conectar com BoraGerir Chat": volta para /conectar-app depois do login
+  const [proximo, setProximo] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
   const { toast } = useToast()
@@ -47,6 +50,10 @@ export default function LoginPage() {
       setActiveFeature((prev) => (prev + 1) % features.length)
     }, 4000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    setProximo(proximoSeguro(new URLSearchParams(window.location.search).get('next')))
   }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -75,7 +82,7 @@ export default function LoginPage() {
           .eq('id', data.user.id)
       }
 
-      router.push('/conversations')
+      router.push(proximo || '/conversations')
       router.refresh()
     } catch {
       toast({
@@ -252,7 +259,7 @@ export default function LoginPage() {
           <div className="mt-7 pt-5 border-t border-gray-100">
             <p className="text-center text-sm text-gray-500">
               Novo no BoraGerir?{' '}
-              <Link href="/register" className="text-[#F26522] font-medium hover:underline">
+              <Link href={proximo ? `/register?next=${encodeURIComponent(proximo)}` : '/register'} className="text-[#F26522] font-medium hover:underline">
                 Crie sua conta
               </Link>
             </p>

@@ -48,6 +48,34 @@ export function origemPermitida(appUrl: string): boolean {
   }
 }
 
+// ─── Fluxo "Conectar com BoraGerir Chat" (/conectar-app) ─────
+
+export const CAMINHO_CALLBACK_APP = '/api/integracoes/chat/callback'
+
+// redirect_uri só pode ser o callback do App numa origem permitida
+export function redirectUriPermitida(uri: unknown): uri is string {
+  if (typeof uri !== 'string') return false
+  try {
+    const url = new URL(uri)
+    return origemPermitida(url.origin) && url.pathname === CAMINHO_CALLBACK_APP && !url.search && !url.hash
+  } catch {
+    return false
+  }
+}
+
+export function hashCodigo(codigo: string): string {
+  return crypto.createHash('sha256').update(codigo).digest('hex')
+}
+
+// PKCE S256: base64url(sha256(verifier))
+export function desafioPkce(verifier: string): string {
+  return crypto.createHash('sha256').update(verifier).digest('base64url')
+}
+
+export function gerarApiKey(): string {
+  return 'bgc_' + crypto.randomBytes(32).toString('hex')
+}
+
 // Valida o header x-api-key (mesma tabela das outras rotas /api/external/*)
 export async function companyDaApiKey(apiKey: string | null): Promise<string | null> {
   if (!apiKey) return null

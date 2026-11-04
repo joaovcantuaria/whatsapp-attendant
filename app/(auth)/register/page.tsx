@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import Link from 'next/link'
 import { MessageSquare, Star, Quote } from 'lucide-react'
+import { proximoSeguro } from '@/lib/app-link-rotas'
 
 const testimonials = [
   {
@@ -38,6 +39,8 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [activeTestimonial, setActiveTestimonial] = useState(0)
+  // Vindo do "Conectar com BoraGerir Chat": pré-preenche e volta para /conectar-app
+  const [proximo, setProximo] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
   const { toast } = useToast()
@@ -47,6 +50,15 @@ export default function RegisterPage() {
       setActiveTestimonial((prev) => (prev + 1) % testimonials.length)
     }, 5000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const next = proximoSeguro(new URLSearchParams(window.location.search).get('next'))
+    if (!next) return
+    setProximo(next)
+    const dados = new URLSearchParams(next.split('?')[1] || '')
+    setEmail((atual) => atual || dados.get('email') || '')
+    setCompanyName((atual) => atual || dados.get('empresa') || '')
   }, [])
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -88,7 +100,7 @@ export default function RegisterPage() {
       }
 
       toast({ title: 'Conta criada com sucesso!', description: 'Redirecionando para configuração...' })
-      router.push('/onboarding')
+      router.push(proximo || '/onboarding')
       router.refresh()
     } catch {
       toast({ title: 'Erro inesperado', variant: 'destructive' })
@@ -303,7 +315,7 @@ export default function RegisterPage() {
           <div className="mt-5 pt-5 border-t border-gray-100">
             <p className="text-center text-sm text-gray-500">
               Já tem uma conta?{' '}
-              <Link href="/login" className="text-[#F26522] font-medium hover:underline">
+              <Link href={proximo ? `/login?next=${encodeURIComponent(proximo)}` : '/login'} className="text-[#F26522] font-medium hover:underline">
                 Faça o login
               </Link>
             </p>
