@@ -1,4 +1,4 @@
-export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'template' | 'button' | 'interactive' | 'reaction' | 'internal_note'
+export type MessageType = 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'template' | 'button' | 'interactive' | 'reaction' | 'internal_note' | 'unsupported'
 export type MessageDirection = 'inbound' | 'outbound' | 'internal'
 export type MessageStatus = 'sent' | 'delivered' | 'read' | 'failed'
 export type ConversationStatus = 'pending' | 'open' | 'closed'

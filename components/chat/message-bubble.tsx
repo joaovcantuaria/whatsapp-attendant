@@ -338,6 +338,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )
 
+      case 'unsupported':
+        return (
+          <div className="max-w-[260px] space-y-0.5">
+            <p className="text-sm font-medium">📵 Mensagem não suportada</p>
+            <p className="text-xs text-muted-foreground">
+              O cliente enviou algo que a API oficial do WhatsApp não repassa (enquete, foto de visualização única,
+              mensagem editada ou apagada...). Peça para ele reenviar como texto ou foto normal.
+            </p>
+          </div>
+        )
+
       default:
         return <p className="text-sm text-muted-foreground italic">[{message.type}]</p>
     }

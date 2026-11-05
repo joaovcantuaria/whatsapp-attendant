@@ -4,6 +4,7 @@ import { checkConversationLimit, incrementUsage, isCompanyActive } from '@/lib/p
 import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
+import { MENSAGEM_NAO_SUPORTADA } from '@/lib/mensagem-nao-suportada'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
 import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
@@ -262,6 +263,11 @@ async function processInboundMessage(
     case 'reaction':
       // Reação a uma mensagem - salvar mas não atualizar last_message
       content = message.reaction?.emoji || null
+      break
+    case 'unsupported':
+      // A Meta só avisa que chegou algo que a API oficial não repassa
+      // (enquete, visualização única, mensagem editada/apagada, evento...)
+      content = MENSAGEM_NAO_SUPORTADA
       break
   }
 
