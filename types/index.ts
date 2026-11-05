@@ -109,6 +109,7 @@ export interface Conversation {
   company_id: string
   contact_id: string
   agent_id: string | null
+  department_id?: string | null
   status: ConversationStatus
   channel: string
   last_message: string | null

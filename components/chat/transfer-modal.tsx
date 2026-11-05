@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Conversation } from '@/types'
 import { useAgents } from '@/hooks/use-agents'
+import { useDepartments } from '@/hooks/use-departments'
 import { useAuthStore } from '@/store/auth-store'
 import {
   Dialog,
@@ -26,6 +27,7 @@ interface TransferModalProps {
 
 export function TransferModal({ conversation, onClose }: TransferModalProps) {
   const { agents } = useAgents()
+  const { departments } = useDepartments()
   const { agent: currentAgent } = useAuthStore()
   const { toast } = useToast()
   const [isTransferring, setIsTransferring] = useState(false)
@@ -58,6 +60,25 @@ export function TransferModal({ conversation, onClose }: TransferModalProps) {
     }
   }
 
+  // Volta para a fila do departamento; o banco distribui para alguém online (se o depto distribui)
+  const handleTransferDepartment = async (departmentId: string) => {
+    setIsTransferring(true)
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: conversation.id, department_id: departmentId, agent_id: null, status: 'pending' }),
+      })
+      if (!response.ok) throw new Error()
+      toast({ title: 'Conversa transferida para o departamento' })
+      onClose()
+    } catch {
+      toast({ title: 'Erro ao transferir', variant: 'destructive' })
+    } finally {
+      setIsTransferring(false)
+    }
+  }
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
@@ -67,6 +88,25 @@ export function TransferModal({ conversation, onClose }: TransferModalProps) {
             Selecione o agente que receberá esta conversa
           </DialogDescription>
         </DialogHeader>
+        {departments.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Para um departamento</p>
+            <div className="flex flex-wrap gap-2">
+              {departments.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => handleTransferDepartment(d.id)}
+                  disabled={isTransferring || d.id === conversation.department_id}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: d.color }} />
+                  {d.name}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs font-medium text-muted-foreground pt-2">Para um atendente</p>
+          </div>
+        )}
         <ScrollArea className="max-h-64">
           {availableAgents.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">

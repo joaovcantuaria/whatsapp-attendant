@@ -2,6 +2,7 @@
 
 import { Conversation } from '@/types'
 import { useConversationStore } from '@/store/conversation-store'
+import { useDepartments } from '@/hooks/use-departments'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn, formatRelativeTime, getInitials, truncateText } from '@/lib/utils'
 import { Clock, CheckCheck, AlertCircle, User, Instagram, Timer } from 'lucide-react'
@@ -35,6 +36,8 @@ const statusConfig: Record<string, { dot: string; label: string; icon: typeof Cl
 export function ConversationItem({ conversation }: ConversationItemProps) {
   const { selectedConversation, setSelectedConversation } = useConversationStore()
   const isSelected = selectedConversation?.id === conversation.id
+  const { departments } = useDepartments()
+  const department = conversation.department_id ? departments.find((d) => d.id === conversation.department_id) : undefined
   const contact = conversation.contact
   const protocol = (conversation as any).protocol
   const status = statusConfig[conversation.status] || statusConfig.pending
@@ -120,6 +123,17 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
 
         {/* Bottom row: badges */}
         <div className="flex items-center gap-1.5 mt-1">
+          {/* Department badge */}
+          {department && (
+            <span
+              className="inline-flex items-center text-[9px] font-medium px-1.5 py-0.5 rounded-full max-w-[90px] truncate"
+              style={{ backgroundColor: `${department.color}1A`, color: department.color }}
+              title={`Departamento: ${department.name}`}
+            >
+              {department.name}
+            </span>
+          )}
+
           {/* Agent badge */}
           {(agent || conversation.agent_id) && (
             <span

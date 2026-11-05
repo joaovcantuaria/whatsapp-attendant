@@ -8,11 +8,13 @@ interface ConversationStore {
   filter: FilterType
   searchQuery: string
   agentFilter: string | 'all'
+  departmentFilter: string | 'all'
   channelFilter: 'all' | 'whatsapp' | 'instagram'
   setSelectedConversation: (conversation: Conversation | null) => void
   setFilter: (filter: FilterType) => void
   setSearchQuery: (query: string) => void
   setAgentFilter: (agentId: string | 'all') => void
+  setDepartmentFilter: (departmentId: string | 'all') => void
   setChannelFilter: (channel: 'all' | 'whatsapp' | 'instagram') => void
 }
 
@@ -21,10 +23,12 @@ export const useConversationStore = create<ConversationStore>((set) => ({
   filter: 'pending',
   searchQuery: '',
   agentFilter: 'all',
+  departmentFilter: 'all',
   channelFilter: 'all',
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
   setFilter: (filter) => set({ filter }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setAgentFilter: (agentId) => set({ agentFilter: agentId }),
+  setDepartmentFilter: (departmentId) => set({ departmentFilter: departmentId }),
   setChannelFilter: (channel) => set({ channelFilter: channel }),
 }))

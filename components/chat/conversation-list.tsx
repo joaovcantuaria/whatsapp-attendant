@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConversationItem } from './conversation-item'
 import { AgentFilter } from './agent-filter'
+import { DepartmentFilter } from './department-filter'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
@@ -31,7 +32,7 @@ import { ConversationStatus } from '@/types'
 import { buildTemplateComponents } from '@/lib/template-utils'
 
 export function ConversationList() {
-  const { filter, setFilter, searchQuery, setSearchQuery, agentFilter, channelFilter, setChannelFilter } = useConversationStore()
+  const { filter, setFilter, searchQuery, setSearchQuery, agentFilter, departmentFilter, channelFilter, setChannelFilter } = useConversationStore()
   const { setSelectedConversation } = useConversationStore()
   const { conversations, isLoading, refetch } = useConversations(filter)
   const [showNewConversation, setShowNewConversation] = useState(false)
@@ -223,6 +224,7 @@ export function ConversationList() {
       }
     }
     if (agentFilter !== 'all' && conv.agent_id !== agentFilter) return false
+    if (departmentFilter !== 'all' && conv.department_id !== departmentFilter) return false
     if (channelFilter !== 'all' && conv.channel !== channelFilter && conv.channel !== 'whatsapp_group') return false
     if (searchQuery) {
       const contactName = conv.contact?.name || ''
@@ -270,8 +272,9 @@ export function ConversationList() {
           />
         </div>
 
-        {/* Agent Filter */}
+        {/* Agent / Department Filter */}
         <AgentFilter />
+        <DepartmentFilter />
 
         {/* Channel Filter */}
         <div className="flex gap-1">

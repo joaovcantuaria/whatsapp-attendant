@@ -14,6 +14,8 @@ import {
   Instagram,
   QrCode,
   MessageSquare,
+  Network,
+  Clock,
 } from 'lucide-react'
 
 const settingsItems = [
@@ -58,6 +60,20 @@ const settingsItems = [
     title: 'Integrações (API)',
     description: 'Chaves de API para conectar sistemas externos',
     color: 'bg-orange-50 text-orange-600',
+  },
+  {
+    href: '/settings/departments',
+    icon: Network,
+    title: 'Departamentos',
+    description: 'Filas de atendimento e distribuição automática de conversas',
+    color: 'bg-indigo-50 text-indigo-600',
+  },
+  {
+    href: '/settings/business-hours',
+    icon: Clock,
+    title: 'Horário de Atendimento',
+    description: 'Dias e horários de funcionamento e mensagem de ausência',
+    color: 'bg-sky-50 text-sky-600',
   },
   {
     href: '/settings/quick-replies',
