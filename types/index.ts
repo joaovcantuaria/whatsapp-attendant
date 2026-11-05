@@ -130,6 +130,7 @@ export interface Message {
   direction: MessageDirection
   type: MessageType
   content: string | null
+  transcription?: string | null
   media_url: string | null
   media_mime_type: string | null
   media_filename: string | null

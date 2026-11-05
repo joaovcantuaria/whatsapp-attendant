@@ -2,7 +2,8 @@
 
 import { Message } from '@/types'
 import { cn, formatMessageTime } from '@/lib/utils'
-import { Check, CheckCheck, Clock, XCircle, FileText, MapPin, Download } from 'lucide-react'
+import { useState } from 'react'
+import { Check, CheckCheck, Clock, XCircle, FileText, MapPin, Download, Languages, Loader2 } from 'lucide-react'
 
 interface MessageBubbleProps {
   message: Message
@@ -51,6 +52,50 @@ function DownloadButton({ mediaUrl, filename, type }: { mediaUrl: string; filena
     >
       <Download className="h-3.5 w-3.5 text-white" />
     </button>
+  )
+}
+
+// Transcrição de áudio sob demanda (fica salva na mensagem)
+function Transcricao({ message }: { message: Message }) {
+  const [texto, setTexto] = useState<string | null>(message.transcription || null)
+  const [carregando, setCarregando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  if (texto) {
+    return <p className="text-xs italic whitespace-pre-wrap opacity-90 max-w-[250px]">“{texto}”</p>
+  }
+
+  const transcrever = async () => {
+    setCarregando(true)
+    setErro(null)
+    try {
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: message.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Não foi possível transcrever')
+      setTexto(data.texto)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível transcrever')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <button
+        onClick={transcrever}
+        disabled={carregando}
+        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+      >
+        {carregando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+        {carregando ? 'Transcrevendo...' : 'Transcrever áudio'}
+      </button>
+      {erro && <p className="text-[10px] text-red-500 max-w-[250px]">{erro}</p>}
+    </div>
   )
 }
 
@@ -155,6 +200,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                   <Download className="h-3 w-3" />
                   Baixar áudio
                 </button>
+                {message.id && !message.id.startsWith('temp') && <Transcricao message={message} />}
               </div>
             ) : (
               <div className="flex items-center gap-2 p-2 rounded bg-black/5">
