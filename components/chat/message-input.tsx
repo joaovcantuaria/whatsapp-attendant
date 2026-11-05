@@ -22,6 +22,8 @@ import {
   LayoutTemplate,
   Loader2,
   StickyNote,
+  Sparkles,
+  X,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -52,6 +54,32 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
   const inputRef = useRef<HTMLInputElement>(null)
   const { sendMessage, isLoading } = useSendMessage()
   const { toast } = useToast()
+  const [copilotoCarregando, setCopilotoCarregando] = useState<'sugerir' | 'resumir' | null>(null)
+  const [resumo, setResumo] = useState<string | null>(null)
+
+  // Copiloto: rascunho de resposta (vai para o campo, para revisar) ou resumo da conversa
+  const usarCopiloto = async (acao: 'sugerir' | 'resumir') => {
+    setCopilotoCarregando(acao)
+    try {
+      const res = await fetch('/api/ai-copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: conversation.id, acao }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Copiloto indisponível')
+      if (acao === 'sugerir') {
+        setText(data.texto)
+        inputRef.current?.focus()
+      } else {
+        setResumo(data.texto)
+      }
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Copiloto indisponível', variant: 'destructive' })
+    } finally {
+      setCopilotoCarregando(null)
+    }
+  }
 
   const phone = conversation.contact?.phone || ''
 
@@ -381,6 +409,17 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
         </div>
       )}
 
+      {/* Resumo do copiloto */}
+      {resumo && (
+        <div className="mb-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-md text-xs text-violet-900 relative">
+          <button className="absolute top-1.5 right-1.5 text-violet-400 hover:text-violet-700" onClick={() => setResumo(null)} aria-label="Fechar resumo">
+            <X className="h-3.5 w-3.5" />
+          </button>
+          <p className="font-semibold mb-1 flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" /> Resumo da conversa</p>
+          <p className="whitespace-pre-wrap pr-4">{resumo}</p>
+        </div>
+      )}
+
       {/* Quick Replies Dropdown */}
       {showQuickReplies && (
         <QuickReplyPicker
@@ -426,6 +465,25 @@ export function MessageInput({ conversation, windowStatus, onOptimisticSend }: M
             <DropdownMenuItem onClick={() => handleMediaUpload('audio')}>
               <Mic className="mr-2 h-4 w-4" />
               Áudio (arquivo)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Copiloto de IA */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="shrink-0" title="Copiloto de IA" disabled={!!copilotoCarregando}>
+              {copilotoCarregando ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 text-violet-500" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => usarCopiloto('sugerir')}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Sugerir resposta
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => usarCopiloto('resumir')}>
+              <FileText className="mr-2 h-4 w-4" />
+              Resumir conversa
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
