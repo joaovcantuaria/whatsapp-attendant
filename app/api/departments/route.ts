@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
+import { membroAtual } from '@/lib/membro-atual'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,19 +8,6 @@ export const dynamic = 'force-dynamic'
  * Departamentos (filas de atendimento). Qualquer membro lista; só dono/admin altera.
  * A distribuição das conversas é feita no banco (trigger distribuir_conversa).
  */
-
-async function membroAtual() {
-  const supabase = createServerSupabaseClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
-  const { data } = await createServiceRoleClient()
-    .from('company_members')
-    .select('company_id, role')
-    .eq('user_id', session.user.id)
-    .eq('is_active', true)
-    .single()
-  return data ? { companyId: data.company_id as string, admin: data.role === 'owner' || data.role === 'admin' } : null
-}
 
 const semPermissao = () => NextResponse.json({ error: 'Só o dono ou um administrador pode alterar departamentos' }, { status: 403 })
 

@@ -27,8 +27,10 @@ import {
   Activity,
   Clock,
   ArrowRightLeft,
+  BookOpen,
 } from 'lucide-react'
 import { PROVIDER_MODELS } from '@/lib/ai-providers'
+import { BaseConhecimento } from '@/components/ai/base-conhecimento'
 
 interface AiConfig {
   id: string
@@ -64,7 +66,7 @@ export default function AiAgentPage() {
   const [stats, setStats] = useState({ totalMessages: 0, totalTransfers: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'config' | 'logs'>('config')
+  const [activeTab, setActiveTab] = useState<'config' | 'conhecimento' | 'logs'>('config')
   const { toast } = useToast()
 
   const fetchData = async () => {
@@ -199,6 +201,15 @@ export default function AiAgentPage() {
           >
             <Settings2 className="h-3.5 w-3.5 inline mr-1.5" />
             Configuração
+          </button>
+          <button
+            onClick={() => setActiveTab('conhecimento')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'conhecimento' ? 'border-[#F26522] text-[#F26522]' : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <BookOpen className="h-3.5 w-3.5 inline mr-1.5" />
+            Base de conhecimento
           </button>
           <button
             onClick={() => setActiveTab('logs')}
@@ -388,6 +399,8 @@ export default function AiAgentPage() {
             </Button>
           </div>
         )}
+
+        {activeTab === 'conhecimento' && <BaseConhecimento />}
 
         {activeTab === 'logs' && (
           <div className="space-y-2">

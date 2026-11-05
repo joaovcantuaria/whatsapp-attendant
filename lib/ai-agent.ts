@@ -1,4 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { conhecimentoParaPergunta } from '@/lib/ia'
+import { agoraEmSaoPaulo } from '@/lib/ausencia'
 
 interface AiConfig {
   is_active: boolean
@@ -124,6 +126,9 @@ export async function processAiResponse(
     content: msg.content || `[${msg.type}]`,
   }))
 
+  // Trechos da base de conhecimento relevantes para esta pergunta
+  const conhecimento = await conhecimentoParaPergunta(supabase, companyId, userMessage)
+
   // 7. Chamar IA (multi-provider: Groq, Gemini, OpenAI)
   const startTime = Date.now()
   try {
@@ -148,7 +153,7 @@ export async function processAiResponse(
       body: JSON.stringify({
         model: config.model || 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: config.system_prompt },
+          { role: 'system', content: `${config.system_prompt || ''}${conhecimento}` },
           ...contextMessages,
           { role: 'user', content: userMessage },
         ],
@@ -208,8 +213,8 @@ export async function processAiResponse(
 }
 
 function isWithinActiveHours(config: AiConfig): boolean {
-  const now = new Date()
-  const day = now.getDay() // 0=dom, 1=seg...6=sab
+  // Horário de Brasília (o servidor roda em UTC; antes o agente ligava/desligava 3h fora do configurado)
+  const { dia: day, minutos } = agoraEmSaoPaulo() // 0=dom, 1=seg...6=sab
 
   if (config.active_days && config.active_days.length > 0 && !config.active_days.includes(day)) return false
 
@@ -219,7 +224,7 @@ function isWithinActiveHours(config: AiConfig): boolean {
   // Se início = fim (ex: 00:00 a 00:00), significa 24h
   if (start === end) return true
 
-  const currentTime = now.toTimeString().slice(0, 5) // HH:MM
+  const currentTime = `${String(Math.floor(minutos / 60)).padStart(2, '0')}:${String(minutos % 60).padStart(2, '0')}` // HH:MM
 
   // Se end < start (ex: 22:00 a 06:00 = período noturno)
   if (end < start) {
