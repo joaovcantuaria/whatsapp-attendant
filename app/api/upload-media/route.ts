@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { WHATSAPP_SERVER_URL, WHATSAPP_SERVER_API_KEY as API_KEY } from '@/lib/whatsapp-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,8 +63,6 @@ export async function POST(request: NextRequest) {
       const mimeType = file.type || 'application/octet-stream'
       const dataUri = `data:${mimeType};base64,${base64}`
 
-      const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-      const API_KEY = 'boragerir-whatsapp-server-2026'
 
       // Usar AbortController para timeout de 25s
       const controller = new AbortController()

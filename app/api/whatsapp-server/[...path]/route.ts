@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { WHATSAPP_SERVER_URL, WHATSAPP_SERVER_API_KEY as API_KEY } from '@/lib/whatsapp-server'
 
 export const dynamic = 'force-dynamic'
-
-const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-const API_KEY = 'boragerir-whatsapp-server-2026'
 
 // Proxy para o servidor WhatsApp na VPS
 // Resolve o problema de mixed content (HTTPS frontend → HTTP VPS)

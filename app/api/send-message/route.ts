@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
 import { incrementUsage } from '@/lib/plan-limits'
+import { WHATSAPP_SERVER_URL, WHATSAPP_SERVER_API_KEY as API_KEY } from '@/lib/whatsapp-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,8 +56,6 @@ export async function POST(request: NextRequest) {
 
     if (useBaileys) {
       // ========== ENVIO VIA BAILEYS (QR Code) ==========
-      const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-      const API_KEY = 'boragerir-whatsapp-server-2026'
 
       if (type === 'template') {
         return NextResponse.json({ error: 'Templates não suportados via QR Code. Use a API oficial.' }, { status: 400 })

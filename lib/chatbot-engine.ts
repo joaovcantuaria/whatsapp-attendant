@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { WHATSAPP_SERVER_URL, WHATSAPP_SERVER_API_KEY as API_KEY } from '@/lib/whatsapp-server'
 
 export async function processChatbotMessage(
   companyId: string,
@@ -294,8 +295,6 @@ async function executeAction(
             })
           } else {
             // Via Baileys
-            const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-            const API_KEY = 'boragerir-whatsapp-server-2026'
             await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-media`, {
               method: 'POST',
               headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
@@ -329,8 +328,6 @@ async function sendWhatsAppText(phoneNumberId: string, token: string, to: string
       })
     } else {
       // Via Baileys (QR Code)
-      const WHATSAPP_SERVER_URL = 'http://169.58.36.33:3001'
-      const API_KEY = 'boragerir-whatsapp-server-2026'
       await fetch(`${WHATSAPP_SERVER_URL}/api/message/send-text`, {
         method: 'POST',
         headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
