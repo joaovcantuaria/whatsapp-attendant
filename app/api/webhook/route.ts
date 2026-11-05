@@ -6,6 +6,7 @@ import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
+import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
 
 /**
  * Normaliza números brasileiros para garantir o 9º dígito em celulares.
@@ -257,6 +258,11 @@ async function processInboundMessage(
 
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
+
+  // Link de entrada (#CODIGO): origem, etiqueta e departamento
+  if (message.type === 'text') {
+    await aplicarLinkDeEntrada(supabase, { companyId: companyId || contact.company_id, contactId: contact.id, conversationId: conversation.id, texto: content })
+  }
 
   // "SAIR" / "VOLTAR": atualiza o descadastro e não passa para chatbot/IA
   const optOut = message.type === 'text' ? intencaoOptOut(content) : null

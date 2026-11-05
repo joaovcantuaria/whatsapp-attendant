@@ -6,6 +6,7 @@ import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
+import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
 
 // GET - Validação do webhook pela Meta (por empresa)
 export async function GET(
@@ -348,6 +349,11 @@ async function processInboundMessage(
     } catch (err) {
       console.error('[Webhook] Erro ao registrar avaliação:', err)
     }
+  }
+
+  // Link de entrada (#CODIGO): origem, etiqueta e departamento
+  if (message.type === 'text') {
+    await aplicarLinkDeEntrada(supabase, { companyId, contactId: contact.id, conversationId: conversation.id, texto: content })
   }
 
   // "SAIR" / "VOLTAR": atualiza o descadastro e não passa para chatbot/IA
