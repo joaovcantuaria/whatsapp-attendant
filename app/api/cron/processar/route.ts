@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
 import { prepararCampanha, processarLoteCampanha } from '@/lib/campanhas'
 import { WHATSAPP_SERVER_URL, WHATSAPP_SERVER_API_KEY } from '@/lib/whatsapp-server'
+import { processarAutomacoes } from '@/lib/automacoes'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -11,6 +12,7 @@ export const maxDuration = 60
  * 1) Dispara campanhas agendadas que chegaram na hora
  * 2) Continua as filas de campanhas em andamento
  * 3) Envia as mensagens agendadas (scheduled_messages)
+ * 4) Roda as automações com o Bora Gerir App (aniversário, reativação, lembrete)
  *
  * Autenticação: header "Authorization: Bearer <CRON_SECRET>".
  */
@@ -30,7 +32,7 @@ async function processar(request: NextRequest) {
 
   const prazo = Date.now() + 50_000
   const supabase = createServiceRoleClient()
-  const resumo = { campanhas_iniciadas: 0, campanha_enviadas: 0, campanha_falhas: 0, agendadas_enviadas: 0, agendadas_falhas: 0 }
+  const resumo = { campanhas_iniciadas: 0, campanha_enviadas: 0, campanha_falhas: 0, agendadas_enviadas: 0, agendadas_falhas: 0, automacoes: {} as object }
   const agora = new Date().toISOString()
 
   // 1) Campanhas agendadas
@@ -68,6 +70,9 @@ async function processar(request: NextRequest) {
     resumo.agendadas_enviadas = r.enviadas
     resumo.agendadas_falhas = r.falhas
   }
+
+  // 4) Automações com o App
+  if (Date.now() < prazo) resumo.automacoes = await processarAutomacoes(supabase, prazo)
 
   return NextResponse.json({ ok: true, ...resumo })
 }

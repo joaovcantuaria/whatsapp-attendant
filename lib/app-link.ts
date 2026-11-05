@@ -90,10 +90,12 @@ export async function companyDaApiKey(apiKey: string | null): Promise<string | n
 /**
  * Consulta a API do App em nome da company.
  * Ex.: await consultarApp(companyId, 'aniversariantes?dias=0')
+ *      await consultarApp(companyId, 'cupons', { cliente_id, origem: 'aniversario', ... })  // POST
  */
 export async function consultarApp<T = unknown>(
   companyId: string,
-  caminho: string
+  caminho: string,
+  payload?: Record<string, unknown>
 ): Promise<{ ok: true; dados: T } | { ok: false; status: number; erro: string }> {
   const { data: link } = await createServiceRoleClient()
     .from('app_links')
@@ -105,7 +107,12 @@ export async function consultarApp<T = unknown>(
 
   try {
     const res = await fetch(`${link.app_url}/api/integracoes/chat/v1/${caminho}`, {
-      headers: { Authorization: `Bearer ${descriptografar(link.app_token_enc)}` },
+      method: payload ? 'POST' : 'GET',
+      headers: {
+        Authorization: `Bearer ${descriptografar(link.app_token_enc)}`,
+        ...(payload ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: payload ? JSON.stringify(payload) : undefined,
       signal: AbortSignal.timeout(20000),
       cache: 'no-store',
     })

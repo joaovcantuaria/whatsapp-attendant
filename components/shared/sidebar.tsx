@@ -29,6 +29,8 @@ import {
   Brain,
   MessagesSquare,
   Megaphone,
+  Zap,
+  Link2,
   Settings,
   Shield,
   UserCircle,
@@ -57,6 +59,8 @@ const crmItems = [
 
 const toolsNavItems = [
   { href: '/campaigns', icon: Megaphone, label: 'Campanhas' },
+  { href: '/automations', icon: Zap, label: 'Automações' },
+  { href: '/entry-links', icon: Link2, label: 'Links de entrada' },
   { href: '/chatbots', icon: Bot, label: 'Robôs' },
   { href: '/templates', icon: FileText, label: 'Templates' },
   { href: '/uploads', icon: Upload, label: 'Uploads' },
