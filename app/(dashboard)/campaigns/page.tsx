@@ -275,8 +275,10 @@ export default function CampaignsPage() {
 
       if (res.ok) {
         toast({
-          title: 'Campanha enviada!',
-          description: `${data.sent} enviadas, ${data.failed} falharam de ${data.total} total`,
+          title: data.em_andamento ? 'Campanha em envio' : 'Campanha enviada!',
+          description: data.em_andamento
+            ? `${data.sent} de ${data.total} já enviadas. O restante continua saindo automaticamente, em lotes.`
+            : `${data.sent} enviadas, ${data.failed} falharam de ${data.total} total`,
         })
         fetchCampaigns()
       } else {
@@ -342,6 +344,7 @@ export default function CampaignsPage() {
     running: { label: 'Enviando...', color: 'bg-yellow-100 text-yellow-700', icon: Loader2 },
     completed: { label: 'Concluída', color: 'bg-green-100 text-green-700', icon: CheckCircle2 },
     cancelled: { label: 'Cancelada', color: 'bg-red-100 text-red-700', icon: XCircle },
+    failed: { label: 'Falhou', color: 'bg-red-100 text-red-700', icon: XCircle },
   }
 
   const selectedTemplate = templates.find((t) => t.name === formData.template_name)

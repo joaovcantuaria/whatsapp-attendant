@@ -4,7 +4,7 @@ import { proximoSeguro } from '@/lib/app-link-rotas'
 
 // Rotas públicas que não requerem autenticação
 const publicRoutes = ['/login', '/register', '/pricing', '/invite', '/privacidade', '/set-password', '/auth/callback']
-const publicPrefixes = ['/api/webhook', '/api/external']
+const publicPrefixes = ['/api/webhook', '/api/external', '/api/cron']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

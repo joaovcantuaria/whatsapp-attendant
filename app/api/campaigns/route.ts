@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { prepararCampanha, processarLoteCampanha } from '@/lib/campanhas'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 async function getUserCompanyId(userId: string) {
   const serviceClient = createServiceRoleClient()
@@ -150,248 +152,17 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Campanha não pode ser enviada neste status' }, { status: 400 })
       }
 
-      // Verificar se o template existe e está aprovado
-      const { data: templateCheck } = await serviceClient
-        .from('message_templates')
-        .select('id, name, status, header_type')
-        .eq('company_id', companyId)
-        .eq('name', campaign.template_name)
-        .single()
+      // Monta a fila e já envia o primeiro lote; o resto sai a cada minuto pelo /api/cron/processar
+      const preparo = await prepararCampanha(serviceClient, campaign)
+      if (!preparo.ok) return NextResponse.json({ error: preparo.erro }, { status: 400 })
 
-      if (!templateCheck) {
-        return NextResponse.json({
-          error: `Template "${campaign.template_name}" não encontrado. Sincronize os templates com a Meta.`,
-        }, { status: 400 })
-      }
-
-      if (templateCheck.status !== 'approved') {
-        return NextResponse.json({
-          error: `Template "${campaign.template_name}" não está aprovado (status: ${templateCheck.status}). Apenas templates aprovados pela Meta podem ser enviados.`,
-        }, { status: 400 })
-      }
-
-      // Buscar credenciais da empresa
-      const { data: company } = await serviceClient
-        .from('companies')
-        .select('whatsapp_token, whatsapp_phone_number_id')
-        .eq('id', companyId)
-        .single()
-
-      if (!company?.whatsapp_token || !company?.whatsapp_phone_number_id) {
-        return NextResponse.json({ error: 'WhatsApp não configurado' }, { status: 400 })
-      }
-
-      // Buscar contatos
-      const { data: contacts } = await serviceClient
-        .from('contacts')
-        .select('id, phone, name')
-        .in('id', campaign.contact_ids)
-
-      if (!contacts || contacts.length === 0) {
-        return NextResponse.json({ error: 'Nenhum contato encontrado' }, { status: 400 })
-      }
-
-      // Montar components - usar buildTemplateComponents (mesma função que funciona na conversa)
-      let varsMapping: Record<string, string> | null = null
-      if (campaign.template_components?.vars_mapping) {
-        varsMapping = campaign.template_components.vars_mapping
-      }
-      const savedHeaderMediaUrl: string | null = campaign.template_components?.header_media_url || null
-
-      // Buscar template COMPLETO para usar com buildTemplateComponents
-      const { data: templateData } = await serviceClient
-        .from('message_templates')
-        .select('name, language, body, header_type, header_content, buttons, footer')
-        .eq('company_id', companyId)
-        .eq('name', campaign.template_name)
-        .single()
-
-      const templateBodyVars = templateData?.body?.match(/\{\{\d+\}\}/g)
-      const hasRequiredVars = templateBodyVars && templateBodyVars.length > 0
-
-      // Import buildTemplateComponents
-      const { buildTemplateComponents } = await import('@/lib/template-utils')
-
-      // Marcar como em execução
-      await serviceClient
-        .from('campaigns')
-        .update({
-          status: 'running',
-          started_at: new Date().toISOString(),
-          total_contacts: contacts.length,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-
-      // Enviar para cada contato
-      const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
-      const headers = {
-        'Authorization': `Bearer ${company.whatsapp_token}`,
-        'Content-Type': 'application/json',
-      }
-
-      let sentCount = 0
-      let failedCount = 0
-
-      for (const contact of contacts) {
-        try {
-          // Normalizar telefone para formato E.164 (só dígitos)
-          const phone = contact.phone.replace(/\D/g, '')
-          if (!phone || phone.length < 10) {
-            await serviceClient.from('campaign_messages').insert({
-              campaign_id: id,
-              contact_id: contact.id,
-              phone: contact.phone,
-              status: 'failed',
-              error_message: `Telefone inválido: "${contact.phone}" (${phone.length} dígitos)`,
-            })
-            failedCount++
-            continue
-          }
-
-          // Resolver variáveis para este contato
-          const resolvedVars: Record<string, string> = {}
-          if (hasRequiredVars) {
-            const expectedCount = templateBodyVars!.length
-            for (let i = 1; i <= expectedCount; i++) {
-              const key = `{{${i}}}`
-              const mapping = varsMapping ? varsMapping[key] || '' : ''
-
-              if (mapping === '{{contact_name}}') {
-                resolvedVars[key] = contact.name || phone
-              } else if (mapping === '{{contact_phone}}') {
-                resolvedVars[key] = contact.phone
-              } else if (mapping === '__custom__') {
-                resolvedVars[key] = (varsMapping ? varsMapping[`${key}_custom`] : '') || '-'
-              } else if (mapping) {
-                resolvedVars[key] = mapping
-              } else {
-                resolvedVars[key] = i === 1 ? (contact.name || phone) : '-'
-              }
-            }
-          }
-
-          // Usar buildTemplateComponents (mesma função que funciona na conversa)
-          // Se o template tem header de mídia e não tem URL fornecida, usar fallback
-          const DEFAULT_HEADER_IMAGE = 'https://edrfxjigpwdoxcybqnbt.supabase.co/storage/v1/object/public/uploads/ca9a769a-281b-428d-afed-b65ffa84e4ab/1784044314175_confirma_es.png'
-          
-          let headerMediaUrl = savedHeaderMediaUrl || undefined
-          if (!headerMediaUrl && templateData?.header_type &&
-              ['image', 'video', 'document'].includes(templateData.header_type.toLowerCase())) {
-            // Tentar usar header_content se for URL válida, senão usar fallback
-            if (templateData.header_content?.startsWith('http')) {
-              headerMediaUrl = templateData.header_content
-            } else {
-              headerMediaUrl = DEFAULT_HEADER_IMAGE
-            }
-          }
-
-          const components = buildTemplateComponents(
-            {
-              name: templateData?.name || campaign.template_name,
-              language: templateData?.language || campaign.template_language || 'pt_BR',
-              header_type: templateData?.header_type || null,
-              header_content: templateData?.header_content || null,
-              body: templateData?.body || '',
-              footer: templateData?.footer || null,
-              buttons: templateData?.buttons || null,
-            },
-            resolvedVars,
-            headerMediaUrl
-          )
-
-          // Montar payload do template
-          const templatePayload: any = {
-            name: campaign.template_name,
-            language: { code: campaign.template_language || 'pt_BR' },
-          }
-
-          if (components.length > 0) {
-            templatePayload.components = components
-          }
-
-          const messageBody = {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: phone,
-            type: 'template',
-            template: templatePayload,
-          }
-
-          // Log do primeiro envio para debug
-          if (sentCount === 0 && failedCount === 0) {
-            console.log('[Campaign Debug] Payload:', JSON.stringify(messageBody, null, 2))
-          }
-
-          const metaResponse = await fetch(
-            `${WHATSAPP_API_URL}/${company.whatsapp_phone_number_id}/messages`,
-            { method: 'POST', headers, body: JSON.stringify(messageBody) }
-          )
-
-          const metaData = await metaResponse.json()
-
-          if (metaResponse.ok) {
-            const waMessageId = metaData?.messages?.[0]?.id || null
-
-            await serviceClient.from('campaign_messages').insert({
-              campaign_id: id,
-              contact_id: contact.id,
-              phone: contact.phone,
-              whatsapp_message_id: waMessageId,
-              status: 'sent',
-              sent_at: new Date().toISOString(),
-              // Salvar payload para debug
-              error_message: sentCount === 0 ? `[DEBUG] payload: ${JSON.stringify(templatePayload)}` : null,
-            })
-
-            sentCount++
-          } else {
-            // Log detalhado do erro
-            const errorDetail = metaData?.error
-              ? `[${metaData.error.code || '?'}] ${metaData.error.message || 'Sem detalhes'} | Template: ${campaign.template_name} | Phone: ${contact.phone}`
-              : 'Erro desconhecido'
-
-            await serviceClient.from('campaign_messages').insert({
-              campaign_id: id,
-              contact_id: contact.id,
-              phone: contact.phone,
-              status: 'failed',
-              error_message: errorDetail,
-            })
-            failedCount++
-          }
-
-          // Delay entre envios (para evitar rate limit da Meta)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        } catch (err: any) {
-          await serviceClient.from('campaign_messages').insert({
-            campaign_id: id,
-            contact_id: contact.id,
-            phone: contact.phone,
-            status: 'failed',
-            error_message: `Erro de conexão: ${err?.message || 'desconhecido'}`,
-          })
-          failedCount++
-        }
-      }
-
-      // Atualizar campanha como concluída
-      await serviceClient
-        .from('campaigns')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          sent_count: sentCount,
-          failed_count: failedCount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-
+      const lote = await processarLoteCampanha(serviceClient, id, 15, Date.now() + 40_000)
       return NextResponse.json({
         success: true,
-        sent: sentCount,
-        failed: failedCount,
-        total: contacts.length,
+        sent: lote.enviadas,
+        failed: lote.falhas,
+        total: preparo.total,
+        em_andamento: !lote.concluida,
       })
     }
 
