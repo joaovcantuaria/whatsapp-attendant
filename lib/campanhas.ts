@@ -179,7 +179,7 @@ type TemplateData = {
   header_content: string | null; buttons: unknown; footer: string | null
 } | null
 
-async function enviarTemplate(
+export async function enviarTemplate(
   campanha: Pick<Campanha, 'template_name' | 'template_language' | 'template_components'>,
   company: { whatsapp_token: string | null; whatsapp_phone_number_id: string | null } | null,
   templateData: TemplateData,

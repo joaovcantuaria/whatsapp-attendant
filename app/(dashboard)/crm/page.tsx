@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Plus, Filter, Trophy, XCircle } from 'lucide-react'
+import { Search, Plus, Filter, Trophy, XCircle, Zap } from 'lucide-react'
+import { AutomacoesEtapa } from '@/components/crm/automacoes-etapa'
 import { getInitials } from '@/lib/utils'
 
 interface CrmDeal {
@@ -38,6 +39,7 @@ const stageHeaderColors: Record<number, string> = {
 const cardBarColors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#22c55e', '#f97316']
 
 export default function CrmPage() {
+  const [automacoesEtapa, setAutomacoesEtapa] = useState<{ id: string; name: string } | null>(null)
   const [stages, setStages] = useState<CrmStage[]>([])
   const [deals, setDeals] = useState<CrmDeal[]>([])
   const [pipelineId, setPipelineId] = useState('')
@@ -178,9 +180,18 @@ export default function CrmPage() {
                   <span className={`text-[11px] font-bold uppercase tracking-wide ${headerColor}`}>
                     {stage.name}
                   </span>
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-white/80">
-                    {stageDeals.length}
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setAutomacoesEtapa({ id: stage.id, name: stage.name })}
+                      className="h-5 w-5 rounded flex items-center justify-center hover:bg-white/70 text-slate-400 hover:text-amber-500 transition-colors"
+                      title="Automações desta etapa"
+                    >
+                      <Zap className="h-3 w-3" />
+                    </button>
+                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-white/80">
+                      {stageDeals.length}
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* Cards */}
@@ -265,6 +276,10 @@ export default function CrmPage() {
           })}
         </div>
       </DragDropContext>
+
+      {automacoesEtapa && (
+        <AutomacoesEtapa stageId={automacoesEtapa.id} stageName={automacoesEtapa.name} onClose={() => setAutomacoesEtapa(null)} />
+      )}
 
       {/* New Deal Dialog */}
       <Dialog open={showNewDeal} onOpenChange={setShowNewDeal}>

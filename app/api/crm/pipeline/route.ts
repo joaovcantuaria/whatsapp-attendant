@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { executarAutomacoesDaEtapa } from '@/lib/automacoes-funil'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 // GET - Buscar pipeline com stages e deals
 export async function GET(request: NextRequest) {
@@ -127,6 +129,9 @@ export async function POST(request: NextRequest) {
       content: `Negociação "${title}" criada`,
     })
 
+    // Automações da etapa em que o negócio nasceu
+    await executarAutomacoesDaEtapa(serviceClient, deal, deal.stage_id, session.user.id)
+
     return NextResponse.json(deal)
   } catch (error) {
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -153,7 +158,16 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { id, stage_id, status, lost_reason, ...updates } = body
 
-    const updateData: any = { ...updates, updated_at: new Date().toISOString() }
+    // Etapa anterior: as automações só rodam quando o negócio muda de etapa
+    const { data: anterior } = await serviceClient
+      .from('crm_deals').select('stage_id').eq('id', id).eq('company_id', member.company_id).single()
+
+    // Só campos editáveis do negócio (antes aceitava qualquer coluna, inclusive company_id)
+    const EDITAVEIS = ['title', 'value', 'contact_id', 'agent_id']
+    const updateData: Record<string, unknown> = {
+      ...Object.fromEntries(Object.entries(updates).filter(([campo]) => EDITAVEIS.includes(campo))),
+      updated_at: new Date().toISOString(),
+    }
     if (stage_id) updateData.stage_id = stage_id
     if (status) {
       updateData.status = status
@@ -189,6 +203,10 @@ export async function PATCH(request: NextRequest) {
       type: activityType,
       content,
     })
+
+    if (stage_id && anterior && anterior.stage_id !== stage_id) {
+      await executarAutomacoesDaEtapa(serviceClient, deal, stage_id, session.user.id)
+    }
 
     return NextResponse.json(deal)
   } catch (error) {

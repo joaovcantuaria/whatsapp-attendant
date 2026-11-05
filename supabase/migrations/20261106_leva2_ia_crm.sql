@@ -41,3 +41,19 @@ CREATE POLICY "contact_fields_select_membros" ON contact_field_definitions FOR S
 
 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE contacts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- 4) Automações por etapa do funil (disparam quando um negócio ENTRA na etapa)
+CREATE TABLE IF NOT EXISTS crm_stage_automations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  stage_id UUID NOT NULL REFERENCES crm_pipeline_stages(id) ON DELETE CASCADE,
+  action TEXT NOT NULL CHECK (action IN ('criar_tarefa', 'enviar_template', 'enviar_texto')),
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_crm_stage_automations_stage ON crm_stage_automations(stage_id) WHERE is_active;
+ALTER TABLE crm_stage_automations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "crm_stage_automations_select_membros" ON crm_stage_automations;
+CREATE POLICY "crm_stage_automations_select_membros" ON crm_stage_automations FOR SELECT
+  USING (company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid() AND is_active));
