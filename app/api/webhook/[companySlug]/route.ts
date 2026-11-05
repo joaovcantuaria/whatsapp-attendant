@@ -4,6 +4,7 @@ import { checkConversationLimit, incrementUsage, isCompanyActive } from '@/lib/p
 import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
+import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 
 // GET - Validação do webhook pela Meta (por empresa)
 export async function GET(
@@ -57,10 +58,10 @@ export async function POST(
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    // Verificar se plano está ativo
-    if (!isCompanyActive(company.plan_status, company.trial_ends_at)) {
-      return NextResponse.json({ status: 'suspended' }, { status: 403 })
-    }
+    // Plano vencido: as mensagens são guardadas (o cliente não perde nada), mas
+    // sem chatbot/IA nem confirmação de leitura até a empresa reativar o plano.
+    // Antes o webhook respondia 403 e a Meta descartava tudo.
+    const planoAtivo = isCompanyActive(company.plan_status, company.trial_ends_at)
 
     const body = await request.json()
     const entries = body.entry || []
@@ -74,7 +75,7 @@ export async function POST(
 
         if (value.messages) {
           for (const message of value.messages) {
-            await processInboundMessage(supabase, message, value.contacts?.[0], company.id, company.whatsapp_token!, company.whatsapp_phone_number_id!)
+            await processInboundMessage(supabase, message, value.contacts?.[0], company.id, company.whatsapp_token!, company.whatsapp_phone_number_id!, planoAtivo)
           }
         }
 
@@ -99,7 +100,8 @@ async function processInboundMessage(
   contactInfo: { profile?: { name?: string }; wa_id?: string } | undefined,
   companyId: string,
   whatsappToken: string,
-  phoneNumberId: string
+  phoneNumberId: string,
+  planoAtivo: boolean
 ) {
   const phone = message.from
   const contactName = contactInfo?.profile?.name || phone
@@ -160,8 +162,8 @@ async function processInboundMessage(
         .single()
       conversation = reopened || closedConv
     } else {
-      // Criar nova conversa
-      const canCreate = await checkConversationLimit(companyId)
+      // Criar nova conversa (com plano vencido, guarda mesmo assim)
+      const canCreate = !planoAtivo || await checkConversationLimit(companyId)
       if (!canCreate) {
         console.warn(`Company ${companyId} reached conversation limit`)
         return
@@ -346,6 +348,23 @@ async function processInboundMessage(
       console.error('[Webhook] Erro ao registrar avaliação:', err)
     }
   }
+
+  // "SAIR" / "VOLTAR": atualiza o descadastro e não passa para chatbot/IA
+  const optOut = message.type === 'text' ? intencaoOptOut(content) : null
+  if (optOut) {
+    await aplicarOptOut(supabase, {
+      intencao: optOut,
+      contactId: contact.id,
+      companyId,
+      conversationId: conversation.id,
+      phone,
+      whatsappToken: planoAtivo ? whatsappToken : null,
+      phoneNumberId: planoAtivo ? phoneNumberId : null,
+    })
+    return
+  }
+
+  if (!planoAtivo) return
 
   // Marcar como lida na Meta
   await markMessageAsReadWithToken(message.id, whatsappToken, phoneNumberId)

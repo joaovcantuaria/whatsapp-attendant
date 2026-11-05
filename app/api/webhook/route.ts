@@ -4,6 +4,7 @@ import { markMessageAsRead } from '@/lib/meta'
 import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
+import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 
 /**
  * Normaliza números brasileiros para garantir o 9º dígito em celulares.
@@ -255,6 +256,25 @@ async function processInboundMessage(
 
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
+
+  // "SAIR" / "VOLTAR": atualiza o descadastro e não passa para chatbot/IA
+  const optOut = message.type === 'text' ? intencaoOptOut(content) : null
+  if (optOut) {
+    const optOutCompanyId = companyId || contact.company_id
+    const { data: credenciais } = optOutCompanyId
+      ? await supabase.from('companies').select('whatsapp_token, whatsapp_phone_number_id').eq('id', optOutCompanyId).single()
+      : { data: null }
+    await aplicarOptOut(supabase, {
+      intencao: optOut,
+      contactId: contact.id,
+      companyId: optOutCompanyId,
+      conversationId: conversation.id,
+      phone,
+      whatsappToken: credenciais?.whatsapp_token,
+      phoneNumberId: credenciais?.whatsapp_phone_number_id,
+    })
+    return
+  }
 
   // Detectar resposta de pesquisa de satisfação (Flow)
   if (message.type === 'interactive' && (message as any)._flowResponse) {
