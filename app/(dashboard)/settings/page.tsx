@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Network,
   Clock,
+  ListPlus,
 } from 'lucide-react'
 
 const settingsItems = [
@@ -74,6 +75,13 @@ const settingsItems = [
     title: 'Horário de Atendimento',
     description: 'Dias e horários de funcionamento e mensagem de ausência',
     color: 'bg-sky-50 text-sky-600',
+  },
+  {
+    href: '/settings/contact-fields',
+    icon: ListPlus,
+    title: 'Campos Personalizados',
+    description: 'Informações extras dos contatos, usadas no CRM e nas campanhas',
+    color: 'bg-teal-50 text-teal-600',
   },
   {
     href: '/settings/quick-replies',

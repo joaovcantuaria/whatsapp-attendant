@@ -89,6 +89,8 @@ export interface Contact {
   profile_picture: string | null
   tags: string[] | null
   notes: string | null
+  custom_fields?: Record<string, string | number> | null
+  opted_out?: boolean | null
   created_at: string
   updated_at: string
 }

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase-server'
+import { createServiceRoleClient } from '@/lib/supabase-server'
+import { membroAtual } from '@/lib/membro-atual'
+import { valoresCamposValidos } from '@/lib/campos-personalizados'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,17 +11,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const membro = await membroAtual()
+    if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const serviceClient = createServiceRoleClient()
 
-    // Buscar contato
+    // Buscar contato (só da empresa do usuário)
     const { data: contact } = await serviceClient
       .from('contacts')
       .select('*')
       .eq('id', params.id)
+      .eq('company_id', membro.companyId)
       .single()
 
     if (!contact) return NextResponse.json({ error: 'Contato não encontrado' }, { status: 404 })
@@ -103,17 +105,29 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const membro = await membroAtual()
+    if (!membro) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     const serviceClient = createServiceRoleClient()
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
+
+    // Só campos editáveis (antes aceitava qualquer coluna, inclusive company_id)
+    const EDITAVEIS = ['name', 'email', 'notes', 'address', 'city', 'birthday', 'crm_stage', 'crm_company', 'origin_channel', 'tags']
+    const atualizacao: Record<string, unknown> = Object.fromEntries(
+      Object.entries(body).filter(([campo]) => EDITAVEIS.includes(campo))
+    )
+    if (body.custom_fields !== undefined) {
+      const campos = await valoresCamposValidos(serviceClient, membro.companyId, body.custom_fields)
+      if (!campos.ok) return NextResponse.json({ error: campos.erro }, { status: 400 })
+      atualizacao.custom_fields = campos.valores
+    }
+    if (Object.keys(atualizacao).length === 0) return NextResponse.json({ error: 'Nada para atualizar' }, { status: 400 })
 
     const { data, error } = await serviceClient
       .from('contacts')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...atualizacao, updated_at: new Date().toISOString() })
       .eq('id', params.id)
+      .eq('company_id', membro.companyId)
       .select()
       .single()
 

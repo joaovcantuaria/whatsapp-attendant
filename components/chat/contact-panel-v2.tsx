@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Conversation } from '@/types'
+import { CamposContato } from '@/components/crm/campos-contato'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -164,6 +165,12 @@ export function ContactPanelV2({ conversation }: ContactPanelV2Props) {
           </div>
         </div>
       </CollapsibleSection>
+
+      {contact?.id && (
+        <CollapsibleSection title="Campos" icon={<StickyNote className="h-3.5 w-3.5" />}>
+          <CamposContato contactId={contact.id} valores={contact.custom_fields} compacto />
+        </CollapsibleSection>
+      )}
 
       <CollapsibleSection title="Agendamentos" icon={<Calendar className="h-3.5 w-3.5" />}>
         <p className="text-xs text-slate-400 text-center py-2">Nenhum agendamento</p>

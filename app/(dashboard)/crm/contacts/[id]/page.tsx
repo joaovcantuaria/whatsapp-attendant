@@ -18,6 +18,7 @@ import {
   TrendingUp, MessageCircle, Calendar, FileText, Edit, Save, ArrowLeft
 } from 'lucide-react'
 import Link from 'next/link'
+import { CamposContato } from '@/components/crm/campos-contato'
 
 export default function ContactProfilePage() {
   const { id } = useParams()
@@ -109,6 +110,15 @@ export default function ContactProfilePage() {
               {contact.address && <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{contact.address}</div>}
               {contact.origin_channel && <div className="flex items-center gap-2"><Tag className="h-4 w-4 text-muted-foreground" />Canal: {contact.origin_channel}</div>}
               {contact.birthday && <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" />Aniversário: {new Date(contact.birthday + 'T00:00:00').toLocaleDateString('pt-BR')}</div>}
+              {contact.opted_out && <Badge variant="secondary">Descadastrado das campanhas (SAIR)</Badge>}
+            </CardContent>
+          </Card>
+
+          {/* Campos personalizados */}
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Campos personalizados</CardTitle></CardHeader>
+            <CardContent>
+              <CamposContato contactId={contact.id} valores={contact.custom_fields} />
             </CardContent>
           </Card>
 

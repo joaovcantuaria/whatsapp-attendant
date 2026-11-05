@@ -117,9 +117,9 @@ export async function processarLoteCampanha(
   // campaign_messages não tem FK para contacts: busca os nomes à parte
   const idsContatos = (lote || []).map((l) => l.contact_id)
   const { data: contatos } = idsContatos.length
-    ? await supabase.from('contacts').select('id, name').in('id', idsContatos)
+    ? await supabase.from('contacts').select('id, name, custom_fields').in('id', idsContatos)
     : { data: [] }
-  const nomes = new Map((contatos || []).map((c) => [c.id, c.name as string | null]))
+  const porId = new Map((contatos || []).map((c) => [c.id, c as { name: string | null; custom_fields: Record<string, unknown> | null }]))
 
   let enviadas = 0
   let falhas = 0
@@ -127,7 +127,11 @@ export async function processarLoteCampanha(
   for (const item of lote || []) {
     const resultado = Date.now() > prazo
       ? null
-      : await enviarTemplate(campanha, company, templateData, { phone: item.phone, name: nomes.get(item.contact_id) || null })
+      : await enviarTemplate(campanha, company, templateData, {
+          phone: item.phone,
+          name: porId.get(item.contact_id)?.name || null,
+          campos: porId.get(item.contact_id)?.custom_fields || null,
+        })
 
     if (!resultado) {
       // Sem tempo neste lote: devolve para a fila
@@ -179,7 +183,7 @@ async function enviarTemplate(
   campanha: Pick<Campanha, 'template_name' | 'template_language' | 'template_components'>,
   company: { whatsapp_token: string | null; whatsapp_phone_number_id: string | null } | null,
   templateData: TemplateData,
-  contato: { phone: string; name: string | null }
+  contato: { phone: string; name: string | null; campos?: Record<string, unknown> | null }
 ): Promise<{ ok: true; waMessageId: string | null } | { ok: false; erro: string }> {
   if (!company?.whatsapp_token || !company?.whatsapp_phone_number_id) return { ok: false, erro: 'WhatsApp não configurado' }
 
@@ -201,6 +205,10 @@ async function enviarTemplate(
         else if (mapping === '__custom__') resolvedVars[key] = (varsMapping ? varsMapping[`${key}_custom`] : '') || '-'
         else if (mapping) resolvedVars[key] = mapping
         else resolvedVars[key] = i === 1 ? (contato.name || phone) : '-'
+
+        // {{campo:chave}} → valor do campo personalizado do contato
+        const campo = resolvedVars[key].match(/^\{\{campo:([a-z0-9_]+)\}\}$/)
+        if (campo) resolvedVars[key] = String(contato.campos?.[campo[1]] ?? '') || '-'
       }
     }
 
