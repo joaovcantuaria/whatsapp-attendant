@@ -5,6 +5,7 @@ import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
+import { responderAusenciaSeFechado } from '@/lib/ausencia'
 
 // GET - Validação do webhook pela Meta (por empresa)
 export async function GET(
@@ -365,6 +366,9 @@ async function processInboundMessage(
   }
 
   if (!planoAtivo) return
+
+  // Fora do horário de atendimento: avisa o cliente (no máximo 1x a cada 12h por conversa)
+  await responderAusenciaSeFechado(supabase, { companyId, conversationId: conversation.id, phone, whatsappToken, phoneNumberId })
 
   // Marcar como lida na Meta
   await markMessageAsReadWithToken(message.id, whatsappToken, phoneNumberId)

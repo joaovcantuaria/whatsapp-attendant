@@ -5,6 +5,7 @@ import { processAiResponse } from '@/lib/ai-agent'
 import { processChatbotMessage } from '@/lib/chatbot-engine'
 import { WebhookMessage, WebhookStatus } from '@/types'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
+import { responderAusenciaSeFechado } from '@/lib/ausencia'
 
 /**
  * Normaliza números brasileiros para garantir o 9º dígito em celulares.
@@ -274,6 +275,20 @@ async function processInboundMessage(
       phoneNumberId: credenciais?.whatsapp_phone_number_id,
     })
     return
+  }
+
+  // Fora do horário de atendimento: avisa o cliente (no máximo 1x a cada 12h por conversa)
+  const ausenciaCompanyId = companyId || contact.company_id
+  if (ausenciaCompanyId) {
+    const { data: credAusencia } = await supabase
+      .from('companies').select('whatsapp_token, whatsapp_phone_number_id').eq('id', ausenciaCompanyId).single()
+    await responderAusenciaSeFechado(supabase, {
+      companyId: ausenciaCompanyId,
+      conversationId: conversation.id,
+      phone,
+      whatsappToken: credAusencia?.whatsapp_token,
+      phoneNumberId: credAusencia?.whatsapp_phone_number_id,
+    })
   }
 
   // Detectar resposta de pesquisa de satisfação (Flow)
