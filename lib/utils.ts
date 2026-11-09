@@ -35,7 +35,7 @@ export function formatRelativeTime(dateString: string): string {
 export function formatMessageTime(dateString: string): string {
   // Garantir que a data é interpretada como UTC se não tiver timezone
   let date: Date
-  if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('T')) {
+  if (/(Z|[+-]\d{2}:?\d{2})$/i.test(dateString)) {
     date = new Date(dateString)
   } else {
     date = new Date(dateString + 'Z')

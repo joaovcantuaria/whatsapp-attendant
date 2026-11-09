@@ -9,6 +9,7 @@ import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
 import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
 import { responderAcaoDeTarefa } from '@/lib/acao-tarefa-app'
+import { descreverErroMeta } from '@/lib/erro-meta'
 
 // GET - Validação do webhook pela Meta (por empresa)
 export async function GET(
@@ -443,6 +444,16 @@ async function processStatusUpdate(
     .update({ status: mappedStatus })
     .eq('whatsapp_message_id', status.id)
     .eq('company_id', companyId)
+
+  // Motivo da falha (update separado: se a coluna ainda não existir, o status acima já foi salvo)
+  if (mappedStatus === 'failed') {
+    const motivo = descreverErroMeta(status.errors)
+    if (motivo) {
+      console.warn('[webhook] mensagem falhou', status.id, motivo)
+      await supabase.from('messages').update({ error_message: motivo })
+        .eq('whatsapp_message_id', status.id).eq('company_id', companyId)
+    }
+  }
 }
 
 // Funções auxiliares com token específico da empresa

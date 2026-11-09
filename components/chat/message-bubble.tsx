@@ -131,7 +131,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       case 'read':
         return <CheckCheck className="h-3.5 w-3.5 text-blue-500" />
       case 'failed':
-        return <XCircle className="h-3.5 w-3.5 text-destructive" />
+        return (
+          <span title={message.error_message || 'Falha no envio'}>
+            <XCircle className="h-3.5 w-3.5 text-destructive" />
+          </span>
+        )
       default:
         return <Clock className="h-3.5 w-3.5 text-muted-foreground" />
     }
@@ -387,6 +391,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </span>
           <StatusIcon />
         </div>
+        {isOutbound && message.status === 'failed' && message.error_message && (
+          <p className="text-[10px] text-destructive mt-0.5 text-right">{message.error_message}</p>
+        )}
       </div>
     </div>
   )

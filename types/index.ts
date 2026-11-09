@@ -139,6 +139,7 @@ export interface Message {
   template_name: string | null
   template_variables: Record<string, unknown> | null
   status: MessageStatus
+  error_message?: string | null
   agent_id: string | null
   created_at: string
 }
@@ -221,6 +222,7 @@ export interface WebhookStatus {
   status: MessageStatus
   timestamp: string
   recipient_id: string
+  errors?: { code?: number; title?: string; message?: string; error_data?: { details?: string } }[]
 }
 
 export interface SuperAdminMetrics {

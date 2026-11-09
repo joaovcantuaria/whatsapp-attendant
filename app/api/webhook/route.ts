@@ -9,6 +9,7 @@ import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
 import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
 import { responderAcaoDeTarefa } from '@/lib/acao-tarefa-app'
+import { descreverErroMeta } from '@/lib/erro-meta'
 
 /**
  * Normaliza números brasileiros para garantir o 9º dígito em celulares.
@@ -468,6 +469,15 @@ async function processStatusUpdate(
     .from('messages')
     .update({ status: mappedStatus })
     .eq('whatsapp_message_id', id)
+
+  // Motivo da falha (update separado: se a coluna ainda não existir, o status acima já foi salvo)
+  if (mappedStatus === 'failed') {
+    const motivo = descreverErroMeta(status.errors)
+    if (motivo) {
+      console.warn('[webhook] mensagem falhou', id, motivo)
+      await supabase.from('messages').update({ error_message: motivo }).eq('whatsapp_message_id', id)
+    }
+  }
 
   // Atualizar nas mensagens de campanha (se existir)
   if (mappedStatus === 'delivered' || mappedStatus === 'read' || mappedStatus === 'failed') {
