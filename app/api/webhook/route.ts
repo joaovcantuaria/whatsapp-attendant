@@ -8,6 +8,7 @@ import { MENSAGEM_NAO_SUPORTADA } from '@/lib/mensagem-nao-suportada'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
 import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
+import { responderAcaoDeTarefa } from '@/lib/acao-tarefa-app'
 
 /**
  * Normaliza números brasileiros para garantir o 9º dígito em celulares.
@@ -264,6 +265,12 @@ async function processInboundMessage(
 
   // 6. Marcar como lida na Meta
   await markMessageAsRead(message.id)
+
+  // Botão "Concluí" / "Adiar" de lembrete de tarefa do Bora Gerir App: resolve e responde
+  if (message.type === 'button' && message.button?.payload?.startsWith('tarefa:')) {
+    await responderAcaoDeTarefa(supabase, { companyId: companyId || contact.company_id, conversationId: conversation.id, phone, payload: message.button.payload })
+    return
+  }
 
   // Link de entrada (#CODIGO): origem, etiqueta e departamento
   if (message.type === 'text') {

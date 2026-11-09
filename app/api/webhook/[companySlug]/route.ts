@@ -8,6 +8,7 @@ import { MENSAGEM_NAO_SUPORTADA } from '@/lib/mensagem-nao-suportada'
 import { aplicarOptOut, intencaoOptOut } from '@/lib/opt-out'
 import { responderAusenciaSeFechado } from '@/lib/ausencia'
 import { aplicarLinkDeEntrada } from '@/lib/links-entrada'
+import { responderAcaoDeTarefa } from '@/lib/acao-tarefa-app'
 
 // GET - Validação do webhook pela Meta (por empresa)
 export async function GET(
@@ -355,6 +356,12 @@ async function processInboundMessage(
     } catch (err) {
       console.error('[Webhook] Erro ao registrar avaliação:', err)
     }
+  }
+
+  // Botão "Concluí" / "Adiar" de lembrete de tarefa do Bora Gerir App: resolve e responde
+  if (message.type === 'button' && message.button?.payload?.startsWith('tarefa:')) {
+    await responderAcaoDeTarefa(supabase, { companyId: companyId, conversationId: conversation.id, phone, payload: message.button.payload })
+    return
   }
 
   // Link de entrada (#CODIGO): origem, etiqueta e departamento

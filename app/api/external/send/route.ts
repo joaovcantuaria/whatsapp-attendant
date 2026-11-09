@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase-server'
+import { variantesTelefone } from '@/lib/automacoes-regras'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Campo "phone" é obrigatório' }, { status: 400 })
     }
 
+    // Quem respondeu SAIR não recebe mensagens automáticas
+    const { data: descadastrado } = await supabase
+      .from('contacts')
+      .select('id')
+      .eq('company_id', keyData.company_id)
+      .in('phone', variantesTelefone(String(phone)))
+      .eq('opted_out', true)
+      .limit(1)
+    if (descadastrado && descadastrado.length > 0) {
+      return NextResponse.json({ error: 'Contato pediu para não receber mensagens (SAIR)', opted_out: true }, { status: 409 })
+    }
+
     const WHATSAPP_API_URL = 'https://graph.facebook.com/v22.0'
     const headers = {
       'Authorization': `Bearer ${company.whatsapp_token}`,
@@ -65,6 +78,18 @@ export async function POST(request: NextRequest) {
         components.push({
           type: 'body',
           parameters: variables.map((v: string) => ({ type: 'text', text: v })),
+        })
+      }
+      // Botões de resposta rápida do template (ex.: "Concluí" / "Adiar 1 dia"), na ordem
+      if (Array.isArray(body.button_payloads)) {
+        body.button_payloads.slice(0, 3).forEach((payload: unknown, index: number) => {
+          if (typeof payload !== 'string' || !payload) return
+          components.push({
+            type: 'button',
+            sub_type: 'quick_reply',
+            index: String(index),
+            parameters: [{ type: 'payload', payload: payload.slice(0, 256) }],
+          })
         })
       }
 
